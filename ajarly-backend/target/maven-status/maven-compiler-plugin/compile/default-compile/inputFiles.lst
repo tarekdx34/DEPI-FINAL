@@ -1,9 +1,14 @@
-C:\Users\tarek\Desktop\Ajarly\ajarly-backend\src\main\java\com\ajarly\backend\service\AuthService.java
-C:\Users\tarek\Desktop\Ajarly\ajarly-backend\src\main\java\com\ajarly\backend\dto\AuthDto.java
-C:\Users\tarek\Desktop\Ajarly\ajarly-backend\src\main\java\com\ajarly\backend\model\User.java
-C:\Users\tarek\Desktop\Ajarly\ajarly-backend\src\main\java\com\ajarly\backend\AjarlyBackendApplication.java
-C:\Users\tarek\Desktop\Ajarly\ajarly-backend\src\main\java\com\ajarly\backend\security\JwtAuthenticationFilter.java
-C:\Users\tarek\Desktop\Ajarly\ajarly-backend\src\main\java\com\ajarly\backend\security\JwtUtil.java
-C:\Users\tarek\Desktop\Ajarly\ajarly-backend\src\main\java\com\ajarly\backend\repository\UserRepository.java
-C:\Users\tarek\Desktop\Ajarly\ajarly-backend\src\main\java\com\ajarly\backend\controller\AuthController.java
-C:\Users\tarek\Desktop\Ajarly\ajarly-backend\src\main\java\com\ajarly\backend\config\SecurityConfig.java
+D:\DEPI Project\Repo\ajarly-backend\src\main\java\com\ajarly\backend\dto\PropertyDto.java
+D:\DEPI Project\Repo\ajarly-backend\src\main\java\com\ajarly\backend\security\JwtAuthenticationFilter.java
+D:\DEPI Project\Repo\ajarly-backend\src\main\java\com\ajarly\backend\repository\PropertyRepository.java
+D:\DEPI Project\Repo\ajarly-backend\src\main\java\com\ajarly\backend\service\PropertyService.java
+D:\DEPI Project\Repo\ajarly-backend\src\main\java\com\ajarly\backend\model\User.java
+D:\DEPI Project\Repo\ajarly-backend\src\main\java\com\ajarly\backend\security\JwtUtil.java
+D:\DEPI Project\Repo\ajarly-backend\src\main\java\com\ajarly\backend\service\AuthService.java
+D:\DEPI Project\Repo\ajarly-backend\src\main\java\com\ajarly\backend\AjarlyBackendApplication.java
+D:\DEPI Project\Repo\ajarly-backend\src\main\java\com\ajarly\backend\dto\AuthDto.java
+D:\DEPI Project\Repo\ajarly-backend\src\main\java\com\ajarly\backend\controller\AuthController.java
+D:\DEPI Project\Repo\ajarly-backend\src\main\java\com\ajarly\backend\controller\PropertyController.java
+D:\DEPI Project\Repo\ajarly-backend\src\main\java\com\ajarly\backend\config\SecurityConfig.java
+D:\DEPI Project\Repo\ajarly-backend\src\main\java\com\ajarly\backend\model\Property.java
+D:\DEPI Project\Repo\ajarly-backend\src\main\java\com\ajarly\backend\repository\UserRepository.java
