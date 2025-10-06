@@ -1,0 +1,13 @@
+com\ajarly\backend\AjarlyBackendApplication.class
+com\ajarly\backend\controller\AuthController.class
+com\ajarly\backend\service\AuthService.class
+com\ajarly\backend\security\JwtAuthenticationFilter.class
+com\ajarly\backend\dto\AuthDto$RegisterRequest.class
+com\ajarly\backend\dto\AuthDto.class
+com\ajarly\backend\repository\UserRepository.class
+com\ajarly\backend\security\JwtUtil.class
+com\ajarly\backend\model\User$UserType.class
+com\ajarly\backend\dto\AuthDto$LoginRequest.class
+com\ajarly\backend\dto\AuthDto$AuthResponse.class
+com\ajarly\backend\config\SecurityConfig.class
+com\ajarly\backend\model\User.class

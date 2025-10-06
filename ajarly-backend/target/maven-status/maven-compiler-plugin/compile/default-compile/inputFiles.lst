@@ -1,0 +1,9 @@
+C:\Users\tarek\Desktop\Ajarly\ajarly-backend\src\main\java\com\ajarly\backend\service\AuthService.java
+C:\Users\tarek\Desktop\Ajarly\ajarly-backend\src\main\java\com\ajarly\backend\dto\AuthDto.java
+C:\Users\tarek\Desktop\Ajarly\ajarly-backend\src\main\java\com\ajarly\backend\model\User.java
+C:\Users\tarek\Desktop\Ajarly\ajarly-backend\src\main\java\com\ajarly\backend\AjarlyBackendApplication.java
+C:\Users\tarek\Desktop\Ajarly\ajarly-backend\src\main\java\com\ajarly\backend\security\JwtAuthenticationFilter.java
+C:\Users\tarek\Desktop\Ajarly\ajarly-backend\src\main\java\com\ajarly\backend\security\JwtUtil.java
+C:\Users\tarek\Desktop\Ajarly\ajarly-backend\src\main\java\com\ajarly\backend\repository\UserRepository.java
+C:\Users\tarek\Desktop\Ajarly\ajarly-backend\src\main\java\com\ajarly\backend\controller\AuthController.java
+C:\Users\tarek\Desktop\Ajarly\ajarly-backend\src\main\java\com\ajarly\backend\config\SecurityConfig.java
