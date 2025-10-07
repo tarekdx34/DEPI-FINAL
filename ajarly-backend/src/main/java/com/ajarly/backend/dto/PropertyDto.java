@@ -71,7 +71,7 @@ public class PropertyDto {
         
         private Integer floorNumber;
         private Integer totalFloors;
-        private Boolean furnished;
+        private Boolean furnished = false;
         private Boolean petsAllowed;
         private Boolean smokingAllowed;
         
@@ -90,7 +90,7 @@ public class PropertyDto {
         @Min(1)
         private Integer minRentalDays;
         
-        private Boolean instantBooking;
+        private Boolean instantBooking = false;
     }
     
     // Response DTO

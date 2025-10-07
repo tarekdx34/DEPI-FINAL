@@ -61,7 +61,7 @@ public class PropertyService {
         property.setAvailableTo(request.getAvailableTo());
         property.setMinRentalDays(request.getMinRentalDays());
         property.setInstantBooking(request.getInstantBooking());
-        property.setStatus(PropertyStatus.PENDING_APPROVAL);
+        property.setStatus(PropertyStatus.pending_approval);
         
         Property saved = propertyRepository.save(property);
         return mapToResponse(saved);
@@ -88,7 +88,7 @@ public class PropertyService {
             Pageable pageable) {
         
         Page<Property> properties = propertyRepository.searchProperties(
-            PropertyStatus.ACTIVE,
+            PropertyStatus.active,
             governorate,
             city,
             propertyType,
@@ -135,10 +135,10 @@ public class PropertyService {
             .orElseThrow(() -> new RuntimeException("Property not found"));
         
         if (!property.getOwner().getUserId().equals(ownerId)) {
-            throw new RuntimeException("Unauthorized");
-        }
+           throw new RuntimeException("Unauthorized");
+       }
         
-        property.setStatus(PropertyStatus.DELETED);
+        property.setStatus(PropertyStatus.deleted);
         propertyRepository.save(property);
     }
     

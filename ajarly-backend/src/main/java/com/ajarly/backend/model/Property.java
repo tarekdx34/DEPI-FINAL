@@ -116,7 +116,7 @@ public class Property {
     private Boolean instantBooking = false;
     
     @Enumerated(EnumType.STRING)
-    private PropertyStatus status = PropertyStatus.DRAFT;
+    private PropertyStatus status = PropertyStatus.draft;
     
     @Column(name = "is_verified")
     private Boolean isVerified = false;
@@ -154,15 +154,15 @@ public class Property {
     }
     
     // Enums
-    public enum PropertyType {
-        APARTMENT, CHALET, VILLA, STUDIO, PENTHOUSE, ROOM, FARM, CAMP
-    }
-    
-    public enum RentalType {
-        VACATION, LONG_TERM, BOTH
-    }
-    
-    public enum PropertyStatus {
-        DRAFT, PENDING_APPROVAL, ACTIVE, INACTIVE, SUSPENDED, DELETED
-    }
+   public enum PropertyType {
+    apartment, chalet, villa, studio, penthouse, room, farm, camp
+}
+
+public enum RentalType {
+    vacation, long_term, both
+}
+
+public enum PropertyStatus {
+    draft, pending_approval, active, inactive, suspended, deleted
+}
 }
