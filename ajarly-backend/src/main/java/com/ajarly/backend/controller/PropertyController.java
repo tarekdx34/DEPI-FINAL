@@ -17,19 +17,35 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Property Controller
+ * 
+ * FIXED: Changed to use X-User-Id header instead of hardcoded userId
+ * FIXED: Changed userId from Long to Integer to match database
+ */
 @RestController
 @RequestMapping("/api/v1/properties")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class PropertyController {
     
     private final PropertyService propertyService;
     
     @PostMapping
-    public ResponseEntity<?> createProperty(@Valid @RequestBody PropertyDto.CreateRequest request) {
-        // TODO: Get userId from JWT token when security is enabled
-        Long userId = 8L; // Temporary hardcoded userId
+    public ResponseEntity<?> createProperty(
+            @Valid @RequestBody PropertyDto.CreateRequest request,
+            @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
         
-        PropertyDto.Response property = propertyService.createProperty(request, userId);
+        // ========== TEMPORARY: For testing without JWT ==========
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                "success", false,
+                "message", "User authentication required. Please provide X-User-Id header."
+            ));
+        }
+        // ========== END TEMPORARY ==========
+        
+        PropertyDto.Response property = propertyService.createProperty(request, userId.longValue());
         
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
             "success", true,
@@ -90,14 +106,21 @@ public class PropertyController {
     @GetMapping("/my-properties")
     public ResponseEntity<?> getMyProperties(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
         
-        // TODO: Get userId from JWT token when security is enabled
-        Long userId = 8L; // Temporary hardcoded userId
+        // ========== TEMPORARY: For testing without JWT ==========
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                "success", false,
+                "message", "User authentication required. Please provide X-User-Id header."
+            ));
+        }
+        // ========== END TEMPORARY ==========
         
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         
-        Page<PropertyDto.ListResponse> properties = propertyService.getMyProperties(userId, pageable);
+        Page<PropertyDto.ListResponse> properties = propertyService.getMyProperties(userId.longValue(), pageable);
         
         return ResponseEntity.ok(Map.of(
             "success", true,
@@ -113,12 +136,19 @@ public class PropertyController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateProperty(
             @PathVariable Long id,
-            @Valid @RequestBody PropertyDto.CreateRequest request) {
+            @Valid @RequestBody PropertyDto.CreateRequest request,
+            @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
         
-        // TODO: Get userId from JWT token when security is enabled
-        Long userId = 8L; // Temporary hardcoded userId
+        // ========== TEMPORARY: For testing without JWT ==========
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                "success", false,
+                "message", "User authentication required. Please provide X-User-Id header."
+            ));
+        }
+        // ========== END TEMPORARY ==========
         
-        PropertyDto.Response property = propertyService.updateProperty(id, request, userId);
+        PropertyDto.Response property = propertyService.updateProperty(id, request, userId.longValue());
         
         return ResponseEntity.ok(Map.of(
             "success", true,
@@ -129,11 +159,20 @@ public class PropertyController {
     }
     
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteProperty(@PathVariable Long id) {
-        // TODO: Get userId from JWT token when security is enabled
-        Long userId = 8L; // Temporary hardcoded userId , Need to be changed
+    public ResponseEntity<?> deleteProperty(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
         
-        propertyService.deleteProperty(id, userId);
+        // ========== TEMPORARY: For testing without JWT ==========
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                "success", false,
+                "message", "User authentication required. Please provide X-User-Id header."
+            ));
+        }
+        // ========== END TEMPORARY ==========
+        
+        propertyService.deleteProperty(id, userId.longValue());
         
         return ResponseEntity.ok(Map.of(
             "success", true,
