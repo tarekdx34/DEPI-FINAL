@@ -46,6 +46,10 @@ public class User {
     @Column(name = "last_name", nullable = false)
     private String lastName;
     
+    // ADDED: Profile photo field (optional, can be null)
+    @Column(name = "profile_photo", length = 500)
+    private String profilePhoto;
+    
     private String governorate;
     private String city;
     
@@ -77,8 +81,9 @@ public class User {
     
     public enum UserType {
         renter, landlord, broker, admin;
+        
         public String getValue() {
-        return this.name();
-    }
+            return this.name();
+        }
     }
 }

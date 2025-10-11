@@ -1,5 +1,3 @@
-// src/main/java/com/ajarly/backend/model/Property.java
-
 package com.ajarly.backend.model;
 
 import jakarta.persistence.*;
@@ -7,6 +5,8 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "properties")
@@ -124,6 +124,10 @@ public class Property {
     @Column(name = "view_count")
     private Integer viewCount = 0;
     
+    // ADDED: Missing field for booking statistics
+    @Column(name = "booking_request_count")
+    private Integer bookingRequestCount = 0;
+    
     @Column(name = "booking_confirmed_count")
     private Integer bookingConfirmedCount = 0;
     
@@ -142,6 +146,10 @@ public class Property {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
+    // ADDED: Relationship with PropertyImage (if you want to use it)
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PropertyImage> images = new ArrayList<>();
+    
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -154,15 +162,15 @@ public class Property {
     }
     
     // Enums
-   public enum PropertyType {
-    apartment, chalet, villa, studio, penthouse, room, farm, camp
-}
+    public enum PropertyType {
+        apartment, chalet, villa, studio, penthouse, room, farm, camp
+    }
 
-public enum RentalType {
-    vacation, long_term, both
-}
+    public enum RentalType {
+        vacation, long_term, both
+    }
 
-public enum PropertyStatus {
-    draft, pending_approval, active, inactive, suspended, deleted
-}
+    public enum PropertyStatus {
+        draft, pending_approval, active, inactive, suspended, deleted
+    }
 }
