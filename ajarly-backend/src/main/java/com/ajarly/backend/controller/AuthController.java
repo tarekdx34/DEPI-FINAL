@@ -8,9 +8,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Authentication Controller
+ * 
+ * FIXED: Changed path from /api/auth to /api/v1/auth
+ */
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")  // ✅ FIXED: Added /v1
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class AuthController {
     
     private final AuthService authService;

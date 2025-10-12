@@ -145,6 +145,9 @@ public class Property {
     
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "favorite_count")
+    private Integer favoriteCount = 0;
     
     // ADDED: Relationship with PropertyImage (if you want to use it)
     @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true)
