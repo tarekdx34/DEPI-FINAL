@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
-@Data
+@Data  // THIS IS CRITICAL - generates getters/setters
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
@@ -46,9 +46,18 @@ public class User {
     @Column(name = "last_name", nullable = false)
     private String lastName;
     
-    // ADDED: Profile photo field (optional, can be null)
     @Column(name = "profile_photo", length = 500)
     private String profilePhoto;
+    
+    // NEW FIELDS FOR FEATURE 7
+    @Column(name = "bio", length = 500)
+    private String bio;
+    
+    @Column(name = "phone_verification_code", length = 6)
+    private String phoneVerificationCode;
+    
+    @Column(name = "phone_verification_expires")
+    private LocalDateTime phoneVerificationCodeExpiresAt;
     
     private String governorate;
     private String city;
