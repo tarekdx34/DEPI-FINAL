@@ -53,6 +53,7 @@ public class AdminLog {
         verify_user,
         suspend_property,
         delete_property,
+        resolve_report,
         other
     }
     

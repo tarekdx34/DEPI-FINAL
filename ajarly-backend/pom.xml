@@ -23,6 +23,10 @@
     </properties>
     
     <dependencies>
+    <dependency>
+    <groupId>org.springframework.security</groupId>
+    <artifactId>spring-security-core</artifactId>
+</dependency>
         <!-- Cloudinary SDK -->
         <dependency>
             <groupId>com.cloudinary</groupId>
