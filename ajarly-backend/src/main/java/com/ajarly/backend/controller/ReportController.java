@@ -13,7 +13,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
-
+import com.ajarly.backend.model.User;
+import com.ajarly.backend.model.Property;
+import com.ajarly.backend.repository.UserRepository;
+import com.ajarly.backend.repository.PropertyRepository;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -25,17 +28,24 @@ import jakarta.validation.Valid;
 public class ReportController {
     
     private final ReportService reportService;
+    private final UserRepository userRepository;          // ← ADD THIS
+    private final PropertyRepository propertyRepository;  // ← ADD THIS
     
     /**
      * POST /api/v1/reports - Create a new report (any logged-in user)
      */
     @PostMapping
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ReportResponse> createReport(
+   public ResponseEntity<ReportResponse> createReport(
         @Valid @RequestBody ReportRequest request,
         HttpServletRequest httpRequest) {
         
         Long reporterId = (Long) httpRequest.getAttribute("userId");
+        
+        // Check if user is authenticated
+        if (reporterId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         
         try {
             // Create report entity from request
@@ -44,10 +54,36 @@ public class ReportController {
             report.setReason(request.getReason());
             report.setDescription(request.getDescription());
             
+            // Fetch and set the reported item based on report type
+            // This is CRITICAL for duplicate checking to work
+            if (request.getReportType() == ReportType.property && request.getReportedPropertyId() != null) {
+                Property property = propertyRepository.findById(request.getReportedPropertyId())
+                    .orElseThrow(() -> new IllegalArgumentException("Property not found"));
+                report.setReportedProperty(property);
+            } 
+            else if (request.getReportType() == ReportType.user && request.getReportedUserId() != null) {
+                User user = userRepository.findById(request.getReportedUserId())
+                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                report.setReportedUser(user);
+            }
+            else if (request.getReportType() == ReportType.message && request.getReportedMessageId() != null) {
+                // For now, just store the ID since Message model doesn't exist yet
+                report.setReportedMessageId(request.getReportedMessageId());
+            }
+            else if (request.getReportType() == ReportType.review && request.getReportedReviewId() != null) {
+                // TODO: Fetch review from database when Review model is available
+                log.warn("Review reporting not fully implemented yet");
+                throw new IllegalArgumentException("Review reporting not yet implemented");
+            }
+            else {
+                throw new IllegalArgumentException("Reported item ID must be provided");
+            }
+            
             Report createdReport = reportService.createReport(report, reporterId);
             ReportResponse response = ReportResponse.fromReport(createdReport);
             
-            log.info("Report created successfully: reportId={}", createdReport.getReportId());
+            log.info("Report created successfully: reportId={}, reportedUserId={}", 
+                createdReport.getReportId(), request.getReportedUserId());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
             
         } catch (IllegalArgumentException e) {
