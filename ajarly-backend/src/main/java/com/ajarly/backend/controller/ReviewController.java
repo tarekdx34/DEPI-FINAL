@@ -2,6 +2,7 @@ package com.ajarly.backend.controller;
 
 import com.ajarly.backend.dto.ReviewDto;
 import com.ajarly.backend.service.ReviewService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -24,25 +26,28 @@ public class ReviewController {
     private final ReviewService reviewService;
     
     /**
+     * Extract userId from JWT token (set by JwtAuthenticationFilter)
+     */
+    private Long getUserIdFromRequest(HttpServletRequest request) {
+        Object userId = request.getAttribute("userId");
+        if (userId == null) {
+            throw new RuntimeException("User not authenticated");
+        }
+        return (Long) userId;
+    }
+    
+    /**
      * Create a new review for a completed booking
      * POST /api/v1/reviews
      */
     @PostMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, Object>> createReview(
             @Valid @RequestBody ReviewDto.CreateRequest request,
-            @RequestHeader(value = "X-User-Id", required = false) Long userId // TODO: Get from JWT
+            HttpServletRequest httpRequest
     ) {
         try {
-            // TODO: Uncomment when JWT is ready
-            // if (userId == null) {
-            //     return buildErrorResponse("Authentication required", HttpStatus.UNAUTHORIZED);
-            // }
-            
-            // TEMPORARY: For testing without JWT
-            if (userId == null) {
-                return buildErrorResponse("X-User-Id header is required for testing", HttpStatus.BAD_REQUEST);
-            }
-            
+            Long userId = getUserIdFromRequest(httpRequest);
             ReviewDto.Response review = reviewService.createReview(request, userId);
             
             return buildSuccessResponse("Review created successfully", review, HttpStatus.CREATED);
@@ -57,6 +62,7 @@ public class ReviewController {
     /**
      * Get all approved reviews for a property
      * GET /api/v1/reviews/property/{propertyId}
+     * PUBLIC - No authentication required
      */
     @GetMapping("/property/{propertyId}")
     public ResponseEntity<Map<String, Object>> getPropertyReviews(
@@ -91,6 +97,7 @@ public class ReviewController {
     /**
      * Get property review statistics
      * GET /api/v1/reviews/property/{propertyId}/stats
+     * PUBLIC - No authentication required
      */
     @GetMapping("/property/{propertyId}/stats")
     public ResponseEntity<Map<String, Object>> getPropertyReviewStats(@PathVariable Long propertyId) {
@@ -107,6 +114,7 @@ public class ReviewController {
     /**
      * Get reviews by a specific reviewer (user)
      * GET /api/v1/reviews/reviewer/{reviewerId}
+     * PUBLIC - No authentication required
      */
     @GetMapping("/reviewer/{reviewerId}")
     public ResponseEntity<Map<String, Object>> getReviewsByReviewer(
@@ -132,9 +140,8 @@ public class ReviewController {
     
     /**
      * Get reviews for a specific owner (reviews they received)
-     * GET /api/
-     * * Get reviews for a specific owner (reviews they received)
      * GET /api/v1/reviews/owner/{ownerId}
+     * PUBLIC - No authentication required
      */
     @GetMapping("/owner/{ownerId}")
     public ResponseEntity<Map<String, Object>> getReviewsForOwner(
@@ -161,6 +168,7 @@ public class ReviewController {
     /**
      * Get a single review by ID
      * GET /api/v1/reviews/{id}
+     * PUBLIC - No authentication required
      */
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> getReviewById(@PathVariable Long id) {
@@ -179,22 +187,14 @@ public class ReviewController {
      * PUT /api/v1/reviews/{id}/response
      */
     @PutMapping("/{id}/response")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, Object>> respondToReview(
             @PathVariable Long id,
             @Valid @RequestBody ReviewDto.OwnerResponseRequest request,
-            @RequestHeader(value = "X-User-Id", required = false) Long ownerId // TODO: Get from JWT
+            HttpServletRequest httpRequest
     ) {
         try {
-            // TODO: Uncomment when JWT is ready
-            // if (ownerId == null) {
-            //     return buildErrorResponse("Authentication required", HttpStatus.UNAUTHORIZED);
-            // }
-            
-            // TEMPORARY: For testing without JWT
-            if (ownerId == null) {
-                return buildErrorResponse("X-User-Id header is required for testing", HttpStatus.BAD_REQUEST);
-            }
-            
+            Long ownerId = getUserIdFromRequest(httpRequest);
             ReviewDto.Response review = reviewService.respondToReview(id, request, ownerId);
             
             return buildSuccessResponse("Response added successfully", review, HttpStatus.OK);
@@ -211,16 +211,14 @@ public class ReviewController {
      * PATCH /api/v1/reviews/{id}/response
      */
     @PatchMapping("/{id}/response")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, Object>> updateOwnerResponse(
             @PathVariable Long id,
             @Valid @RequestBody ReviewDto.OwnerResponseRequest request,
-            @RequestHeader(value = "X-User-Id", required = false) Long ownerId // TODO: Get from JWT
+            HttpServletRequest httpRequest
     ) {
         try {
-            if (ownerId == null) {
-                return buildErrorResponse("X-User-Id header is required for testing", HttpStatus.BAD_REQUEST);
-            }
-            
+            Long ownerId = getUserIdFromRequest(httpRequest);
             ReviewDto.Response review = reviewService.updateOwnerResponse(id, request, ownerId);
             
             return buildSuccessResponse("Response updated successfully", review, HttpStatus.OK);
@@ -237,24 +235,13 @@ public class ReviewController {
      * DELETE /api/v1/reviews/{id}
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> deleteReview(
             @PathVariable Long id,
-            @RequestHeader(value = "X-User-Id", required = false) Long adminId // TODO: Get from JWT and verify admin role
+            HttpServletRequest httpRequest
     ) {
         try {
-            // TODO: Uncomment when JWT is ready and add admin role check
-            // if (adminId == null) {
-            //     return buildErrorResponse("Authentication required", HttpStatus.UNAUTHORIZED);
-            // }
-            // if (!userService.isAdmin(adminId)) {
-            //     return buildErrorResponse("Admin access required", HttpStatus.FORBIDDEN);
-            // }
-            
-            // TEMPORARY: For testing without JWT
-            if (adminId == null) {
-                return buildErrorResponse("X-User-Id header is required for testing", HttpStatus.BAD_REQUEST);
-            }
-            
+            Long adminId = getUserIdFromRequest(httpRequest);
             reviewService.deleteReview(id, adminId);
             
             return buildSuccessResponse("Review deleted successfully", null, HttpStatus.OK);
@@ -271,15 +258,13 @@ public class ReviewController {
      * GET /api/v1/reviews/booking/{bookingId}/can-review
      */
     @GetMapping("/booking/{bookingId}/can-review")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, Object>> canReviewBooking(
             @PathVariable Integer bookingId,
-            @RequestHeader(value = "X-User-Id", required = false) Long userId
+            HttpServletRequest httpRequest
     ) {
         try {
-            if (userId == null) {
-                return buildErrorResponse("X-User-Id header is required for testing", HttpStatus.BAD_REQUEST);
-            }
-            
+            Long userId = getUserIdFromRequest(httpRequest);
             boolean canReview = reviewService.canUserReviewBooking(bookingId, userId);
             
             Map<String, Object> data = new HashMap<>();

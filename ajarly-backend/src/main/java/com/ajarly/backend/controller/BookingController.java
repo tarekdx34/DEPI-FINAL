@@ -2,57 +2,53 @@ package com.ajarly.backend.controller;
 
 import com.ajarly.backend.dto.*;
 import com.ajarly.backend.service.BookingService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Booking Controller
- * 
- * NOTE: JWT Authentication is commented out for testing purposes.
- * Using X-User-Id header instead. Uncomment JWT authentication before production.
- * 
- * TODO: Before production deployment:
- * 1. Uncomment @PreAuthorize annotations
- * 2. Replace X-User-Id header with JWT token parsing
- * 3. Use Authentication principal to get userId
- * 4. Remove X-User-Id header parameter
+ * Booking Controller - JWT Authentication Enabled
  */
 @RestController
 @RequestMapping("/api/v1/bookings")
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "*")
-// @PreAuthorize("isAuthenticated()") // TODO: Uncomment for production
 public class BookingController {
     
     private final BookingService bookingService;
     
-    // TODO: For production, inject AuthenticationFacade or similar to get current user
-    // private final AuthenticationFacade authenticationFacade;
+    /**
+     * Helper method to extract userId from JWT (set by JwtAuthenticationFilter)
+     */
+    private Integer getUserIdFromRequest(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        if (userId == null) {
+            throw new RuntimeException("User not authenticated");
+        }
+        return userId.intValue();
+    }
     
     /**
      * Create a new booking request
      * POST /api/v1/bookings
      */
     @PostMapping
+    @PreAuthorize("hasAnyRole('renter', 'landlord', 'broker')")
     public ResponseEntity<ApiResponse<BookingResponse>> createBooking(
             @Valid @RequestBody BookingCreateRequest request,
-            @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
+            HttpServletRequest httpRequest) {
         
-        // TODO: In production, get userId from JWT token
-        // For now, using header for testing
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("User authentication required"));
-        }
+        Integer userId = getUserIdFromRequest(httpRequest);
         
         log.info("Creating booking request for property {} by user {}", request.getPropertyId(), userId);
         
@@ -67,14 +63,12 @@ public class BookingController {
      * GET /api/v1/bookings
      */
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<BookingListResponse>>> getUserBookings(
             @RequestParam(required = false) String status,
-            @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
+            HttpServletRequest httpRequest) {
         
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("User authentication required"));
-        }
+        Integer userId = getUserIdFromRequest(httpRequest);
         
         log.info("Fetching bookings for renter {}", userId);
         
@@ -89,14 +83,12 @@ public class BookingController {
      * GET /api/v1/bookings/owner
      */
     @GetMapping("/owner")
+    @PreAuthorize("hasAnyRole('landlord', 'broker')")
     public ResponseEntity<ApiResponse<List<BookingListResponse>>> getOwnerBookings(
             @RequestParam(required = false) String status,
-            @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
+            HttpServletRequest httpRequest) {
         
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("User authentication required"));
-        }
+        Integer userId = getUserIdFromRequest(httpRequest);
         
         log.info("Fetching bookings for owner {}", userId);
         
@@ -111,13 +103,11 @@ public class BookingController {
      * GET /api/v1/bookings/upcoming
      */
     @GetMapping("/upcoming")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<BookingListResponse>>> getUpcomingBookings(
-            @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
+            HttpServletRequest httpRequest) {
         
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("User authentication required"));
-        }
+        Integer userId = getUserIdFromRequest(httpRequest);
         
         log.info("Fetching upcoming bookings for renter {}", userId);
         
@@ -132,13 +122,11 @@ public class BookingController {
      * GET /api/v1/bookings/owner/upcoming
      */
     @GetMapping("/owner/upcoming")
+    @PreAuthorize("hasAnyRole('landlord', 'broker')")
     public ResponseEntity<ApiResponse<List<BookingListResponse>>> getOwnerUpcomingBookings(
-            @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
+            HttpServletRequest httpRequest) {
         
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("User authentication required"));
-        }
+        Integer userId = getUserIdFromRequest(httpRequest);
         
         log.info("Fetching upcoming bookings for owner {}", userId);
         
@@ -153,14 +141,12 @@ public class BookingController {
      * GET /api/v1/bookings/{id}
      */
     @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<BookingResponse>> getBookingById(
             @PathVariable Integer id,
-            @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
+            HttpServletRequest httpRequest) {
         
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("User authentication required"));
-        }
+        Integer userId = getUserIdFromRequest(httpRequest);
         
         log.info("Fetching booking {} for user {}", id, userId);
         
@@ -174,15 +160,13 @@ public class BookingController {
      * PUT /api/v1/bookings/{id}/confirm
      */
     @PutMapping("/{id}/confirm")
+    @PreAuthorize("hasAnyRole('landlord', 'broker')")
     public ResponseEntity<ApiResponse<BookingResponse>> confirmBooking(
             @PathVariable Integer id,
             @RequestBody(required = false) BookingConfirmRequest request,
-            @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
+            HttpServletRequest httpRequest) {
         
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("User authentication required"));
-        }
+        Integer userId = getUserIdFromRequest(httpRequest);
         
         log.info("Owner {} confirming booking {}", userId, id);
         
@@ -196,15 +180,13 @@ public class BookingController {
      * PUT /api/v1/bookings/{id}/reject
      */
     @PutMapping("/{id}/reject")
+    @PreAuthorize("hasAnyRole('landlord', 'broker')")
     public ResponseEntity<ApiResponse<BookingResponse>> rejectBooking(
             @PathVariable Integer id,
             @Valid @RequestBody BookingRejectRequest request,
-            @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
+            HttpServletRequest httpRequest) {
         
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("User authentication required"));
-        }
+        Integer userId = getUserIdFromRequest(httpRequest);
         
         log.info("Owner {} rejecting booking {}", userId, id);
         
@@ -218,15 +200,13 @@ public class BookingController {
      * PUT /api/v1/bookings/{id}/cancel
      */
     @PutMapping("/{id}/cancel")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<BookingResponse>> cancelBooking(
             @PathVariable Integer id,
             @Valid @RequestBody BookingCancelRequest request,
-            @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
+            HttpServletRequest httpRequest) {
         
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("User authentication required"));
-        }
+        Integer userId = getUserIdFromRequest(httpRequest);
         
         log.info("User {} cancelling booking {}", userId, id);
         
@@ -236,7 +216,7 @@ public class BookingController {
     }
     
     /**
-     * Check property availability
+     * Check property availability (No authentication required)
      * GET /api/v1/bookings/availability/check
      */
     @GetMapping("/availability/check")

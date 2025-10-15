@@ -2,6 +2,7 @@ package com.ajarly.backend.controller;
 
 import com.ajarly.backend.dto.FavoriteDto;
 import com.ajarly.backend.service.FavoriteService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -19,9 +21,7 @@ import java.util.Map;
  * Favorite/Wishlist Controller
  * 
  * Handles user favorites (wishlist) operations
- * 
- * NOTE: Using X-User-Id header for authentication (temporary for testing)
- * TODO: Replace with JWT authentication before production
+ * Uses JWT authentication from request attributes
  */
 @RestController
 @RequestMapping("/api/v1/favorites")
@@ -33,27 +33,34 @@ public class FavoriteController {
     private final FavoriteService favoriteService;
     
     /**
+     * Extract userId from JWT token (set by JwtAuthenticationFilter)
+     */
+    private Long getUserIdFromRequest(HttpServletRequest request) {
+        Object userId = request.getAttribute("userId");
+        if (userId == null) {
+            throw new RuntimeException("User not authenticated");
+        }
+        return (Long) userId;
+    }
+    
+    /**
      * Add a property to favorites
      * POST /api/v1/favorites
      */
     @PostMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> addFavorite(
             @Valid @RequestBody FavoriteDto.AddRequest request,
-            @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
-        
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                "success", false,
-                "message", "User authentication required. Please provide X-User-Id header."
-            ));
-        }
-        
-        log.info("User {} adding property {} to favorites", userId, request.getPropertyId());
+            HttpServletRequest httpRequest) {
         
         try {
+            Long userId = getUserIdFromRequest(httpRequest);
+            
+            log.info("User {} adding property {} to favorites", userId, request.getPropertyId());
+            
             FavoriteDto.FavoriteResponse favorite = favoriteService.addFavorite(
                 request.getPropertyId(), 
-                userId.longValue(), 
+                userId, 
                 request.getNotes()
             );
             
@@ -78,23 +85,19 @@ public class FavoriteController {
      * GET /api/v1/favorites
      */
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getUserFavorites(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "DESC") String sortDir,
-            @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
-        
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                "success", false,
-                "message", "User authentication required. Please provide X-User-Id header."
-            ));
-        }
-        
-        log.info("Fetching favorites for user {}", userId);
+            HttpServletRequest httpRequest) {
         
         try {
+            Long userId = getUserIdFromRequest(httpRequest);
+            
+            log.info("Fetching favorites for user {}", userId);
+            
             Sort sort = sortDir.equalsIgnoreCase("ASC") 
                 ? Sort.by(sortBy).ascending() 
                 : Sort.by(sortBy).descending();
@@ -102,7 +105,7 @@ public class FavoriteController {
             Pageable pageable = PageRequest.of(page, size, sort);
             
             Page<FavoriteDto.FavoriteResponse> favorites = 
-                favoriteService.getUserFavorites(userId.longValue(), pageable);
+                favoriteService.getUserFavorites(userId, pageable);
             
             return ResponseEntity.ok(Map.of(
                 "success", true,
@@ -132,21 +135,17 @@ public class FavoriteController {
      * DELETE /api/v1/favorites/{propertyId}
      */
     @DeleteMapping("/{propertyId}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> removeFavorite(
             @PathVariable Long propertyId,
-            @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
-        
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                "success", false,
-                "message", "User authentication required. Please provide X-User-Id header."
-            ));
-        }
-        
-        log.info("User {} removing property {} from favorites", userId, propertyId);
+            HttpServletRequest httpRequest) {
         
         try {
-            favoriteService.removeFavorite(propertyId, userId.longValue());
+            Long userId = getUserIdFromRequest(httpRequest);
+            
+            log.info("User {} removing property {} from favorites", userId, propertyId);
+            
+            favoriteService.removeFavorite(propertyId, userId);
             
             return ResponseEntity.ok(Map.of(
                 "success", true,
@@ -168,22 +167,18 @@ public class FavoriteController {
      * GET /api/v1/favorites/check/{propertyId}
      */
     @GetMapping("/check/{propertyId}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> checkFavorite(
             @PathVariable Long propertyId,
-            @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
-        
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                "success", false,
-                "message", "User authentication required. Please provide X-User-Id header."
-            ));
-        }
-        
-        log.info("Checking if property {} is favorited by user {}", propertyId, userId);
+            HttpServletRequest httpRequest) {
         
         try {
+            Long userId = getUserIdFromRequest(httpRequest);
+            
+            log.info("Checking if property {} is favorited by user {}", propertyId, userId);
+            
             FavoriteDto.CheckResponse checkResponse = 
-                favoriteService.isFavorited(propertyId, userId.longValue());
+                favoriteService.isFavorited(propertyId, userId);
             
             return ResponseEntity.ok(Map.of(
                 "success", true,
