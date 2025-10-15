@@ -1,0 +1,223 @@
+Folder PATH listing
+Volume serial number is AC6D-81F1
+C:.
+|   .gitignore
+|   README.md
+|   structure.txt
+|   
+\---ajarly-backend
+    |   .env
+    |   .gitignore
+    |   ajarly-query.sql
+    |   ajarly_schema.sql
+    |   folder_structure.txt
+    |   pom.xml
+    |   
+    +---src
+    |   \---main
+    |       +---java
+    |       |   \---com
+    |       |       \---ajarly
+    |       |           \---backend
+    |       |               |   AjarlyBackendApplication.java
+    |       |               |   
+    |       |               +---config
+    |       |               |       ApplicationConfig.java
+    |       |               |       CloudinaryConfig.java
+    |       |               |       SecurityConfig.java
+    |       |               |       
+    |       |               +---controller
+    |       |               |       AuthController.java
+    |       |               |       BookingController.java
+    |       |               |       PropertyController.java
+    |       |               |       PropertyImageController.java
+    |       |               |       ReviewController.java
+    |       |               |       SearchController.java
+    |       |               |       
+    |       |               +---dto
+    |       |               |       ApiResponse.java
+    |       |               |       AuthDto.java
+    |       |               |       AvailabilityCheckResponse.java
+    |       |               |       BookingCancelRequest.java
+    |       |               |       BookingConfirmRequest.java
+    |       |               |       BookingCreateRequest.java
+    |       |               |       BookingListResponse.java
+    |       |               |       BookingRejectRequest.java
+    |       |               |       BookingResponse.java
+    |       |               |       CoverImageResponse.java
+    |       |               |       ImageDeleteResponse.java
+    |       |               |       ImageUploadResponse.java
+    |       |               |       LocationSuggestion.java
+    |       |               |       PopularLocationResponse.java
+    |       |               |       PropertyDto.java
+    |       |               |       PropertyImageResponse.java
+    |       |               |       ReviewDto.java
+    |       |               |       SearchRequest.java
+    |       |               |       SearchResponse.java
+    |       |               |       
+    |       |               +---exception
+    |       |               |       BusinessException.java
+    |       |               |       GlobalExceptionHandler.java
+    |       |               |       ResourceNotFoundException.java
+    |       |               |       ValidationException.java
+    |       |               |       
+    |       |               +---model
+    |       |               |       Booking.java
+    |       |               |       Property.java
+    |       |               |       PropertyImage.java
+    |       |               |       Review.java
+    |       |               |       UnavailableDate.java
+    |       |               |       User.java
+    |       |               |       
+    |       |               +---repository
+    |       |               |       BookingRepository.java
+    |       |               |       PropertyImageRepository.java
+    |       |               |       PropertyRepository.java
+    |       |               |       PropertySpecification.java
+    |       |               |       ReviewRepository.java
+    |       |               |       UnavailableDateRepository.java
+    |       |               |       UserRepository.java
+    |       |               |       
+    |       |               +---scheduler
+    |       |               |       BookingScheduler.java
+    |       |               |       
+    |       |               +---security
+    |       |               |       JwtAuthenticationFilter.java
+    |       |               |       JwtUtil.java
+    |       |               |       
+    |       |               \---service
+    |       |                       AuthService.java
+    |       |                       BookingService.java
+    |       |                       ImageStorageService.java
+    |       |                       PropertyImageService.java
+    |       |                       PropertyService.java
+    |       |                       ReviewService.java
+    |       |                       SearchService.java
+    |       |                       
+    |       \---resources
+    |               application.properties
+    |               
+    \---target
+        +---classes
+        |   |   application.properties
+        |   |   
+        |   \---com
+        |       \---ajarly
+        |           \---backend
+        |               |   AjarlyBackendApplication.class
+        |               |   
+        |               +---config
+        |               |       ApplicationConfig.class
+        |               |       CloudinaryConfig.class
+        |               |       SecurityConfig.class
+        |               |       
+        |               +---controller
+        |               |       AuthController.class
+        |               |       BookingController.class
+        |               |       PropertyController.class
+        |               |       PropertyImageController.class
+        |               |       ReviewController.class
+        |               |       SearchController.class
+        |               |       
+        |               +---dto
+        |               |       ApiResponse.class
+        |               |       AuthDto$AuthResponse.class
+        |               |       AuthDto$LoginRequest.class
+        |               |       AuthDto$RegisterRequest.class
+        |               |       AuthDto.class
+        |               |       AvailabilityCheckResponse.class
+        |               |       BookingCancelRequest.class
+        |               |       BookingConfirmRequest.class
+        |               |       BookingCreateRequest.class
+        |               |       BookingListResponse.class
+        |               |       BookingRejectRequest.class
+        |               |       BookingResponse$PropertyBasicInfo.class
+        |               |       BookingResponse$UserBasicInfo.class
+        |               |       BookingResponse.class
+        |               |       CoverImageResponse$CoverImageResponseBuilder.class
+        |               |       CoverImageResponse.class
+        |               |       ImageDeleteResponse$ImageDeleteResponseBuilder.class
+        |               |       ImageDeleteResponse.class
+        |               |       ImageUploadResponse$ImageUploadResponseBuilder.class
+        |               |       ImageUploadResponse.class
+        |               |       LocationSuggestion.class
+        |               |       PopularLocationResponse.class
+        |               |       PropertyDto$CreateRequest.class
+        |               |       PropertyDto$ListResponse.class
+        |               |       PropertyDto$Response$OwnerInfo.class
+        |               |       PropertyDto$Response.class
+        |               |       PropertyDto.class
+        |               |       PropertyImageResponse$PropertyImageResponseBuilder.class
+        |               |       PropertyImageResponse.class
+        |               |       ReviewDto$CreateRequest.class
+        |               |       ReviewDto$ListResponse.class
+        |               |       ReviewDto$OwnerResponseRequest.class
+        |               |       ReviewDto$Response.class
+        |               |       ReviewDto$ReviewerInfo.class
+        |               |       ReviewDto$StatsResponse$RatingBreakdown.class
+        |               |       ReviewDto$StatsResponse.class
+        |               |       ReviewDto.class
+        |               |       SearchRequest.class
+        |               |       SearchResponse$PaginationInfo.class
+        |               |       SearchResponse$SearchMetadata.class
+        |               |       SearchResponse.class
+        |               |       
+        |               +---exception
+        |               |       BusinessException.class
+        |               |       GlobalExceptionHandler.class
+        |               |       ResourceNotFoundException.class
+        |               |       ValidationException.class
+        |               |       
+        |               +---model
+        |               |       Booking$BookingSource.class
+        |               |       Booking$BookingStatus.class
+        |               |       Booking$DeviceType.class
+        |               |       Booking$PaymentMethod.class
+        |               |       Booking$PaymentStatus.class
+        |               |       Booking.class
+        |               |       Property$PropertyStatus.class
+        |               |       Property$PropertyType.class
+        |               |       Property$RentalType.class
+        |               |       Property.class
+        |               |       PropertyImage$PropertyImageBuilder.class
+        |               |       PropertyImage.class
+        |               |       Review.class
+        |               |       UnavailableDate$UnavailableReason.class
+        |               |       UnavailableDate.class
+        |               |       User$UserType.class
+        |               |       User.class
+        |               |       
+        |               +---repository
+        |               |       BookingRepository.class
+        |               |       PropertyImageRepository.class
+        |               |       PropertyRepository.class
+        |               |       PropertySpecification.class
+        |               |       ReviewRepository.class
+        |               |       UnavailableDateRepository.class
+        |               |       UserRepository.class
+        |               |       
+        |               +---scheduler
+        |               |       BookingScheduler.class
+        |               |       
+        |               +---security
+        |               |       JwtAuthenticationFilter.class
+        |               |       JwtUtil.class
+        |               |       
+        |               \---service
+        |                       AuthService.class
+        |                       BookingService.class
+        |                       ImageStorageService.class
+        |                       PropertyImageService.class
+        |                       PropertyService.class
+        |                       ReviewService.class
+        |                       SearchService.class
+        |                       
+        +---generated-sources
+        |   \---annotations
+        \---maven-status
+            \---maven-compiler-plugin
+                \---compile
+                    \---default-compile
+                            createdFiles.lst
+                            inputFiles.lst
+                            

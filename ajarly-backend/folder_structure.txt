@@ -1,0 +1,87 @@
+Folder PATH listing
+Volume serial number is AC6D-81F1
+C:.
+¦   .env
+¦   .gitignore
+¦   ajarly-query.sql
+¦   ajarly_schema.sql
+¦   folder_structure.txt
+¦   pom.xml
+¦   
++---src
+    +---main
+        +---java
+        ¦   +---com
+        ¦       +---ajarly
+        ¦           +---backend
+        ¦               ¦   AjarlyBackendApplication.java
+        ¦               ¦   
+        ¦               +---config
+        ¦               ¦       ApplicationConfig.java
+        ¦               ¦       CloudinaryConfig.java
+        ¦               ¦       SecurityConfig.java
+        ¦               ¦       
+        ¦               +---controller
+        ¦               ¦       AuthController.java
+        ¦               ¦       BookingController.java
+        ¦               ¦       PropertyController.java
+        ¦               ¦       PropertyImageController.java
+        ¦               ¦       ReviewController.java
+        ¦               ¦       
+        ¦               +---dto
+        ¦               ¦       ApiResponse.java
+        ¦               ¦       AuthDto.java
+        ¦               ¦       AvailabilityCheckResponse.java
+        ¦               ¦       BookingCancelRequest.java
+        ¦               ¦       BookingConfirmRequest.java
+        ¦               ¦       BookingCreateRequest.java
+        ¦               ¦       BookingListResponse.java
+        ¦               ¦       BookingRejectRequest.java
+        ¦               ¦       BookingResponse.java
+        ¦               ¦       CoverImageResponse.java
+        ¦               ¦       ImageDeleteResponse.java
+        ¦               ¦       ImageUploadResponse.java
+        ¦               ¦       PropertyDto.java
+        ¦               ¦       PropertyImageResponse.java
+        ¦               ¦       ReviewDto.java
+        ¦               ¦       
+        ¦               +---exception
+        ¦               ¦       BusinessException.java
+        ¦               ¦       GlobalExceptionHandler.java
+        ¦               ¦       ResourceNotFoundException.java
+        ¦               ¦       ValidationException.java
+        ¦               ¦       
+        ¦               +---model
+        ¦               ¦       Booking.java
+        ¦               ¦       Property.java
+        ¦               ¦       PropertyImage.java
+        ¦               ¦       Review.java
+        ¦               ¦       UnavailableDate.java
+        ¦               ¦       User.java
+        ¦               ¦       
+        ¦               +---repository
+        ¦               ¦       BookingRepository.java
+        ¦               ¦       PropertyImageRepository.java
+        ¦               ¦       PropertyRepository.java
+        ¦               ¦       ReviewRepository.java
+        ¦               ¦       UnavailableDateRepository.java
+        ¦               ¦       UserRepository.java
+        ¦               ¦       
+        ¦               +---scheduler
+        ¦               ¦       BookingScheduler.java
+        ¦               ¦       
+        ¦               +---security
+        ¦               ¦       JwtAuthenticationFilter.java
+        ¦               ¦       JwtUtil.java
+        ¦               ¦       
+        ¦               +---service
+        ¦                       AuthService.java
+        ¦                       BookingService.java
+        ¦                       ImageStorageService.java
+        ¦                       PropertyImageService.java
+        ¦                       PropertyService.java
+        ¦                       ReviewService.java
+        ¦                       
+        +---resources
+                application.properties
+                
