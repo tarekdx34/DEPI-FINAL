@@ -1,0 +1,958 @@
+{
+  "info": {
+    "_postman_id": "feature8-advanced-search",
+    "name": "Feature 8 - Advanced Search API",
+    "description": "Complete collection for testing Advanced Search endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Advanced Search",
+      "item": [
+        {
+          "name": "1.1 - Search All (No Filters)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"page\": 0,\n  \"size\": 10\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "1.2 - Search by Governorate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"governorate\": \"القاهرة\",\n  \"page\": 0,\n  \"size\": 10\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "1.3 - Search by City",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"governorate\": \"القاهرة\",\n  \"city\": \"المعادي\",\n  \"page\": 0,\n  \"size\": 10\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "1.4 - Search by Property Type",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyType\": \"apartment\",\n  \"page\": 0,\n  \"size\": 10\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "1.5 - Search by Rental Type",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rentalType\": \"vacation\",\n  \"page\": 0,\n  \"size\": 10\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "1.6 - Search by Price Range",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"minPrice\": 500,\n  \"maxPrice\": 2000,\n  \"page\": 0,\n  \"size\": 10\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "1.7 - Search by Bedrooms",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"minBedrooms\": 2,\n  \"maxBedrooms\": 3,\n  \"page\": 0,\n  \"size\": 10\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "1.8 - Search by Bathrooms",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"minBathrooms\": 1,\n  \"maxBathrooms\": 2,\n  \"page\": 0,\n  \"size\": 10\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "1.9 - Search by Guests",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"minGuests\": 4,\n  \"maxGuests\": 8,\n  \"page\": 0,\n  \"size\": 10\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "1.10 - Search Furnished",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"furnished\": true,\n  \"page\": 0,\n  \"size\": 10\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "1.11 - Search Pets Allowed",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"petsAllowed\": true,\n  \"page\": 0,\n  \"size\": 10\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "1.12 - Search Multiple Filters Combined",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"governorate\": \"القاهرة\",\n  \"city\": \"المعادي\",\n  \"propertyType\": \"apartment\",\n  \"rentalType\": \"vacation\",\n  \"minPrice\": 500,\n  \"maxPrice\": 3000,\n  \"minBedrooms\": 1,\n  \"maxBedrooms\": 3,\n  \"minBathrooms\": 1,\n  \"furnished\": true,\n  \"petsAllowed\": false,\n  \"page\": 0,\n  \"size\": 10\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "1.13 - Search Sort by Price ASC",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sortBy\": \"price\",\n  \"sortDirection\": \"ASC\",\n  \"page\": 0,\n  \"size\": 10\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "1.14 - Search Sort by Price DESC",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sortBy\": \"price\",\n  \"sortDirection\": \"DESC\",\n  \"page\": 0,\n  \"size\": 10\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "1.15 - Search Sort by Rating",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sortBy\": \"rating\",\n  \"sortDirection\": \"DESC\",\n  \"page\": 0,\n  \"size\": 10\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "1.16 - Search Sort by Views",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sortBy\": \"views\",\n  \"sortDirection\": \"DESC\",\n  \"page\": 0,\n  \"size\": 10\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "1.17 - Search Pagination Page 2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"page\": 1,\n  \"size\": 10\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Search Suggestions (Autocomplete)",
+      "item": [
+        {
+          "name": "2.1 - Suggestions for 'قا'",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search/suggestions?query=قا",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search",
+                "suggestions"
+              ],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "قا"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "2.2 - Suggestions for 'م'",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search/suggestions?query=م",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search",
+                "suggestions"
+              ],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "م"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "2.3 - Suggestions for 'مع'",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search/suggestions?query=مع",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search",
+                "suggestions"
+              ],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "مع"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "2.4 - Suggestions for 'شيخ'",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search/suggestions?query=شيخ",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search",
+                "suggestions"
+              ],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "شيخ"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Popular Locations",
+      "item": [
+        {
+          "name": "3.1 - Top 5 Popular Locations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8081/api/v1/locations/popular?limit=5",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "locations",
+                "popular"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "3.2 - Top 10 Popular Locations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8081/api/v1/locations/popular?limit=10",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "locations",
+                "popular"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "3.3 - Default Popular Locations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8081/api/v1/locations/popular",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "locations",
+                "popular"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Location Filters",
+      "item": [
+        {
+          "name": "4.1 - Get All Governorates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8081/api/v1/locations/governorates",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "locations",
+                "governorates"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4.2 - Get Cities in Cairo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8081/api/v1/locations/cities?governorate=القاهرة",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "locations",
+                "cities"
+              ],
+              "query": [
+                {
+                  "key": "governorate",
+                  "value": "القاهرة"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "4.3 - Get Cities in Giza",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8081/api/v1/locations/cities?governorate=الجيزة",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "locations",
+                "cities"
+              ],
+              "query": [
+                {
+                  "key": "governorate",
+                  "value": "الجيزة"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Error Cases",
+      "item": [
+        {
+          "name": "5.1 - Error: Query Too Short",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search/suggestions?query=ق",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search",
+                "suggestions"
+              ],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "ق"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "5.2 - Error: Invalid Price Range",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"minPrice\": 5000,\n  \"maxPrice\": 500,\n  \"page\": 0,\n  \"size\": 10\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5.3 - Error: Invalid Bedroom Range",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"minBedrooms\": 5,\n  \"maxBedrooms\": 2,\n  \"page\": 0,\n  \"size\": 10\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/search",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5.4 - Error: Empty Governorate",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8081/api/v1/locations/cities?governorate=",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "locations",
+                "cities"
+              ],
+              "query": [
+                {
+                  "key": "governorate",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
