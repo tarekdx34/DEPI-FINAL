@@ -10,6 +10,7 @@ C:.
     |   .gitignore
     |   ajarly-query.sql
     |   ajarly_schema.sql
+    |   analytics_migration.sql
     |   folder_structure.txt
     |   pom.xml
     |   
@@ -27,6 +28,7 @@ C:.
     |       |               |       SecurityConfig.java
     |       |               |       
     |       |               +---controller
+    |       |               |       AnalyticsController.java
     |       |               |       AuthController.java
     |       |               |       BookingController.java
     |       |               |       PropertyController.java
@@ -48,7 +50,10 @@ C:.
     |       |               |       ImageDeleteResponse.java
     |       |               |       ImageUploadResponse.java
     |       |               |       LocationSuggestion.java
+    |       |               |       OwnerDashboardResponse.java
+    |       |               |       PlatformAnalyticsResponse.java
     |       |               |       PopularLocationResponse.java
+    |       |               |       PropertyAnalyticsResponse.java
     |       |               |       PropertyDto.java
     |       |               |       PropertyImageResponse.java
     |       |               |       ReviewDto.java
@@ -65,11 +70,13 @@ C:.
     |       |               |       Booking.java
     |       |               |       Property.java
     |       |               |       PropertyImage.java
+    |       |               |       PropertyPerformanceAnalytics.java
     |       |               |       Review.java
     |       |               |       UnavailableDate.java
     |       |               |       User.java
     |       |               |       
     |       |               +---repository
+    |       |               |       AnalyticsRepository.java
     |       |               |       BookingRepository.java
     |       |               |       PropertyImageRepository.java
     |       |               |       PropertyRepository.java
@@ -79,6 +86,7 @@ C:.
     |       |               |       UserRepository.java
     |       |               |       
     |       |               +---scheduler
+    |       |               |       AnalyticsScheduler.java
     |       |               |       BookingScheduler.java
     |       |               |       
     |       |               +---security
@@ -86,6 +94,7 @@ C:.
     |       |               |       JwtUtil.java
     |       |               |       
     |       |               \---service
+    |       |                       AnalyticsService.java
     |       |                       AuthService.java
     |       |                       BookingService.java
     |       |                       ImageStorageService.java
@@ -112,6 +121,7 @@ C:.
         |               |       SecurityConfig.class
         |               |       
         |               +---controller
+        |               |       AnalyticsController.class
         |               |       AuthController.class
         |               |       BookingController.class
         |               |       PropertyController.class
@@ -120,6 +130,7 @@ C:.
         |               |       SearchController.class
         |               |       
         |               +---dto
+        |               |       ApiResponse$ApiResponseBuilder.class
         |               |       ApiResponse.class
         |               |       AuthDto$AuthResponse.class
         |               |       AuthDto$LoginRequest.class
@@ -141,7 +152,43 @@ C:.
         |               |       ImageUploadResponse$ImageUploadResponseBuilder.class
         |               |       ImageUploadResponse.class
         |               |       LocationSuggestion.class
+        |               |       OwnerDashboardResponse$BestProperty$BestPropertyBuilder.class
+        |               |       OwnerDashboardResponse$BestProperty.class
+        |               |       OwnerDashboardResponse$OverviewStats$OverviewStatsBuilder.class
+        |               |       OwnerDashboardResponse$OverviewStats.class
+        |               |       OwnerDashboardResponse$OwnerDashboardResponseBuilder.class
+        |               |       OwnerDashboardResponse$PropertyPerformance$PropertyPerformanceBuilder.class
+        |               |       OwnerDashboardResponse$PropertyPerformance.class
+        |               |       OwnerDashboardResponse$RecentReview$RecentReviewBuilder.class
+        |               |       OwnerDashboardResponse$RecentReview.class
+        |               |       OwnerDashboardResponse$RevenueData$RevenueDataBuilder.class
+        |               |       OwnerDashboardResponse$RevenueData.class
+        |               |       OwnerDashboardResponse$UpcomingBooking$UpcomingBookingBuilder.class
+        |               |       OwnerDashboardResponse$UpcomingBooking.class
+        |               |       OwnerDashboardResponse.class
+        |               |       PlatformAnalyticsResponse$BookingStats$BookingStatsBuilder.class
+        |               |       PlatformAnalyticsResponse$BookingStats.class
+        |               |       PlatformAnalyticsResponse$GrowthMetric$GrowthMetricBuilder.class
+        |               |       PlatformAnalyticsResponse$GrowthMetric.class
+        |               |       PlatformAnalyticsResponse$PlatformAnalyticsResponseBuilder.class
+        |               |       PlatformAnalyticsResponse$PlatformOverview$PlatformOverviewBuilder.class
+        |               |       PlatformAnalyticsResponse$PlatformOverview.class
+        |               |       PlatformAnalyticsResponse$PropertyTypeStats$PropertyTypeStatsBuilder.class
+        |               |       PlatformAnalyticsResponse$PropertyTypeStats.class
+        |               |       PlatformAnalyticsResponse$TopLocation$TopLocationBuilder.class
+        |               |       PlatformAnalyticsResponse$TopLocation.class
+        |               |       PlatformAnalyticsResponse$UserStats$UserStatsBuilder.class
+        |               |       PlatformAnalyticsResponse$UserStats.class
+        |               |       PlatformAnalyticsResponse.class
         |               |       PopularLocationResponse.class
+        |               |       PropertyAnalyticsResponse$DailyMetric$DailyMetricBuilder.class
+        |               |       PropertyAnalyticsResponse$DailyMetric.class
+        |               |       PropertyAnalyticsResponse$PerformanceIndicators$PerformanceIndicatorsBuilder.class
+        |               |       PropertyAnalyticsResponse$PerformanceIndicators.class
+        |               |       PropertyAnalyticsResponse$PropertyAnalyticsResponseBuilder.class
+        |               |       PropertyAnalyticsResponse$SummaryMetrics$SummaryMetricsBuilder.class
+        |               |       PropertyAnalyticsResponse$SummaryMetrics.class
+        |               |       PropertyAnalyticsResponse.class
         |               |       PropertyDto$CreateRequest.class
         |               |       PropertyDto$ListResponse.class
         |               |       PropertyDto$Response$OwnerInfo.class
@@ -181,6 +228,8 @@ C:.
         |               |       Property.class
         |               |       PropertyImage$PropertyImageBuilder.class
         |               |       PropertyImage.class
+        |               |       PropertyPerformanceAnalytics$PropertyPerformanceAnalyticsBuilder.class
+        |               |       PropertyPerformanceAnalytics.class
         |               |       Review.class
         |               |       UnavailableDate$UnavailableReason.class
         |               |       UnavailableDate.class
@@ -188,6 +237,7 @@ C:.
         |               |       User.class
         |               |       
         |               +---repository
+        |               |       AnalyticsRepository.class
         |               |       BookingRepository.class
         |               |       PropertyImageRepository.class
         |               |       PropertyRepository.class
@@ -197,6 +247,7 @@ C:.
         |               |       UserRepository.class
         |               |       
         |               +---scheduler
+        |               |       AnalyticsScheduler.class
         |               |       BookingScheduler.class
         |               |       
         |               +---security
@@ -204,6 +255,7 @@ C:.
         |               |       JwtUtil.class
         |               |       
         |               \---service
+        |                       AnalyticsService.class
         |                       AuthService.class
         |                       BookingService.class
         |                       ImageStorageService.class
@@ -214,10 +266,13 @@ C:.
         |                       
         +---generated-sources
         |   \---annotations
-        \---maven-status
-            \---maven-compiler-plugin
-                \---compile
-                    \---default-compile
-                            createdFiles.lst
-                            inputFiles.lst
-                            
+        +---generated-test-sources
+        |   \---test-annotations
+        +---maven-status
+        |   \---maven-compiler-plugin
+        |       \---compile
+        |           \---default-compile
+        |                   createdFiles.lst
+        |                   inputFiles.lst
+        |                   
+        \---test-classes
