@@ -94,6 +94,14 @@ public class Property {
     @Column(name = "price_per_month", precision = 10, scale = 2)
     private BigDecimal pricePerMonth;
     
+    @Column(name = "updated_at")
+private LocalDateTime updatedAt;
+
+@Column(name = "last_booked_at")
+private LocalDateTime lastBookedAt;
+
+@Column(name = "favorite_count")
+private Integer favoriteCount = 0;
     @Column(name = "cleaning_fee", precision = 10, scale = 2)
     private BigDecimal cleaningFee;
     
@@ -143,11 +151,9 @@ public class Property {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
     
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+  
 
-    @Column(name = "favorite_count")
-    private Integer favoriteCount = 0;
+
     
     // ADDED: Relationship with PropertyImage (if you want to use it)
     @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true)
