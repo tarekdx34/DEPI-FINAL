@@ -40,10 +40,7 @@ public class AdminService {
         Long totalUsers = userRepository.count();
         Long totalProperties = propertyRepository.count();
         Long totalBookings = bookingRepository.count();
-        Long pendingApprovalsCount = propertyRepository.count(); // properties with status pending_approval
-        Long activeProperties = propertyRepository.count(); // properties with status active
-        Long bannedUsers = userRepository.count(); // users with is_active = false
-        
+       
         BigDecimal totalRevenue = bookingRepository.findAll().stream()
                 .filter(b -> b.getStatus() == Booking.BookingStatus.completed)
                 .map(Booking::getTotalPrice)
@@ -61,6 +58,23 @@ public class AdminService {
                         .count())
                 .generatedAt(LocalDateTime.now())
                 .build();
+        Long pendingApprovalsCount = propertyRepository.findByStatus(
+            PropertyStatus.pending_approval, 
+            Pageable.unpaged()
+        ).getTotalElements();
+        
+        // ✅ FIXED: Count only active properties
+        Long activeProperties = propertyRepository.findByStatus(
+            PropertyStatus.active, 
+            Pageable.unpaged()
+        ).getTotalElements();
+        
+        // ✅ FIXED: Count only banned users (is_active = false)
+        Long bannedUsers = userRepository.findAll().stream()
+            .filter(u -> !u.getIsActive())
+            .count();
+
+        
         
         return DashboardStatsResponse.builder()
                 .totalUsers(totalUsers)

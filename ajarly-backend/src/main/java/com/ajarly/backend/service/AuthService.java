@@ -5,6 +5,9 @@ import com.ajarly.backend.model.User;
 import com.ajarly.backend.repository.UserRepository;
 import com.ajarly.backend.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
+
+import java.time.LocalDateTime;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +42,12 @@ public class AuthService {
         
         User savedUser = userRepository.save(user);
         
-        String token = jwtUtil.generateToken(savedUser.getUserId(), savedUser.getEmail());
+        // ✅ FIX: Pass role to JWT token
+        String token = jwtUtil.generateToken(
+            savedUser.getUserId(), 
+            savedUser.getEmail(),
+            savedUser.getUserType().name().toUpperCase()
+        );
         
         return new AuthDto.AuthResponse(
             token,
@@ -64,7 +72,16 @@ public class AuthService {
             throw new RuntimeException("Account is deactivated");
         }
         
-        String token = jwtUtil.generateToken(user.getUserId(), user.getEmail());
+        // ✅ FIX: Pass role to JWT token
+        String token = jwtUtil.generateToken(
+            user.getUserId(), 
+            user.getEmail(),
+            user.getUserType().name().toUpperCase()
+        );
+        
+        // Update last login
+        user.setLastLogin(LocalDateTime.now());
+        userRepository.save(user);
         
         return new AuthDto.AuthResponse(
             token,

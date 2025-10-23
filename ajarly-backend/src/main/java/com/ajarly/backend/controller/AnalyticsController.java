@@ -103,7 +103,7 @@ public class AnalyticsController {
      * الحصول على لوحة تحكم المالك (Owner Dashboard)
      */
     @GetMapping("/owner/dashboard")
-    @PreAuthorize("hasAnyAuthority('landlord', 'admin')")
+    @PreAuthorize("hasAnyRole('LANDLORD', 'ADMIN')")
     public ResponseEntity<ApiResponse<OwnerDashboardResponse>> getOwnerDashboard() {
         log.info("GET /api/v1/analytics/owner/dashboard");
         
@@ -128,20 +128,26 @@ public class AnalyticsController {
     }
     
     /**
-     * GET /api/v1/admin/analytics/platform
+     * GET /api/v1/analytics/admin/platform
      * الحصول على تحليلات المنصة بالكامل (Admin Only)
+     * 
+     * ✅ FIXED: Changed path and PreAuthorize annotation
      */
     @GetMapping("/admin/platform")
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<PlatformAnalyticsResponse>> getPlatformAnalytics(
             @RequestParam(required = false) 
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) 
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         
-        log.info("GET /api/v1/admin/analytics/platform - Start: {}, End: {}", startDate, endDate);
+        log.info("GET /api/v1/analytics/admin/platform - Start: {}, End: {}", startDate, endDate);
         
         try {
+            // Log current user for debugging
+            Long currentUserId = getCurrentUserId();
+            log.info("Admin analytics requested by user ID: {}", currentUserId);
+            
             // Set default dates if not provided
             if (endDate == null) {
                 endDate = LocalDate.now();
@@ -184,20 +190,32 @@ public class AnalyticsController {
                 throw new ResourceNotFoundException("No authenticated user found");
             }
             
-            String principal = authentication.getName();
-            log.debug("Authentication principal: {}", principal);
+            // The principal should be the user ID as Long (set by JwtAuthenticationFilter)
+            Object principal = authentication.getPrincipal();
+            log.debug("Authentication principal: {} (type: {})", principal, principal.getClass().getName());
             
-            // Try to parse as Long (user ID)
-            try {
-                return Long.parseLong(principal);
-            } catch (NumberFormatException e) {
-                // If it's not a number, it might be an email - look up user
-                log.debug("Principal is not a number, attempting email lookup: {}", principal);
-                var user = userRepository.findByEmail(principal)
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                        "User not found with email: " + principal));
-                return user.getUserId();
+            // If principal is already a Long (from our JWT filter)
+            if (principal instanceof Long) {
+                return (Long) principal;
             }
+            
+            // If it's a String, try to parse as Long
+            if (principal instanceof String) {
+                String principalStr = (String) principal;
+                try {
+                    return Long.parseLong(principalStr);
+                } catch (NumberFormatException e) {
+                    // If it's not a number, it might be an email - look up user
+                    log.debug("Principal is not a number, attempting email lookup: {}", principalStr);
+                    var user = userRepository.findByEmail(principalStr)
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                            "User not found with email: " + principalStr));
+                    return user.getUserId();
+                }
+            }
+            
+            throw new ResourceNotFoundException("Unable to extract user ID from principal type: " 
+                + principal.getClass().getName());
             
         } catch (Exception e) {
             log.error("Error extracting user ID from authentication", e);
@@ -207,6 +225,7 @@ public class AnalyticsController {
     
     /**
      * التحقق من صلاحية Admin
+     * ✅ FIXED: Check for ROLE_ADMIN instead of just "admin"
      */
     private boolean isAdmin() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -214,6 +233,8 @@ public class AnalyticsController {
             return false;
         }
         return authentication.getAuthorities().stream()
-            .anyMatch(auth -> auth.getAuthority().equals("admin"));
+            .anyMatch(auth -> 
+                auth.getAuthority().equals("ROLE_ADMIN") || 
+                auth.getAuthority().equals("ADMIN"));
     }
 }
