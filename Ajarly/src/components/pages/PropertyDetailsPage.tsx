@@ -3,9 +3,34 @@ import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { Button } from "../ui/button";
 import { Calendar } from "../ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "../ui/dialog";
-import { Star, MapPin, Wifi, Car, Utensils, Wind, Tv, Waves, Shield, Award, ChevronLeft, ChevronRight, X } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "../ui/dialog";
+import {
+  Star,
+  MapPin,
+  Wifi,
+  Car,
+  Utensils,
+  Wind,
+  Tv,
+  Waves,
+  Shield,
+  Award,
+  ChevronLeft,
+  ChevronRight,
+  X,
+} from "lucide-react";
 import { format } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Separator } from "../ui/separator";
@@ -15,7 +40,10 @@ interface PropertyDetailsPageProps {
   onNavigate: (page: string) => void;
 }
 
-export function PropertyDetailsPage({ propertyId, onNavigate }: PropertyDetailsPageProps) {
+export function PropertyDetailsPage({
+  propertyId,
+  onNavigate,
+}: PropertyDetailsPageProps) {
   const [checkIn, setCheckIn] = useState<Date | undefined>();
   const [checkOut, setCheckOut] = useState<Date | undefined>();
   const [guests, setGuests] = useState("");
@@ -57,7 +85,12 @@ export function PropertyDetailsPage({ propertyId, onNavigate }: PropertyDetailsP
     onNavigate("booking-confirmation");
   };
 
-  const nights = checkIn && checkOut ? Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+  const nights =
+    checkIn && checkOut
+      ? Math.ceil(
+          (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)
+        )
+      : 0;
   const totalPrice = nights * property.price;
 
   return (
@@ -65,12 +98,16 @@ export function PropertyDetailsPage({ propertyId, onNavigate }: PropertyDetailsP
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Title Section */}
         <div className="mb-6">
-          <h1 className="text-3xl font-semibold text-[#2B2B2B] mb-2">{property.title}</h1>
+          <h1 className="text-3xl font-semibold text-[#2B2B2B] mb-2">
+            {property.title}
+          </h1>
           <div className="flex flex-wrap items-center gap-4 text-sm">
             <div className="flex items-center gap-1">
               <Star className="w-4 h-4 fill-[#2B2B2B] text-[#2B2B2B]" />
               <span className="font-semibold">{property.rating}</span>
-              <span className="text-gray-600">({property.reviews} reviews)</span>
+              <span className="text-gray-600">
+                ({property.reviews} reviews)
+              </span>
             </div>
             <div className="flex items-center gap-1 text-gray-600">
               <MapPin className="w-4 h-4" />
@@ -117,19 +154,26 @@ export function PropertyDetailsPage({ propertyId, onNavigate }: PropertyDetailsP
                   <h2 className="text-xl font-semibold text-[#2B2B2B]">
                     Hosted by {property.host.name}
                   </h2>
-                  <p className="text-gray-600">4 bedrooms • 8 guests • 3 bathrooms</p>
+                  <p className="text-gray-600">
+                    4 bedrooms • 8 guests • 3 bathrooms
+                  </p>
                 </div>
                 <Avatar className="h-14 w-14">
                   <AvatarImage src={property.host.avatar} />
                   <AvatarFallback className="bg-[#00BFA6] text-white">
-                    {property.host.name.split(" ").map((n) => n[0]).join("")}
+                    {property.host.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
                   </AvatarFallback>
                 </Avatar>
               </div>
               {property.host.verified && (
                 <div className="flex items-center gap-2 text-sm">
                   <Shield className="w-4 h-4 text-[#00BFA6]" />
-                  <span>Verified Host • {property.host.yearsHosting} years hosting</span>
+                  <span>
+                    Verified Host • {property.host.yearsHosting} years hosting
+                  </span>
                 </div>
               )}
             </div>
@@ -138,15 +182,21 @@ export function PropertyDetailsPage({ propertyId, onNavigate }: PropertyDetailsP
 
             {/* Description */}
             <div>
-              <h3 className="text-xl font-semibold text-[#2B2B2B] mb-4">About this place</h3>
-              <p className="text-gray-700 leading-relaxed">{property.description}</p>
+              <h3 className="text-xl font-semibold text-[#2B2B2B] mb-4">
+                About this place
+              </h3>
+              <p className="text-gray-700 leading-relaxed">
+                {property.description}
+              </p>
             </div>
 
             <Separator />
 
             {/* Amenities */}
             <div>
-              <h3 className="text-xl font-semibold text-[#2B2B2B] mb-4">Amenities</h3>
+              <h3 className="text-xl font-semibold text-[#2B2B2B] mb-4">
+                Amenities
+              </h3>
               <div className="grid grid-cols-2 gap-4">
                 {property.amenities.map((amenity, idx) => {
                   const Icon = amenity.icon;
@@ -180,16 +230,22 @@ export function PropertyDetailsPage({ propertyId, onNavigate }: PropertyDetailsP
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-semibold">Guest {review}</span>
                         <span className="text-gray-600">•</span>
-                        <span className="text-gray-600 text-sm">2 weeks ago</span>
+                        <span className="text-gray-600 text-sm">
+                          2 weeks ago
+                        </span>
                       </div>
                       <div className="flex gap-1 mb-2">
                         {[1, 2, 3, 4, 5].map((star) => (
-                          <Star key={star} className="w-4 h-4 fill-[#2B2B2B] text-[#2B2B2B]" />
+                          <Star
+                            key={star}
+                            className="w-4 h-4 fill-[#2B2B2B] text-[#2B2B2B]"
+                          />
                         ))}
                       </div>
                       <p className="text-gray-700">
-                        Amazing property with stunning views! The host was incredibly welcoming and
-                        the location was perfect for our family vacation.
+                        Amazing property with stunning views! The host was
+                        incredibly welcoming and the location was perfect for
+                        our family vacation.
                       </p>
                     </div>
                   </div>
@@ -211,7 +267,9 @@ export function PropertyDetailsPage({ propertyId, onNavigate }: PropertyDetailsP
                 <div className="flex items-center gap-1 text-sm">
                   <Star className="w-4 h-4 fill-[#2B2B2B] text-[#2B2B2B]" />
                   <span className="font-semibold">{property.rating}</span>
-                  <span className="text-gray-600">({property.reviews} reviews)</span>
+                  <span className="text-gray-600">
+                    ({property.reviews} reviews)
+                  </span>
                 </div>
               </div>
 
@@ -229,7 +287,12 @@ export function PropertyDetailsPage({ propertyId, onNavigate }: PropertyDetailsP
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={checkIn} onSelect={setCheckIn} initialFocus />
+                      <Calendar
+                        mode="single"
+                        selected={checkIn}
+                        onSelect={setCheckIn}
+                        initialFocus
+                      />
                     </PopoverContent>
                   </Popover>
 
@@ -307,7 +370,9 @@ export function PropertyDetailsPage({ propertyId, onNavigate }: PropertyDetailsP
                     <Separator />
                     <div className="flex justify-between font-semibold">
                       <span>Total</span>
-                      <span>{totalPrice + Math.round(totalPrice * 0.1)} EGP</span>
+                      <span>
+                        {totalPrice + Math.round(totalPrice * 0.1)} EGP
+                      </span>
                     </div>
                   </div>
                 </>
@@ -323,7 +388,8 @@ export function PropertyDetailsPage({ propertyId, onNavigate }: PropertyDetailsP
           {/* Accessibility elements - visually hidden */}
           <DialogTitle className="sr-only">Property Photo Gallery</DialogTitle>
           <DialogDescription className="sr-only">
-            Browse through property photos. Use arrow buttons or thumbnails to navigate. Image {currentImageIndex + 1} of {property.images.length}.
+            Browse through property photos. Use arrow buttons or thumbnails to
+            navigate. Image {currentImageIndex + 1} of {property.images.length}.
           </DialogDescription>
 
           {/* Image counter */}

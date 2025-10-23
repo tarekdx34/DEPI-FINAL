@@ -57,16 +57,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 import api from "../../../api";
-import {
+import type {
   DashboardStatsResponse,
   UserProfile,
   PropertyResponse,
   PendingPropertyResponse,
   ReportResponse,
   PlatformAnalyticsResponse,
-} from "../../api";
+} from "../../../api";
 
 interface AdminDashboardProps {
   onNavigate: (page: string) => void;
@@ -75,15 +75,16 @@ interface AdminDashboardProps {
 export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean;
     type: string;
-    id: string;
+    id: number;
     name: string;
   }>({
     open: false,
     type: "",
-    id: "",
+    id: 0,
     name: "",
   });
 
@@ -98,243 +99,279 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   const [analytics, setAnalytics] = useState<PlatformAnalyticsResponse | null>(
     null
   );
-  const [favorites, setFavorites] = useState<any[]>([]);
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Pagination states
+  const [usersPage, setUsersPage] = useState(0);
+  const [propertiesPage, setPropertiesPage] = useState(0);
+  const [pendingPage, setPendingPage] = useState(0);
+  const [reportsPage, setReportsPage] = useState(0);
+
   // Load data on component mount
   useEffect(() => {
-    loadDashboardData();
+    checkAuthAndLoadData();
   }, []);
+
+  const checkAuthAndLoadData = async () => {
+    try {
+      // First verify we have admin access by getting profile
+      const profile = await api.getProfile();
+      console.log("Current user:", profile);
+
+      if (profile.userType !== "admin") {
+        setError("Access Denied: Admin privileges required");
+        setLoading(false);
+        toast.error("You must be logged in as an admin to access this page");
+        return;
+      }
+
+      loadDashboardData();
+    } catch (err) {
+      console.error("Auth check failed:", err);
+      setError("Authentication failed. Please login as admin.");
+      setLoading(false);
+      toast.error("Please login as admin");
+    }
+  };
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Load all data in parallel
-      const [
-        statsData,
-        usersData,
-        propertiesData,
-        pendingData,
-        reportsData,
-        analyticsData,
-        favoritesData,
-        reviewsData,
-        profileData,
-      ] = await Promise.all([
-        api.getDashboardStats(),
-        api.getAllUsers({ page: 0, size: 50 }),
-        api.getProperties({ page: 0, size: 50 }),
-        api.getPendingProperties({ page: 0, size: 50 }),
-        api.getAllReports({ page: 0, size: 50 }),
-        api.getPlatformAnalytics(),
-        api.getFavorites({ page: 0, size: 50 }),
-        api.getPropertyReviews(1, { page: 0, size: 50 }), // Get reviews for property ID 1 as example
-        api.getProfile(),
-      ]);
+      console.log("Loading dashboard data...");
 
-      setStats(statsData);
-      setUsers(usersData.content);
-      setProperties(propertiesData.content);
-      setPendingListings(pendingData.content);
-      setReports(reportsData.content);
-      setAnalytics(analyticsData);
-      setFavorites(favoritesData.content);
-      setReviews(reviewsData.content);
-      setProfile(profileData);
+      // Load dashboard stats first (most important)
+      try {
+        const statsData = await api.getDashboardStats();
+        console.log("Stats loaded:", statsData);
+        setStats(statsData);
+      } catch (err) {
+        console.error("Failed to load stats:", err);
+      }
+
+      // Load users
+      try {
+        const usersData = await api.getAllUsers({ page: 0, size: 20 });
+        console.log("Users loaded:", usersData);
+        setUsers(usersData.content || []);
+      } catch (err) {
+        console.error("Failed to load users:", err);
+      }
+
+      // Load properties (handle both array and paginated response)
+      try {
+        const propertiesData = await api.getProperties({ page: 0, size: 20 });
+        console.log("Properties loaded:", propertiesData);
+        console.log(
+          "First property structure:",
+          propertiesData[0] || propertiesData.content?.[0]
+        );
+        // Handle both array and paginated response
+        if (Array.isArray(propertiesData)) {
+          setProperties(propertiesData);
+        } else {
+          setProperties(propertiesData.content || []);
+        }
+      } catch (err) {
+        console.error("Failed to load properties:", err);
+      }
+
+      // Load pending properties
+      try {
+        const pendingData = await api.getPendingProperties({
+          page: 0,
+          size: 20,
+        });
+        console.log("Pending properties loaded:", pendingData);
+        console.log(
+          "Pending count from API:",
+          pendingData.content?.length || 0
+        );
+
+        // Log all statuses to debug
+        const allStatuses = (pendingData.content || []).map(
+          (p: PendingPropertyResponse) => ({
+            id: p.propertyId,
+            title: p.titleEn,
+            status: p.status,
+          })
+        );
+        console.log("All property statuses:", allStatuses);
+
+        // Filter to only show properties with pending status
+        const actuallyPending = (pendingData.content || []).filter(
+          (p: PendingPropertyResponse) =>
+            p.status?.toLowerCase() === "pending" ||
+            p.status?.toLowerCase() === "pending_approval" ||
+            p.status?.toLowerCase() === "pending approval"
+        );
+
+        console.log("Actually pending count:", actuallyPending.length);
+        console.log(
+          "Filtered pending properties:",
+          actuallyPending.map((p: PendingPropertyResponse) => ({
+            id: p.propertyId,
+            title: p.titleEn,
+            status: p.status,
+          }))
+        );
+
+        setPendingListings(actuallyPending);
+      } catch (err) {
+        console.error("Failed to load pending properties:", err);
+      }
+
+      // Load reports
+      try {
+        const reportsData = await api.getAllReports({ page: 0, size: 20 });
+        console.log("Reports loaded:", reportsData);
+        setReports(reportsData.content || []);
+      } catch (err) {
+        console.error("Failed to load reports:", err);
+      }
+
+      // Load analytics
+      try {
+        const analyticsData = await api.getPlatformAnalytics();
+        console.log("Analytics loaded:", analyticsData);
+        setAnalytics(analyticsData);
+      } catch (err) {
+        console.error("Failed to load analytics:", err);
+      }
     } catch (err) {
       console.error("Failed to load dashboard data:", err);
-      setError("Failed to load dashboard data. Please try again.");
-      toast.error("Failed to load dashboard data");
+      setError(
+        "Failed to load some dashboard data. Check console for details."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // Fallback mock data if API fails
-  const mockStats = {
-    totalUsers: 1248,
-    totalProperties: 342,
-    pendingApprovals: 12,
-    totalBookings: 856,
-    totalRevenue: 2458000,
-    activeListings: 298,
+  const handleDelete = (type: string, id: number, name: string) => {
+    setDeleteDialog({ open: true, type, id, name });
   };
 
-  const mockUsers = [
-    {
-      id: "1",
-      name: "Ahmed Hassan",
-      email: "ahmed@example.com",
-      role: "Renter",
-      joined: "Oct 15, 2025",
-      bookings: 5,
-      status: "Active",
-    },
-    {
-      id: "2",
-      name: "Sarah Mohamed",
-      email: "sarah@example.com",
-      role: "Owner",
-      joined: "Sep 22, 2025",
-      properties: 3,
-      status: "Active",
-    },
-    {
-      id: "3",
-      name: "Mohamed Ali",
-      email: "mohamed@example.com",
-      role: "Renter",
-      joined: "Nov 01, 2025",
-      bookings: 2,
-      status: "Suspended",
-    },
-    {
-      id: "4",
-      name: "Fatima Ibrahim",
-      email: "fatima@example.com",
-      role: "Owner",
-      joined: "Aug 10, 2025",
-      properties: 7,
-      status: "Active",
-    },
-  ];
+  const confirmDelete = async () => {
+    try {
+      if (deleteDialog.type === "User") {
+        await api.banUser(deleteDialog.id, "Deleted by admin");
+        setUsers(users.filter((u) => u.userId !== deleteDialog.id));
+      } else if (deleteDialog.type === "Property") {
+        await api.deleteProperty(deleteDialog.id);
+        setProperties(
+          properties.filter((p) => p.propertyId !== deleteDialog.id)
+        );
+      }
+      toast.success(`${deleteDialog.type} deleted successfully`);
+    } catch (err) {
+      toast.error(`Failed to delete ${deleteDialog.type}`);
+    } finally {
+      setDeleteDialog({ open: false, type: "", id: 0, name: "" });
+    }
+  };
 
-  const mockProperties = [
-    {
-      id: "1",
-      title: "Luxury Beachfront Villa",
-      owner: "Sarah Mohamed",
-      location: "North Coast",
-      price: 3500,
-      status: "Active",
-      bookings: 24,
-      image:
-        "https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBiZWFjaCUyMHZpbGxhfGVufDF8fHx8MTc2MTA5ODc1Nnww&ixlib=rb-4.1.0&q=80&w=1080",
-    },
-    {
-      id: "2",
-      title: "Cozy Beach Apartment",
-      owner: "Fatima Ibrahim",
-      location: "Alexandria",
-      price: 1800,
-      status: "Active",
-      bookings: 18,
-      image:
-        "https://images.unsplash.com/photo-1635690280190-0eec6bc587fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWFjaCUyMGhvdXNlJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzYxMTYxMzgwfDA&ixlib=rb-4.1.0&q=80&w=1080",
-    },
-  ];
+  const handleApprove = async (id: number, title: string) => {
+    try {
+      await api.approveProperty(id);
+      // Remove from pending list immediately for better UX
+      setPendingListings(pendingListings.filter((p) => p.propertyId !== id));
+      toast.success(`Property "${title}" has been approved`);
+      // Refresh all data to show updated counts
+      await loadDashboardData();
+    } catch (err) {
+      console.error("Approve error:", err);
+      toast.error("Failed to approve property");
+      // Reload pending list in case of error
+      try {
+        const pendingData = await api.getPendingProperties({
+          page: 0,
+          size: 20,
+        });
+        setPendingListings(pendingData.content || []);
+      } catch (reloadErr) {
+        console.error("Failed to reload pending properties:", reloadErr);
+      }
+    }
+  };
 
-  const mockPendingListings = [
-    {
-      id: "1",
-      title: "Seaside Villa with Pool",
-      owner: "Youssef Ahmed",
-      location: "Matrouh",
-      price: 2500,
-      submitted: "2 days ago",
-      image:
-        "https://images.unsplash.com/photo-1598635031829-4bfae29d33eb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpdGVycmFuZWFuJTIwdmlsbGF8ZW58MXx8fHwxNzYxMTI5ODA1fDA&ixlib=rb-4.1.0&q=80&w=1080",
-    },
-    {
-      id: "2",
-      title: "Modern Chalet",
-      owner: "Layla Hassan",
-      location: "North Coast",
-      price: 3200,
-      submitted: "5 hours ago",
-      image:
-        "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBob3VzZXxlbnwxfHx8fDE3NjExNjEzODB8MA&ixlib=rb-4.1.0&q=80&w=1080",
-    },
-  ];
+  const handleReject = async (id: number, title: string) => {
+    try {
+      await api.rejectProperty(id, "Does not meet platform standards");
+      setPendingListings(pendingListings.filter((p) => p.propertyId !== id));
+      toast.error(`Property "${title}" has been rejected`);
+      await loadDashboardData();
+    } catch (err) {
+      console.error("Reject error:", err);
+      toast.error("Failed to reject property");
+    }
+  };
 
-  const mockReports = [
-    {
-      id: "1",
-      type: "Spam",
-      property: "Fake Listing",
-      reporter: "Ahmed Hassan",
-      date: "Oct 20, 2025",
-      status: "Pending",
-    },
-    {
-      id: "2",
-      type: "Fraud",
-      property: "Luxury Beach Villa",
-      reporter: "Mohamed Ali",
-      date: "Oct 18, 2025",
-      status: "Investigating",
-    },
-    {
-      id: "3",
-      type: "Inappropriate",
-      property: "Beach House",
-      reporter: "Sarah Mohamed",
-      date: "Oct 15, 2025",
-      status: "Resolved",
-    },
-  ];
+  const handleBanUser = async (userId: number, userName: string) => {
+    try {
+      await api.banUser(userId, "Violates terms of service");
+      setUsers(
+        users.map((u) => (u.userId === userId ? { ...u, isActive: false } : u))
+      );
+      toast.success(`User ${userName} has been banned`);
+    } catch (err) {
+      toast.error("Failed to ban user");
+    }
+  };
 
-  const mockTopListings = [
-    {
-      property: "Luxury Beachfront Villa",
-      bookings: 45,
-      revenue: 157500,
-      rating: 4.9,
-      location: "North Coast",
-    },
-    {
-      property: "Cozy Beach Apartment",
-      bookings: 38,
-      revenue: 68400,
-      rating: 4.8,
-      location: "Alexandria",
-    },
-    {
-      property: "Seaside Chalet",
-      bookings: 32,
-      revenue: 70400,
-      rating: 4.7,
-      location: "Matrouh",
-    },
-    {
-      property: "Modern Beach House",
-      bookings: 28,
-      revenue: 98000,
-      rating: 4.9,
-      location: "North Coast",
-    },
-    {
-      property: "Coastal Villa",
-      bookings: 25,
-      revenue: 87500,
-      rating: 4.6,
-      location: "Alexandria",
-    },
-  ];
+  const handleUnbanUser = async (userId: number, userName: string) => {
+    try {
+      await api.unbanUser(userId);
+      setUsers(
+        users.map((u) => (u.userId === userId ? { ...u, isActive: true } : u))
+      );
+      toast.success(`User ${userName} has been unbanned`);
+    } catch (err) {
+      toast.error("Failed to unban user");
+    }
+  };
 
-  const mockCitiesData = [
-    { city: "North Coast", bookings: 342, revenue: 1205000, properties: 128 },
-    { city: "Alexandria", bookings: 298, revenue: 846000, properties: 142 },
-    { city: "Matrouh", bookings: 216, revenue: 607000, properties: 72 },
-  ];
+  const getStatusColor = (status: string | boolean) => {
+    if (typeof status === "boolean") {
+      return status ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700";
+    }
+    switch (status.toLowerCase()) {
+      case "active":
+      case "approved":
+      case "resolved":
+        return "bg-green-100 text-green-700";
+      case "suspended":
+      case "banned":
+      case "rejected":
+        return "bg-red-100 text-red-700";
+      case "pending":
+      case "pending_approval":
+        return "bg-yellow-100 text-yellow-700";
+      case "investigating":
+      case "in_progress":
+        return "bg-orange-100 text-orange-700";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
 
-  // Use real data if available, otherwise fall back to mock data
-  const currentStats = stats || mockStats;
-  const currentUsers = users.length > 0 ? users : mockUsers;
-  const currentProperties = properties.length > 0 ? properties : mockProperties;
-  const currentPendingListings =
-    pendingListings.length > 0 ? pendingListings : mockPendingListings;
-  const currentReports = reports.length > 0 ? reports : mockReports;
-  const currentTopListings = analytics?.topLocations || mockTopListings;
-  const currentCitiesData = analytics?.topLocations || mockCitiesData;
-  const currentFavorites = favorites.length > 0 ? favorites : [];
-  const currentReviews = reviews.length > 0 ? reviews : [];
-  const currentProfile = profile || null;
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-EG", {
+      style: "currency",
+      currency: "EGP",
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
 
   if (loading) {
     return (
@@ -347,7 +384,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
     );
   }
 
-  if (error) {
+  if (error && !stats) {
     return (
       <div className="min-h-screen bg-[#F9F6F1] flex items-center justify-center">
         <div className="text-center">
@@ -366,40 +403,6 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
       </div>
     );
   }
-
-  const handleDelete = (type: string, id: string, name: string) => {
-    setDeleteDialog({ open: true, type, id, name });
-  };
-
-  const confirmDelete = () => {
-    toast.success(`${deleteDialog.type} deleted successfully`);
-    setDeleteDialog({ open: false, type: "", id: "", name: "" });
-  };
-
-  const handleApprove = (id: string, title: string) => {
-    toast.success(`Property "${title}" has been approved`);
-  };
-
-  const handleReject = (id: string, title: string) => {
-    toast.error(`Property "${title}" has been rejected`);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "active":
-        return "bg-green-100 text-green-700";
-      case "suspended":
-        return "bg-red-100 text-red-700";
-      case "pending":
-        return "bg-yellow-100 text-yellow-700";
-      case "investigating":
-        return "bg-orange-100 text-orange-700";
-      case "resolved":
-        return "bg-blue-100 text-blue-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
 
   return (
     <div className="min-h-screen bg-[#F9F6F1]">
@@ -458,11 +461,9 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                   <Users className="w-5 h-5 text-[#00BFA6]" />
                 </div>
                 <p className="text-3xl font-semibold text-[#2B2B2B]">
-                  {stats.totalUsers.toLocaleString()}
+                  {stats?.totalUsers.toLocaleString() || 0}
                 </p>
-                <p className="text-sm text-green-600 mt-1">
-                  +12% from last month
-                </p>
+                <p className="text-sm text-gray-600 mt-1">Registered users</p>
               </Card>
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-2">
@@ -470,10 +471,10 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                   <Home className="w-5 h-5 text-[#00BFA6]" />
                 </div>
                 <p className="text-3xl font-semibold text-[#2B2B2B]">
-                  {stats.totalProperties}
+                  {stats?.totalProperties || 0}
                 </p>
                 <p className="text-sm text-gray-600 mt-1">
-                  {stats.activeListings} active
+                  {stats?.activeProperties || 0} active
                 </p>
               </Card>
               <Card className="p-6">
@@ -482,7 +483,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                   <CheckCircle className="w-5 h-5 text-yellow-500" />
                 </div>
                 <p className="text-3xl font-semibold text-[#2B2B2B]">
-                  {stats.pendingApprovals}
+                  {stats?.pendingApprovalsCount || 0}
                 </p>
                 <p className="text-sm text-yellow-600 mt-1">Needs attention</p>
               </Card>
@@ -492,11 +493,9 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                   <Calendar className="w-5 h-5 text-[#00BFA6]" />
                 </div>
                 <p className="text-3xl font-semibold text-[#2B2B2B]">
-                  {stats.totalBookings}
+                  {stats?.totalBookings || 0}
                 </p>
-                <p className="text-sm text-green-600 mt-1">
-                  +8% from last month
-                </p>
+                <p className="text-sm text-gray-600 mt-1">All time bookings</p>
               </Card>
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-2">
@@ -504,21 +503,19 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                   <DollarSign className="w-5 h-5 text-[#00BFA6]" />
                 </div>
                 <p className="text-3xl font-semibold text-[#2B2B2B]">
-                  {stats.totalRevenue.toLocaleString()} EGP
+                  {formatCurrency(stats?.totalRevenue || 0)}
                 </p>
-                <p className="text-sm text-green-600 mt-1">
-                  +15% from last month
-                </p>
+                <p className="text-sm text-gray-600 mt-1">Platform revenue</p>
               </Card>
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm text-gray-600">Active Listings</h3>
-                  <Home className="w-5 h-5 text-green-500" />
+                  <h3 className="text-sm text-gray-600">Banned Users</h3>
+                  <UserX className="w-5 h-5 text-red-500" />
                 </div>
                 <p className="text-3xl font-semibold text-[#2B2B2B]">
-                  {stats.activeListings}
+                  {stats?.bannedUsersCount || 0}
                 </p>
-                <p className="text-sm text-gray-600 mt-1">87% occupancy rate</p>
+                <p className="text-sm text-gray-600 mt-1">Suspended accounts</p>
               </Card>
             </div>
 
@@ -528,46 +525,46 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                   Recent Activity
                 </h3>
                 <div className="space-y-4">
-                  <div className="flex items-start gap-3 pb-3 border-b">
-                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                      <UserCheck className="w-4 h-4 text-green-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm">
-                        New user registered: Ahmed Hassan
-                      </p>
-                      <p className="text-xs text-gray-500">2 minutes ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 pb-3 border-b">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                      <Home className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm">
-                        New property listed in North Coast
-                      </p>
-                      <p className="text-xs text-gray-500">15 minutes ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 pb-3 border-b">
-                    <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
-                      <Flag className="w-4 h-4 text-yellow-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm">New report submitted for review</p>
-                      <p className="text-xs text-gray-500">1 hour ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                      <Calendar className="w-4 h-4 text-purple-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm">Booking completed successfully</p>
-                      <p className="text-xs text-gray-500">3 hours ago</p>
-                    </div>
-                  </div>
+                  {stats?.recentActivity && (
+                    <>
+                      <div className="flex items-start gap-3 pb-3 border-b">
+                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                          <UserCheck className="w-4 h-4 text-green-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm">
+                            {stats.recentActivity.recentRegistrations} new users
+                            registered
+                          </p>
+                          <p className="text-xs text-gray-500">Recent period</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 pb-3 border-b">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                          <Home className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm">
+                            {stats.recentActivity.recentPropertyListings} new
+                            properties listed
+                          </p>
+                          <p className="text-xs text-gray-500">Recent period</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                          <Calendar className="w-4 h-4 text-purple-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm">
+                            {stats.recentActivity.recentBookings} bookings
+                            completed
+                          </p>
+                          <p className="text-xs text-gray-500">Recent period</p>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </Card>
 
@@ -617,7 +614,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
           <TabsContent value="users" className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-semibold text-[#2B2B2B]">
-                Manage Users
+                Manage Users ({users.length})
               </h2>
               <div className="flex gap-3">
                 <div className="relative">
@@ -629,16 +626,6 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                     className="pl-10 w-64"
                   />
                 </div>
-                <Select defaultValue="all">
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Users</SelectItem>
-                    <SelectItem value="renter">Renters</SelectItem>
-                    <SelectItem value="owner">Owners</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
 
@@ -647,89 +634,122 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                 <TableHeader>
                   <TableRow>
                     <TableHead>User</TableHead>
-                    <TableHead>Role</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead>Joined</TableHead>
-                    <TableHead>Activity</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Verified</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarImage src="" />
-                            <AvatarFallback className="bg-[#00BFA6] text-white">
-                              {user.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{user.name}</p>
-                            <p className="text-sm text-gray-600">
-                              {user.email}
-                            </p>
+                  {users
+                    .filter(
+                      (user) =>
+                        user.firstName
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase()) ||
+                        user.lastName
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase()) ||
+                        user.email
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase())
+                    )
+                    .map((user) => (
+                      <TableRow key={user.userId}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar>
+                              <AvatarImage src={user.profilePhoto} />
+                              <AvatarFallback className="bg-[#00BFA6] text-white">
+                                {user.firstName[0]}
+                                {user.lastName[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">
+                                {user.firstName} {user.lastName}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {user.email}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{user.role}</Badge>
-                      </TableCell>
-                      <TableCell>{user.joined}</TableCell>
-                      <TableCell>
-                        {user.bookings && <span>{user.bookings} bookings</span>}
-                        {user.properties && (
-                          <span>{user.properties} properties</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(user.status)}>
-                          {user.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Eye className="w-4 h-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              {user.status === "Active" ? (
-                                <>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{user.userType}</Badge>
+                        </TableCell>
+                        <TableCell>{formatDate(user.createdAt)}</TableCell>
+                        <TableCell>
+                          <Badge
+                            className={getStatusColor(
+                              user.isActive ? "active" : "suspended"
+                            )}
+                          >
+                            {user.isActive ? "Active" : "Banned"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            {user.emailVerified && (
+                              <Badge className="bg-blue-100 text-blue-700">
+                                Email ✓
+                              </Badge>
+                            )}
+                            {user.phoneVerified && (
+                              <Badge className="bg-green-100 text-green-700">
+                                Phone ✓
+                              </Badge>
+                            )}
+                            {user.nationalIdVerified && (
+                              <Badge className="bg-purple-100 text-purple-700">
+                                ID ✓
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem>
+                                <Eye className="w-4 h-4 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              {user.isActive ? (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleBanUser(
+                                      user.userId,
+                                      `${user.firstName} ${user.lastName}`
+                                    )
+                                  }
+                                >
                                   <UserX className="w-4 h-4 mr-2" />
-                                  Suspend User
-                                </>
+                                  Ban User
+                                </DropdownMenuItem>
                               ) : (
-                                <>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleUnbanUser(
+                                      user.userId,
+                                      `${user.firstName} ${user.lastName}`
+                                    )
+                                  }
+                                >
                                   <UserCheck className="w-4 h-4 mr-2" />
-                                  Activate User
-                                </>
+                                  Unban User
+                                </DropdownMenuItem>
                               )}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-red-600"
-                              onClick={() =>
-                                handleDelete("User", user.id, user.name)
-                              }
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete User
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                 </TableBody>
               </Table>
             </Card>
@@ -737,9 +757,9 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
 
           {/* Properties Tab */}
           <TabsContent value="properties" className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-semibold text-[#2B2B2B]">
-                Manage Properties
+                Manage Properties ({properties.length})
               </h2>
               <div className="flex gap-3">
                 <div className="relative">
@@ -749,122 +769,209 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                     className="pl-10 w-64"
                   />
                 </div>
-                <Select defaultValue="all">
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {properties.map((property) => (
-                <Card key={property.id} className="overflow-hidden">
-                  <div className="aspect-[4/3] overflow-hidden relative">
-                    <ImageWithFallback
-                      src={property.image}
-                      alt={property.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <Badge className="absolute top-2 right-2 bg-green-500">
-                      {property.status}
-                    </Badge>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold text-[#2B2B2B] mb-1">
-                      {property.title}
-                    </h3>
-                    <p className="text-sm text-gray-600 mb-2">
-                      by {property.owner}
-                    </p>
-                    <div className="flex items-center justify-between text-sm mb-3">
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {property.location}
-                      </span>
-                      <span className="font-semibold">
-                        {property.price} EGP/night
-                      </span>
-                    </div>
-                    <div className="text-sm text-gray-600 mb-4">
-                      {property.bookings} total bookings
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1">
-                        <Eye className="w-3 h-3 mr-1" />
-                        View
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-600"
-                        onClick={() =>
-                          handleDelete("Property", property.id, property.title)
-                        }
+            {properties.length === 0 ? (
+              <Card className="p-12 text-center">
+                <Home className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">
+                  No Properties Found
+                </h3>
+                <p className="text-gray-600">
+                  No properties available in the system
+                </p>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {properties.map((property) => (
+                  <Card key={property.propertyId} className="overflow-hidden">
+                    <div className="relative h-48">
+                      <ImageWithFallback
+                        src={property.coverImage || ""}
+                        alt={property.titleEn || property.titleAr || "Property"}
+                        className="w-full h-full object-cover"
+                      />
+                      <Badge
+                        className={`absolute top-3 right-3 ${getStatusColor(
+                          property.status || "active"
+                        )}`}
                       >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                        {property.status || "Active"}
+                      </Badge>
                     </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-[#2B2B2B] mb-1 line-clamp-1">
+                            {property.titleEn ||
+                              property.titleAr ||
+                              "Untitled Property"}
+                          </h3>
+                          <p className="text-sm text-gray-600 flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {property.city || "N/A"},{" "}
+                            {property.governorate || "N/A"}
+                          </p>
+                        </div>
+                        {property.averageRating > 0 && (
+                          <div className="flex items-center gap-1">
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <span className="text-sm font-medium">
+                              {property.averageRating.toFixed(1)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex gap-3 text-sm text-gray-600 mb-3">
+                        <span>{property.bedrooms || 0} beds</span>
+                        <span>{property.bathrooms || 0} baths</span>
+                        <span>{property.propertyType || "N/A"}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <span className="text-lg font-semibold text-[#2B2B2B]">
+                            {formatCurrency(
+                              property.pricePerNight ||
+                                property.pricePerMonth ||
+                                0
+                            )}
+                          </span>
+                          <span className="text-sm text-gray-600">
+                            /{property.pricePerNight ? "night" : "month"}
+                          </span>
+                        </div>
+                        {property.isFeatured && (
+                          <Badge className="bg-purple-100 text-purple-700">
+                            Featured
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                        <span>{property.totalReviews || 0} reviews</span>
+                        <span>ID: {property.propertyId}</span>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(
+                              `/properties/${property.propertyId}`,
+                              "_blank"
+                            );
+                          }}
+                        >
+                          <Eye className="w-3 h-3 mr-1" />
+                          View
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleDelete(
+                                  "Property",
+                                  property.propertyId,
+                                  property.titleEn ||
+                                    property.titleAr ||
+                                    "Property"
+                                )
+                              }
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           {/* Approvals Tab */}
           <TabsContent value="approvals" className="space-y-6">
-            <h2 className="text-2xl font-semibold text-[#2B2B2B]">
-              Pending Approvals
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-semibold text-[#2B2B2B]">
+                Pending Approvals ({pendingListings.length})
+              </h2>
+              <Button variant="outline" size="sm" onClick={loadDashboardData}>
+                Refresh
+              </Button>
+            </div>
+
+            {/* Debug: Show status distribution */}
+            {pendingListings.length === 0 &&
+              stats?.pendingApprovalsCount > 0 && (
+                <Card className="p-4 bg-yellow-50 border-yellow-200">
+                  <p className="text-sm text-yellow-800">
+                    <strong>⚠️ Debug:</strong> Stats show{" "}
+                    {stats.pendingApprovalsCount} pending, but filtering found
+                    0. The backend might be returning wrong status values. Check
+                    console for property statuses.
+                  </p>
+                </Card>
+              )}
 
             {pendingListings.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {pendingListings.map((listing) => (
-                  <Card key={listing.id} className="overflow-hidden">
-                    <div className="aspect-[16/9] overflow-hidden">
-                      <ImageWithFallback
-                        src={listing.image}
-                        alt={listing.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+                  <Card key={listing.propertyId} className="overflow-hidden">
                     <div className="p-6">
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <h3 className="font-semibold text-[#2B2B2B] mb-1">
-                            {listing.title}
+                            {listing.titleEn}
                           </h3>
                           <p className="text-sm text-gray-600">
-                            by {listing.owner}
+                            by {listing.ownerName} ({listing.ownerEmail})
                           </p>
                         </div>
                         <Badge variant="outline" className="bg-yellow-50">
                           Pending
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          {listing.location}
-                        </span>
-                        <span className="font-semibold">
-                          {listing.price} EGP/night
-                        </span>
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {listing.city}, {listing.governorate}
+                          </span>
+                          <span className="font-semibold">
+                            {formatCurrency(listing.pricePerNight)}/night
+                          </span>
+                        </div>
+                        <div className="flex gap-3 text-sm text-gray-600">
+                          <span>{listing.bedrooms} beds</span>
+                          <span>{listing.bathrooms} baths</span>
+                          <span>{listing.propertyType}</span>
+                        </div>
+                        <p className="text-sm text-gray-600 line-clamp-2">
+                          {listing.descriptionEn}
+                        </p>
                       </div>
                       <p className="text-xs text-gray-500 mb-4">
-                        Submitted {listing.submitted}
+                        Submitted {formatDate(listing.createdAt)}
                       </p>
                       <div className="flex gap-2">
                         <Button
                           size="sm"
                           className="flex-1 bg-green-600 hover:bg-green-700"
                           onClick={() =>
-                            handleApprove(listing.id, listing.title)
+                            handleApprove(listing.propertyId, listing.titleEn)
                           }
                         >
                           <CheckCircle className="w-4 h-4 mr-1" />
@@ -875,7 +982,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                           variant="outline"
                           className="flex-1 border-red-500 text-red-600 hover:bg-red-50"
                           onClick={() =>
-                            handleReject(listing.id, listing.title)
+                            handleReject(listing.propertyId, listing.titleEn)
                           }
                         >
                           Reject
@@ -902,7 +1009,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
           {/* Reports Tab */}
           <TabsContent value="reports" className="space-y-6">
             <h2 className="text-2xl font-semibold text-[#2B2B2B]">
-              Reports & Suspicious Activity
+              Reports & Suspicious Activity ({reports.length})
             </h2>
 
             <Card>
@@ -910,7 +1017,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Type</TableHead>
-                    <TableHead>Property</TableHead>
+                    <TableHead>Reason</TableHead>
                     <TableHead>Reporter</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Status</TableHead>
@@ -919,16 +1026,20 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                 </TableHeader>
                 <TableBody>
                   {reports.map((report) => (
-                    <TableRow key={report.id}>
+                    <TableRow key={report.reportId}>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <AlertTriangle className="w-4 h-4 text-red-500" />
-                          <span className="font-medium">{report.type}</span>
+                          <span className="font-medium">
+                            {report.reportType}
+                          </span>
                         </div>
                       </TableCell>
-                      <TableCell>{report.property}</TableCell>
-                      <TableCell>{report.reporter}</TableCell>
-                      <TableCell>{report.date}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{report.reason}</Badge>
+                      </TableCell>
+                      <TableCell>Reporter ID: {report.reporterId}</TableCell>
+                      <TableCell>{formatDate(report.createdAt)}</TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(report.status)}>
                           {report.status}
@@ -940,7 +1051,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                             <Eye className="w-3 h-3 mr-1" />
                             Review
                           </Button>
-                          {report.status !== "Resolved" && (
+                          {report.status !== "resolved" && (
                             <Button
                               size="sm"
                               className="bg-green-600 hover:bg-green-700"
@@ -963,211 +1074,147 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
               Analytics & Insights
             </h2>
 
-            {/* Top Listings */}
-            <Card className="p-6">
-              <h3 className="font-semibold text-[#2B2B2B] mb-4">
-                Top Performing Listings
-              </h3>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Property</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Bookings</TableHead>
-                    <TableHead>Revenue</TableHead>
-                    <TableHead>Rating</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {currentTopListings.map((listing, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">
-                        {listing.property}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-gray-400" />
-                          {listing.location}
-                        </div>
-                      </TableCell>
-                      <TableCell>{listing.bookings}</TableCell>
-                      <TableCell className="font-semibold">
-                        {listing.revenue.toLocaleString()} EGP
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          {listing.rating}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
+            {analytics && (
+              <>
+                {/* Overview Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card className="p-4">
+                    <h4 className="text-sm text-gray-600 mb-1">New Users</h4>
+                    <p className="text-2xl font-semibold">
+                      {analytics.overview.newUsersInPeriod}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Total: {analytics.overview.totalUsers}
+                    </p>
+                  </Card>
+                  <Card className="p-4">
+                    <h4 className="text-sm text-gray-600 mb-1">
+                      New Properties
+                    </h4>
+                    <p className="text-2xl font-semibold">
+                      {analytics.overview.newPropertiesInPeriod}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Total: {analytics.overview.totalProperties}
+                    </p>
+                  </Card>
+                  <Card className="p-4">
+                    <h4 className="text-sm text-gray-600 mb-1">New Bookings</h4>
+                    <p className="text-2xl font-semibold">
+                      {analytics.overview.newBookingsInPeriod}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Total: {analytics.overview.totalBookings}
+                    </p>
+                  </Card>
+                  <Card className="p-4">
+                    <h4 className="text-sm text-gray-600 mb-1">Revenue</h4>
+                    <p className="text-2xl font-semibold">
+                      {formatCurrency(analytics.overview.revenueInPeriod)}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Total: {formatCurrency(analytics.overview.totalRevenue)}
+                    </p>
+                  </Card>
+                </div>
 
-            {/* Cities Performance */}
-            <Card className="p-6">
-              <h3 className="font-semibold text-[#2B2B2B] mb-4">
-                Most Booked Cities
-              </h3>
-              <div className="space-y-4">
-                {currentCitiesData.map((city, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-[#00BFA6]" />
-                        <span className="font-medium">{city.city}</span>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm">
-                        <span>{city.bookings} bookings</span>
-                        <span className="font-semibold">
-                          {city.revenue.toLocaleString()} EGP
-                        </span>
-                      </div>
+                {/* Top Locations */}
+                <Card className="p-6">
+                  <h3 className="font-semibold text-[#2B2B2B] mb-4">
+                    Top Performing Locations
+                  </h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Location</TableHead>
+                        <TableHead>Properties</TableHead>
+                        <TableHead>Bookings</TableHead>
+                        <TableHead>Revenue</TableHead>
+                        <TableHead>Avg Price</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {analytics.topLocations.map((location, index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3 text-gray-400" />
+                              <span className="font-medium">
+                                {location.city}, {location.governorate}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{location.propertyCount}</TableCell>
+                          <TableCell>{location.bookingCount}</TableCell>
+                          <TableCell className="font-semibold">
+                            {formatCurrency(location.totalRevenue)}
+                          </TableCell>
+                          <TableCell>
+                            {formatCurrency(location.averagePrice)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Card>
+
+                {/* Platform Performance */}
+                <Card className="p-6">
+                  <h3 className="font-semibold text-[#2B2B2B] mb-4">
+                    Platform Performance
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <h4 className="text-sm text-gray-600 mb-2">
+                        Active Properties
+                      </h4>
+                      <p className="text-2xl font-semibold">
+                        {analytics.overview.activeProperties}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {(
+                          (analytics.overview.activeProperties /
+                            analytics.overview.totalProperties) *
+                          100
+                        ).toFixed(1)}
+                        % of total
+                      </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-[#00BFA6] h-2 rounded-full"
-                          style={{
-                            width: `${
-                              (city.bookings / currentCitiesData[0].bookings) *
-                              100
-                            }%`,
-                          }}
-                        />
+                    <div>
+                      <h4 className="text-sm text-gray-600 mb-2">Avg Rating</h4>
+                      <div className="flex items-center gap-2">
+                        <p className="text-2xl font-semibold">
+                          {analytics.overview.averagePlatformRating.toFixed(1)}
+                        </p>
+                        <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                       </div>
-                      <span className="text-xs text-gray-600 w-20 text-right">
-                        {city.properties} properties
-                      </span>
+                      <p className="text-xs text-gray-500">
+                        {analytics.overview.totalReviews} reviews
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm text-gray-600 mb-2">Period</h4>
+                      <p className="text-sm">
+                        {formatDate(analytics.startDate)} -{" "}
+                        {formatDate(analytics.endDate)}
+                      </p>
                     </div>
                   </div>
-                ))}
-              </div>
-            </Card>
+                </Card>
+              </>
+            )}
+
+            {!analytics && (
+              <Card className="p-12 text-center">
+                <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">
+                  No Analytics Data
+                </h3>
+                <p className="text-gray-600">Analytics data is not available</p>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
-
-        {/* Favorites Section */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-[#2B2B2B] mb-4">
-            Recent Favorites
-          </h3>
-          <div className="space-y-4">
-            {currentFavorites.length > 0 ? (
-              currentFavorites.slice(0, 5).map((favorite: any) => (
-                <div
-                  key={favorite.favoriteId}
-                  className="flex items-center gap-4 p-4 border rounded-lg"
-                >
-                  <div className="flex-1">
-                    <h4 className="font-medium">{favorite.property.titleEn}</h4>
-                    <p className="text-sm text-gray-600">
-                      {favorite.property.city}, {favorite.property.governorate}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Added: {new Date(favorite.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold">
-                      {favorite.property.pricePerNight} EGP/night
-                    </p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500">No favorites found.</p>
-            )}
-          </div>
-        </div>
-
-        {/* Reviews Section */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-[#2B2B2B] mb-4">
-            Recent Reviews
-          </h3>
-          <div className="space-y-4">
-            {currentReviews.length > 0 ? (
-              currentReviews.slice(0, 5).map((review: any) => (
-                <div key={review.reviewId} className="p-4 border rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-medium">
-                      {review.reviewer.firstName} {review.reviewer.lastName}
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm">{review.overallRating}</span>
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-2">
-                    {review.reviewText}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Property: {review.propertyTitle}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Date: {new Date(review.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500">No reviews found.</p>
-            )}
-          </div>
-        </div>
-
-        {/* Profile Section */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-[#2B2B2B] mb-4">
-            Admin Profile
-          </h3>
-          {currentProfile ? (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                {currentProfile.profilePhoto && (
-                  <img
-                    src={currentProfile.profilePhoto}
-                    alt="Profile"
-                    className="w-16 h-16 rounded-full object-cover"
-                  />
-                )}
-                <div>
-                  <h4 className="font-medium">
-                    {currentProfile.firstName} {currentProfile.lastName}
-                  </h4>
-                  <p className="text-sm text-gray-600">
-                    {currentProfile.email}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {currentProfile.phoneNumber}
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium">User Type:</span>{" "}
-                  {currentProfile.userType}
-                </div>
-                <div>
-                  <span className="font-medium">Verified:</span>{" "}
-                  {currentProfile.emailVerified ? "Yes" : "No"}
-                </div>
-                <div>
-                  <span className="font-medium">Active:</span>{" "}
-                  {currentProfile.isActive ? "Yes" : "No"}
-                </div>
-                <div>
-                  <span className="font-medium">Joined:</span>{" "}
-                  {new Date(currentProfile.createdAt).toLocaleDateString()}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <p className="text-gray-500">Profile data not available.</p>
-          )}
-        </div>
       </div>
 
       {/* Delete Confirmation Dialog */}
