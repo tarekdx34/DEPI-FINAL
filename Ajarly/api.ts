@@ -1,13 +1,5 @@
 // api.ts - Complete API Client for Ajarly Platform (All 13 Features)
 
-interface ImportMetaEnv {
-  VITE_API_URL: string;
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}
-
 const API_BASE_URL = "http://localhost:8081/api/v1";
 
 // ============================================

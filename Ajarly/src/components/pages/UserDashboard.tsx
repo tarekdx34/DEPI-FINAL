@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -7,6 +8,44 @@ import {
   DialogTitle,
 } from "../ui/dialog";
 import { toast } from "sonner@2.0.3";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Card } from "../ui/card";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Textarea } from "../ui/textarea";
+import { Badge } from "../ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../ui/table";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { ImageWithFallback } from "../figma/ImageWithFallback";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../ui/alert-dialog";
+import {
+  Calendar,
+  Heart,
+  MessageSquare,
+  Receipt,
+  User,
+  MapPin,
+  Clock,
+  Star,
+  CreditCard,
+} from "lucide-react";
 
 interface UserDashboardProps {
   onNavigate: (page: string, propertyId?: string) => void;
@@ -15,7 +54,11 @@ interface UserDashboardProps {
 export function UserDashboard({ onNavigate }: UserDashboardProps) {
   const [activeTab, setActiveTab] = useState("trips");
   const [cancelBookingId, setCancelBookingId] = useState<string | null>(null);
-  const [reviewDialog, setReviewDialog] = useState<{ open: boolean; tripId: string | null; propertyName: string }>({
+  const [reviewDialog, setReviewDialog] = useState<{
+    open: boolean;
+    tripId: string | null;
+    propertyName: string;
+  }>({
     open: false,
     tripId: null,
     propertyName: "",
@@ -28,7 +71,8 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
       id: "1",
       property: "Luxury Beachfront Villa",
       location: "North Coast, Egypt",
-      image: "https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBiZWFjaCUyMHZpbGxhfGVufDF8fHx8MTc2MTA5ODc1Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      image:
+        "https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBiZWFjaCUyMHZpbGxhfGVufDF8fHx8MTc2MTA5ODc1Nnww&ixlib=rb-4.1.0&q=80&w=1080",
       checkIn: "Dec 24, 2025",
       checkOut: "Dec 28, 2025",
       confirmationCode: "AJR-2025-8472",
@@ -42,7 +86,8 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
       id: "2",
       property: "Cozy Beach Apartment",
       location: "Alexandria, Egypt",
-      image: "https://images.unsplash.com/photo-1635690280190-0eec6bc587fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWFjaCUyMGhvdXNlJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzYxMTYxMzgwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      image:
+        "https://images.unsplash.com/photo-1635690280190-0eec6bc587fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWFjaCUyMGhvdXNlJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzYxMTYxMzgwfDA&ixlib=rb-4.1.0&q=80&w=1080",
       checkIn: "Aug 15, 2025",
       checkOut: "Aug 20, 2025",
       confirmationCode: "AJR-2025-6283",
@@ -53,7 +98,8 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
       id: "3",
       property: "Seaside Chalet",
       location: "Matrouh, Egypt",
-      image: "https://images.unsplash.com/photo-1598635031829-4bfae29d33eb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpdGVycmFuZWFuJTIwdmlsbGF8ZW58MXx8fHwxNzYxMTI5ODA1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      image:
+        "https://images.unsplash.com/photo-1598635031829-4bfae29d33eb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpdGVycmFuZWFuJTIwdmlsbGF8ZW58MXx8fHwxNzYxMTI5ODA1fDA&ixlib=rb-4.1.0&q=80&w=1080",
       checkIn: "Jun 10, 2025",
       checkOut: "Jun 15, 2025",
       confirmationCode: "AJR-2025-4521",
@@ -68,7 +114,8 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
       title: "Mediterranean Villa with Pool",
       location: "Alexandria, Egypt",
       price: 2800,
-      image: "https://images.unsplash.com/photo-1598635031829-4bfae29d33eb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpdGVycmFuZWFuJTIwdmlsbGF8ZW58MXx8fHwxNzYxMTI5ODA1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      image:
+        "https://images.unsplash.com/photo-1598635031829-4bfae29d33eb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpdGVycmFuZWFuJTIwdmlsbGF8ZW58MXx8fHwxNzYxMTI5ODA1fDA&ixlib=rb-4.1.0&q=80&w=1080",
       rating: 4.8,
     },
     {
@@ -76,7 +123,8 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
       title: "Cozy Beach House",
       location: "Matrouh, Egypt",
       price: 1800,
-      image: "https://images.unsplash.com/photo-1635690280190-0eec6bc587fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWFjaCUyMGhvdXNlJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzYxMTYxMzgwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      image:
+        "https://images.unsplash.com/photo-1635690280190-0eec6bc587fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWFjaCUyMGhvdXNlJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzYxMTYxMzgwfDA&ixlib=rb-4.1.0&q=80&w=1080",
       rating: 4.7,
     },
   ];
@@ -114,16 +162,20 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
       property: "Cozy Beach Apartment",
       location: "Alexandria, Egypt",
       rating: 5,
-      comment: "Amazing place! The view was breathtaking and the host was very accommodating. Highly recommend!",
+      comment:
+        "Amazing place! The view was breathtaking and the host was very accommodating. Highly recommend!",
       date: "Aug 22, 2025",
-      image: "https://images.unsplash.com/photo-1635690280190-0eec6bc587fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWFjaCUyMGhvdXNlJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzYxMTYxMzgwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      image:
+        "https://images.unsplash.com/photo-1635690280190-0eec6bc587fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWFjaCUyMGhvdXNlJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzYxMTYxMzgwfDA&ixlib=rb-4.1.0&q=80&w=1080",
     },
   ];
 
   return (
     <div className="min-h-screen bg-[#F9F6F1]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-semibold text-[#2B2B2B] mb-8">My Account</h1>
+        <h1 className="text-3xl font-semibold text-[#2B2B2B] mb-8">
+          My Account
+        </h1>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full max-w-3xl grid-cols-5 mb-8">
@@ -152,7 +204,9 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
           {/* Trips Tab */}
           <TabsContent value="trips" className="space-y-6">
             <div>
-              <h2 className="text-2xl font-semibold text-[#2B2B2B] mb-4">Upcoming Trips</h2>
+              <h2 className="text-2xl font-semibold text-[#2B2B2B] mb-4">
+                Upcoming Trips
+              </h2>
               {upcomingTrips.length > 0 ? (
                 <div className="grid grid-cols-1 gap-4">
                   {upcomingTrips.map((trip) => (
@@ -189,8 +243,18 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
                           </div>
                           <div className="text-sm text-gray-600">
                             <p>Guests: {trip.guests}</p>
-                            <p>Total: <span className="font-semibold text-[#00BFA6]">{trip.totalPrice} EGP</span></p>
-                            <p className="mt-1">Confirmation Code: <span className="font-semibold text-[#00BFA6]">{trip.confirmationCode}</span></p>
+                            <p>
+                              Total:{" "}
+                              <span className="font-semibold text-[#00BFA6]">
+                                {trip.totalPrice} EGP
+                              </span>
+                            </p>
+                            <p className="mt-1">
+                              Confirmation Code:{" "}
+                              <span className="font-semibold text-[#00BFA6]">
+                                {trip.confirmationCode}
+                              </span>
+                            </p>
                           </div>
                           <div className="flex gap-2 pt-2">
                             <Button variant="outline" size="sm">
@@ -216,9 +280,17 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
               ) : (
                 <Card className="p-12 text-center">
                   <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">No trips yet</h3>
-                  <p className="text-gray-600 mb-4">Time to dust off your bags and start planning your next adventure!</p>
-                  <Button onClick={() => onNavigate("properties")} className="bg-[#00BFA6] hover:bg-[#00A890]">
+                  <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">
+                    No trips yet
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Time to dust off your bags and start planning your next
+                    adventure!
+                  </p>
+                  <Button
+                    onClick={() => onNavigate("properties")}
+                    className="bg-[#00BFA6] hover:bg-[#00A890]"
+                  >
                     Start Exploring
                   </Button>
                 </Card>
@@ -226,7 +298,9 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
             </div>
 
             <div>
-              <h2 className="text-2xl font-semibold text-[#2B2B2B] mb-4">Past Trips</h2>
+              <h2 className="text-2xl font-semibold text-[#2B2B2B] mb-4">
+                Past Trips
+              </h2>
               {pastTrips.length > 0 ? (
                 <div className="grid grid-cols-1 gap-4">
                   {pastTrips.map((trip) => (
@@ -256,14 +330,24 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
                                 {trip.checkIn} - {trip.checkOut}
                               </span>
                             </div>
-                            <Badge variant="outline" className="gap-1 bg-gray-100">
+                            <Badge
+                              variant="outline"
+                              className="gap-1 bg-gray-100"
+                            >
                               <Clock className="w-3 h-3" />
                               Completed
                             </Badge>
                           </div>
                           <div className="text-sm text-gray-600">
-                            <p>Total Paid: <span className="font-semibold">{trip.totalPrice} EGP</span></p>
-                            <p className="mt-1">Confirmation: {trip.confirmationCode}</p>
+                            <p>
+                              Total Paid:{" "}
+                              <span className="font-semibold">
+                                {trip.totalPrice} EGP
+                              </span>
+                            </p>
+                            <p className="mt-1">
+                              Confirmation: {trip.confirmationCode}
+                            </p>
                           </div>
                           <div className="flex gap-2 pt-2">
                             <Button variant="outline" size="sm">
@@ -306,7 +390,9 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
 
           {/* Favorites Tab */}
           <TabsContent value="favorites">
-            <h2 className="text-2xl font-semibold text-[#2B2B2B] mb-4">My Favorites</h2>
+            <h2 className="text-2xl font-semibold text-[#2B2B2B] mb-4">
+              My Favorites
+            </h2>
             {favorites.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {favorites.map((property) => (
@@ -323,10 +409,16 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
                       />
                     </div>
                     <div className="p-4">
-                      <h3 className="font-semibold text-[#2B2B2B] mb-1">{property.title}</h3>
-                      <p className="text-sm text-gray-600 mb-2">{property.location}</p>
+                      <h3 className="font-semibold text-[#2B2B2B] mb-1">
+                        {property.title}
+                      </h3>
+                      <p className="text-sm text-gray-600 mb-2">
+                        {property.location}
+                      </p>
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold">{property.price} EGP / night</span>
+                        <span className="font-semibold">
+                          {property.price} EGP / night
+                        </span>
                         <span className="text-sm">★ {property.rating}</span>
                       </div>
                     </div>
@@ -336,9 +428,16 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
             ) : (
               <Card className="p-12 text-center">
                 <Heart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">No favorites yet</h3>
-                <p className="text-gray-600 mb-4">Save properties you love to easily find them later</p>
-                <Button onClick={() => onNavigate("properties")} className="bg-[#00BFA6] hover:bg-[#00A890]">
+                <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">
+                  No favorites yet
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Save properties you love to easily find them later
+                </p>
+                <Button
+                  onClick={() => onNavigate("properties")}
+                  className="bg-[#00BFA6] hover:bg-[#00A890]"
+                >
                   Browse Properties
                 </Button>
               </Card>
@@ -348,7 +447,9 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
           {/* Reviews Tab */}
           <TabsContent value="reviews" className="space-y-6">
             <div>
-              <h2 className="text-2xl font-semibold text-[#2B2B2B] mb-4">Reviews Given</h2>
+              <h2 className="text-2xl font-semibold text-[#2B2B2B] mb-4">
+                Reviews Given
+              </h2>
               {reviewsGiven.length > 0 ? (
                 <div className="space-y-4">
                   {reviewsGiven.map((review) => (
@@ -364,8 +465,12 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
                         <div className="flex-1">
                           <div className="flex items-start justify-between mb-2">
                             <div>
-                              <h3 className="font-semibold text-[#2B2B2B]">{review.property}</h3>
-                              <p className="text-sm text-gray-600">{review.location}</p>
+                              <h3 className="font-semibold text-[#2B2B2B]">
+                                {review.property}
+                              </h3>
+                              <p className="text-sm text-gray-600">
+                                {review.location}
+                              </p>
                             </div>
                             <div className="flex items-center gap-1">
                               {[...Array(5)].map((_, i) => (
@@ -380,7 +485,9 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
                               ))}
                             </div>
                           </div>
-                          <p className="text-sm text-gray-700 mb-2">{review.comment}</p>
+                          <p className="text-sm text-gray-700 mb-2">
+                            {review.comment}
+                          </p>
                           <p className="text-xs text-gray-500">{review.date}</p>
                         </div>
                       </div>
@@ -390,8 +497,12 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
               ) : (
                 <Card className="p-12 text-center">
                   <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">No reviews yet</h3>
-                  <p className="text-gray-600">Share your experiences after completing a trip</p>
+                  <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">
+                    No reviews yet
+                  </h3>
+                  <p className="text-gray-600">
+                    Share your experiences after completing a trip
+                  </p>
                 </Card>
               )}
             </div>
@@ -400,7 +511,9 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
           {/* Payments Tab */}
           <TabsContent value="payments" className="space-y-6">
             <div>
-              <h2 className="text-2xl font-semibold text-[#2B2B2B] mb-4">Payment History</h2>
+              <h2 className="text-2xl font-semibold text-[#2B2B2B] mb-4">
+                Payment History
+              </h2>
               {paymentHistory.length > 0 ? (
                 <Card>
                   <Table>
@@ -417,11 +530,20 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
                       {paymentHistory.map((payment) => (
                         <TableRow key={payment.id}>
                           <TableCell>{payment.date}</TableCell>
-                          <TableCell className="font-medium">{payment.property}</TableCell>
-                          <TableCell className="text-[#00BFA6]">{payment.confirmationCode}</TableCell>
-                          <TableCell className="font-semibold">{payment.amount} EGP</TableCell>
+                          <TableCell className="font-medium">
+                            {payment.property}
+                          </TableCell>
+                          <TableCell className="text-[#00BFA6]">
+                            {payment.confirmationCode}
+                          </TableCell>
+                          <TableCell className="font-semibold">
+                            {payment.amount} EGP
+                          </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            <Badge
+                              variant="outline"
+                              className="bg-green-50 text-green-700 border-green-200"
+                            >
                               {payment.status}
                             </Badge>
                           </TableCell>
@@ -433,14 +555,20 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
               ) : (
                 <Card className="p-12 text-center">
                   <Receipt className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">No payment history</h3>
-                  <p className="text-gray-600">Your completed transactions will appear here</p>
+                  <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">
+                    No payment history
+                  </h3>
+                  <p className="text-gray-600">
+                    Your completed transactions will appear here
+                  </p>
                 </Card>
               )}
             </div>
 
             <div>
-              <h2 className="text-2xl font-semibold text-[#2B2B2B] mb-4">Payment Methods</h2>
+              <h2 className="text-2xl font-semibold text-[#2B2B2B] mb-4">
+                Payment Methods
+              </h2>
               <Card className="p-6 max-w-2xl">
                 <div className="space-y-4">
                   <div className="border rounded-lg p-4 flex items-center justify-between">
@@ -451,10 +579,14 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
                         <p className="text-sm text-gray-600">Expires 12/26</p>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm">Remove</Button>
+                    <Button variant="ghost" size="sm">
+                      Remove
+                    </Button>
                   </div>
                 </div>
-                <Button variant="outline" className="mt-4">+ Add Payment Method</Button>
+                <Button variant="outline" className="mt-4">
+                  + Add Payment Method
+                </Button>
               </Card>
             </div>
           </TabsContent>
@@ -465,10 +597,14 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
               <div className="flex items-center gap-6 mb-8">
                 <Avatar className="w-24 h-24">
                   <AvatarImage src="" />
-                  <AvatarFallback className="bg-[#00BFA6] text-white text-2xl">AH</AvatarFallback>
+                  <AvatarFallback className="bg-[#00BFA6] text-white text-2xl">
+                    AH
+                  </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h2 className="text-2xl font-semibold text-[#2B2B2B]">Ahmed Hassan</h2>
+                  <h2 className="text-2xl font-semibold text-[#2B2B2B]">
+                    Ahmed Hassan
+                  </h2>
                   <p className="text-gray-600">Member since 2025</p>
                 </div>
               </div>
@@ -476,37 +612,66 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
               <form className="space-y-4">
                 <div>
                   <Label htmlFor="fullName">Full Name</Label>
-                  <Input id="fullName" defaultValue="Ahmed Hassan" className="mt-1" />
+                  <Input
+                    id="fullName"
+                    defaultValue="Ahmed Hassan"
+                    className="mt-1"
+                  />
                 </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue="ahmed@example.com" className="mt-1" />
+                  <Input
+                    id="email"
+                    type="email"
+                    defaultValue="ahmed@example.com"
+                    className="mt-1"
+                  />
                 </div>
                 <div>
                   <Label htmlFor="phone">Phone Number</Label>
-                  <Input id="phone" defaultValue="+20 123 456 7890" className="mt-1" />
+                  <Input
+                    id="phone"
+                    defaultValue="+20 123 456 7890"
+                    className="mt-1"
+                  />
                 </div>
                 <div>
                   <Label htmlFor="bio">About</Label>
-                  <Textarea id="bio" placeholder="Tell us about yourself" className="mt-1" rows={3} />
+                  <Textarea
+                    id="bio"
+                    placeholder="Tell us about yourself"
+                    className="mt-1"
+                    rows={3}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="password">New Password</Label>
-                  <Input id="password" type="password" placeholder="Leave blank to keep current password" className="mt-1" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Leave blank to keep current password"
+                    className="mt-1"
+                  />
                 </div>
-                <Button className="bg-[#00BFA6] hover:bg-[#00A890]">Save Changes</Button>
+                <Button className="bg-[#00BFA6] hover:bg-[#00A890]">
+                  Save Changes
+                </Button>
               </form>
             </Card>
           </TabsContent>
         </Tabs>
 
         {/* Cancel Booking Dialog */}
-        <AlertDialog open={cancelBookingId !== null} onOpenChange={() => setCancelBookingId(null)}>
+        <AlertDialog
+          open={cancelBookingId !== null}
+          onOpenChange={() => setCancelBookingId(null)}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will cancel your booking and you will not be able to recover it.
+                This will cancel your booking and you will not be able to
+                recover it.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -525,7 +690,12 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
         </AlertDialog>
 
         {/* Write Review Dialog */}
-        <Dialog open={reviewDialog.open} onOpenChange={() => setReviewDialog({ open: false, tripId: null, propertyName: "" })}>
+        <Dialog
+          open={reviewDialog.open}
+          onOpenChange={() =>
+            setReviewDialog({ open: false, tripId: null, propertyName: "" })
+          }
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Write a Review</DialogTitle>
@@ -560,7 +730,13 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setReviewDialog({ open: false, tripId: null, propertyName: "" })}
+                onClick={() =>
+                  setReviewDialog({
+                    open: false,
+                    tripId: null,
+                    propertyName: "",
+                  })
+                }
               >
                 Cancel
               </Button>
@@ -570,7 +746,11 @@ export function UserDashboard({ onNavigate }: UserDashboardProps) {
                 onClick={() => {
                   // Add logic to submit the review
                   toast.success("Review submitted successfully!");
-                  setReviewDialog({ open: false, tripId: null, propertyName: "" });
+                  setReviewDialog({
+                    open: false,
+                    tripId: null,
+                    propertyName: "",
+                  });
                 }}
               >
                 Submit Review

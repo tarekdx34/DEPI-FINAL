@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { 
-  LayoutDashboard, 
-  Users, 
-  Home, 
-  CheckCircle, 
-  Flag, 
+import { useState, useEffect } from "react";
+import {
+  LayoutDashboard,
+  Users,
+  Home,
+  CheckCircle,
+  Flag,
   TrendingUp,
   Search,
   MoreVertical,
@@ -16,14 +16,22 @@ import {
   MapPin,
   Star,
   DollarSign,
-  Calendar
+  Calendar,
+  Loader2,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import {
@@ -42,8 +50,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 import { toast } from "sonner@2.0.3";
+import api from "../../../api";
+import {
+  DashboardStatsResponse,
+  UserProfile,
+  PropertyResponse,
+  PendingPropertyResponse,
+  ReportResponse,
+  PlatformAnalyticsResponse,
+} from "../../api";
 
 interface AdminDashboardProps {
   onNavigate: (page: string) => void;
@@ -52,15 +75,88 @@ interface AdminDashboardProps {
 export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [searchQuery, setSearchQuery] = useState("");
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: string; id: string; name: string }>({
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    type: string;
+    id: string;
+    name: string;
+  }>({
     open: false,
     type: "",
     id: "",
     name: "",
   });
 
-  // Mock data
-  const stats = {
+  // State for real data
+  const [stats, setStats] = useState<DashboardStatsResponse | null>(null);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [properties, setProperties] = useState<PropertyResponse[]>([]);
+  const [pendingListings, setPendingListings] = useState<
+    PendingPropertyResponse[]
+  >([]);
+  const [reports, setReports] = useState<ReportResponse[]>([]);
+  const [analytics, setAnalytics] = useState<PlatformAnalyticsResponse | null>(
+    null
+  );
+  const [favorites, setFavorites] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load data on component mount
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Load all data in parallel
+      const [
+        statsData,
+        usersData,
+        propertiesData,
+        pendingData,
+        reportsData,
+        analyticsData,
+        favoritesData,
+        reviewsData,
+        profileData,
+      ] = await Promise.all([
+        api.getDashboardStats(),
+        api.getAllUsers({ page: 0, size: 50 }),
+        api.getProperties({ page: 0, size: 50 }),
+        api.getPendingProperties({ page: 0, size: 50 }),
+        api.getAllReports({ page: 0, size: 50 }),
+        api.getPlatformAnalytics(),
+        api.getFavorites({ page: 0, size: 50 }),
+        api.getPropertyReviews(1, { page: 0, size: 50 }), // Get reviews for property ID 1 as example
+        api.getProfile(),
+      ]);
+
+      setStats(statsData);
+      setUsers(usersData.content);
+      setProperties(propertiesData.content);
+      setPendingListings(pendingData.content);
+      setReports(reportsData.content);
+      setAnalytics(analyticsData);
+      setFavorites(favoritesData.content);
+      setReviews(reviewsData.content);
+      setProfile(profileData);
+    } catch (err) {
+      console.error("Failed to load dashboard data:", err);
+      setError("Failed to load dashboard data. Please try again.");
+      toast.error("Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fallback mock data if API fails
+  const mockStats = {
     totalUsers: 1248,
     totalProperties: 342,
     pendingApprovals: 12,
@@ -69,76 +165,207 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
     activeListings: 298,
   };
 
-  const users = [
-    { id: "1", name: "Ahmed Hassan", email: "ahmed@example.com", role: "Renter", joined: "Oct 15, 2025", bookings: 5, status: "Active" },
-    { id: "2", name: "Sarah Mohamed", email: "sarah@example.com", role: "Owner", joined: "Sep 22, 2025", properties: 3, status: "Active" },
-    { id: "3", name: "Mohamed Ali", email: "mohamed@example.com", role: "Renter", joined: "Nov 01, 2025", bookings: 2, status: "Suspended" },
-    { id: "4", name: "Fatima Ibrahim", email: "fatima@example.com", role: "Owner", joined: "Aug 10, 2025", properties: 7, status: "Active" },
+  const mockUsers = [
+    {
+      id: "1",
+      name: "Ahmed Hassan",
+      email: "ahmed@example.com",
+      role: "Renter",
+      joined: "Oct 15, 2025",
+      bookings: 5,
+      status: "Active",
+    },
+    {
+      id: "2",
+      name: "Sarah Mohamed",
+      email: "sarah@example.com",
+      role: "Owner",
+      joined: "Sep 22, 2025",
+      properties: 3,
+      status: "Active",
+    },
+    {
+      id: "3",
+      name: "Mohamed Ali",
+      email: "mohamed@example.com",
+      role: "Renter",
+      joined: "Nov 01, 2025",
+      bookings: 2,
+      status: "Suspended",
+    },
+    {
+      id: "4",
+      name: "Fatima Ibrahim",
+      email: "fatima@example.com",
+      role: "Owner",
+      joined: "Aug 10, 2025",
+      properties: 7,
+      status: "Active",
+    },
   ];
 
-  const properties = [
-    { 
-      id: "1", 
-      title: "Luxury Beachfront Villa", 
-      owner: "Sarah Mohamed", 
-      location: "North Coast", 
-      price: 3500, 
-      status: "Active", 
+  const mockProperties = [
+    {
+      id: "1",
+      title: "Luxury Beachfront Villa",
+      owner: "Sarah Mohamed",
+      location: "North Coast",
+      price: 3500,
+      status: "Active",
       bookings: 24,
-      image: "https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBiZWFjaCUyMHZpbGxhfGVufDF8fHx8MTc2MTA5ODc1Nnww&ixlib=rb-4.1.0&q=80&w=1080"
+      image:
+        "https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBiZWFjaCUyMHZpbGxhfGVufDF8fHx8MTc2MTA5ODc1Nnww&ixlib=rb-4.1.0&q=80&w=1080",
     },
-    { 
-      id: "2", 
-      title: "Cozy Beach Apartment", 
-      owner: "Fatima Ibrahim", 
-      location: "Alexandria", 
-      price: 1800, 
-      status: "Active", 
+    {
+      id: "2",
+      title: "Cozy Beach Apartment",
+      owner: "Fatima Ibrahim",
+      location: "Alexandria",
+      price: 1800,
+      status: "Active",
       bookings: 18,
-      image: "https://images.unsplash.com/photo-1635690280190-0eec6bc587fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWFjaCUyMGhvdXNlJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzYxMTYxMzgwfDA&ixlib=rb-4.1.0&q=80&w=1080"
+      image:
+        "https://images.unsplash.com/photo-1635690280190-0eec6bc587fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWFjaCUyMGhvdXNlJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzYxMTYxMzgwfDA&ixlib=rb-4.1.0&q=80&w=1080",
     },
   ];
 
-  const pendingListings = [
-    { 
-      id: "1", 
-      title: "Seaside Villa with Pool", 
-      owner: "Youssef Ahmed", 
-      location: "Matrouh", 
-      price: 2500, 
+  const mockPendingListings = [
+    {
+      id: "1",
+      title: "Seaside Villa with Pool",
+      owner: "Youssef Ahmed",
+      location: "Matrouh",
+      price: 2500,
       submitted: "2 days ago",
-      image: "https://images.unsplash.com/photo-1598635031829-4bfae29d33eb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpdGVycmFuZWFuJTIwdmlsbGF8ZW58MXx8fHwxNzYxMTI5ODA1fDA&ixlib=rb-4.1.0&q=80&w=1080"
+      image:
+        "https://images.unsplash.com/photo-1598635031829-4bfae29d33eb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpdGVycmFuZWFuJTIwdmlsbGF8ZW58MXx8fHwxNzYxMTI5ODA1fDA&ixlib=rb-4.1.0&q=80&w=1080",
     },
-    { 
-      id: "2", 
-      title: "Modern Chalet", 
-      owner: "Layla Hassan", 
-      location: "North Coast", 
-      price: 3200, 
+    {
+      id: "2",
+      title: "Modern Chalet",
+      owner: "Layla Hassan",
+      location: "North Coast",
+      price: 3200,
       submitted: "5 hours ago",
-      image: "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBob3VzZXxlbnwxfHx8fDE3NjExNjEzODB8MA&ixlib=rb-4.1.0&q=80&w=1080"
+      image:
+        "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBob3VzZXxlbnwxfHx8fDE3NjExNjEzODB8MA&ixlib=rb-4.1.0&q=80&w=1080",
     },
   ];
 
-  const reports = [
-    { id: "1", type: "Spam", property: "Fake Listing", reporter: "Ahmed Hassan", date: "Oct 20, 2025", status: "Pending" },
-    { id: "2", type: "Fraud", property: "Luxury Beach Villa", reporter: "Mohamed Ali", date: "Oct 18, 2025", status: "Investigating" },
-    { id: "3", type: "Inappropriate", property: "Beach House", reporter: "Sarah Mohamed", date: "Oct 15, 2025", status: "Resolved" },
+  const mockReports = [
+    {
+      id: "1",
+      type: "Spam",
+      property: "Fake Listing",
+      reporter: "Ahmed Hassan",
+      date: "Oct 20, 2025",
+      status: "Pending",
+    },
+    {
+      id: "2",
+      type: "Fraud",
+      property: "Luxury Beach Villa",
+      reporter: "Mohamed Ali",
+      date: "Oct 18, 2025",
+      status: "Investigating",
+    },
+    {
+      id: "3",
+      type: "Inappropriate",
+      property: "Beach House",
+      reporter: "Sarah Mohamed",
+      date: "Oct 15, 2025",
+      status: "Resolved",
+    },
   ];
 
-  const topListings = [
-    { property: "Luxury Beachfront Villa", bookings: 45, revenue: 157500, rating: 4.9, location: "North Coast" },
-    { property: "Cozy Beach Apartment", bookings: 38, revenue: 68400, rating: 4.8, location: "Alexandria" },
-    { property: "Seaside Chalet", bookings: 32, revenue: 70400, rating: 4.7, location: "Matrouh" },
-    { property: "Modern Beach House", bookings: 28, revenue: 98000, rating: 4.9, location: "North Coast" },
-    { property: "Coastal Villa", bookings: 25, revenue: 87500, rating: 4.6, location: "Alexandria" },
+  const mockTopListings = [
+    {
+      property: "Luxury Beachfront Villa",
+      bookings: 45,
+      revenue: 157500,
+      rating: 4.9,
+      location: "North Coast",
+    },
+    {
+      property: "Cozy Beach Apartment",
+      bookings: 38,
+      revenue: 68400,
+      rating: 4.8,
+      location: "Alexandria",
+    },
+    {
+      property: "Seaside Chalet",
+      bookings: 32,
+      revenue: 70400,
+      rating: 4.7,
+      location: "Matrouh",
+    },
+    {
+      property: "Modern Beach House",
+      bookings: 28,
+      revenue: 98000,
+      rating: 4.9,
+      location: "North Coast",
+    },
+    {
+      property: "Coastal Villa",
+      bookings: 25,
+      revenue: 87500,
+      rating: 4.6,
+      location: "Alexandria",
+    },
   ];
 
-  const citiesData = [
+  const mockCitiesData = [
     { city: "North Coast", bookings: 342, revenue: 1205000, properties: 128 },
     { city: "Alexandria", bookings: 298, revenue: 846000, properties: 142 },
     { city: "Matrouh", bookings: 216, revenue: 607000, properties: 72 },
   ];
+
+  // Use real data if available, otherwise fall back to mock data
+  const currentStats = stats || mockStats;
+  const currentUsers = users.length > 0 ? users : mockUsers;
+  const currentProperties = properties.length > 0 ? properties : mockProperties;
+  const currentPendingListings =
+    pendingListings.length > 0 ? pendingListings : mockPendingListings;
+  const currentReports = reports.length > 0 ? reports : mockReports;
+  const currentTopListings = analytics?.topLocations || mockTopListings;
+  const currentCitiesData = analytics?.topLocations || mockCitiesData;
+  const currentFavorites = favorites.length > 0 ? favorites : [];
+  const currentReviews = reviews.length > 0 ? reviews : [];
+  const currentProfile = profile || null;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F9F6F1] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-[#00BFA6]" />
+          <p className="text-gray-600">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#F9F6F1] flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-[#2B2B2B] mb-2">
+            Error Loading Dashboard
+          </h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button
+            onClick={loadDashboardData}
+            className="bg-[#00BFA6] hover:bg-[#00A896]"
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const handleDelete = (type: string, id: string, name: string) => {
     setDeleteDialog({ open: true, type, id, name });
@@ -179,7 +406,9 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-semibold text-[#2B2B2B]">Admin Dashboard</h1>
+            <h1 className="text-3xl font-semibold text-[#2B2B2B]">
+              Admin Dashboard
+            </h1>
             <p className="text-gray-600 mt-1">Manage your platform</p>
           </div>
           <Button variant="outline" onClick={() => onNavigate("home")}>
@@ -205,7 +434,9 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
               <CheckCircle className="w-4 h-4" />
               <span className="hidden sm:inline">Approvals</span>
               {pendingListings.length > 0 && (
-                <Badge className="ml-1 bg-red-500">{pendingListings.length}</Badge>
+                <Badge className="ml-1 bg-red-500">
+                  {pendingListings.length}
+                </Badge>
               )}
             </TabsTrigger>
             <TabsTrigger value="reports" className="gap-2">
@@ -226,23 +457,33 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                   <h3 className="text-sm text-gray-600">Total Users</h3>
                   <Users className="w-5 h-5 text-[#00BFA6]" />
                 </div>
-                <p className="text-3xl font-semibold text-[#2B2B2B]">{stats.totalUsers.toLocaleString()}</p>
-                <p className="text-sm text-green-600 mt-1">+12% from last month</p>
+                <p className="text-3xl font-semibold text-[#2B2B2B]">
+                  {stats.totalUsers.toLocaleString()}
+                </p>
+                <p className="text-sm text-green-600 mt-1">
+                  +12% from last month
+                </p>
               </Card>
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm text-gray-600">Total Properties</h3>
                   <Home className="w-5 h-5 text-[#00BFA6]" />
                 </div>
-                <p className="text-3xl font-semibold text-[#2B2B2B]">{stats.totalProperties}</p>
-                <p className="text-sm text-gray-600 mt-1">{stats.activeListings} active</p>
+                <p className="text-3xl font-semibold text-[#2B2B2B]">
+                  {stats.totalProperties}
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  {stats.activeListings} active
+                </p>
               </Card>
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm text-gray-600">Pending Approvals</h3>
                   <CheckCircle className="w-5 h-5 text-yellow-500" />
                 </div>
-                <p className="text-3xl font-semibold text-[#2B2B2B]">{stats.pendingApprovals}</p>
+                <p className="text-3xl font-semibold text-[#2B2B2B]">
+                  {stats.pendingApprovals}
+                </p>
                 <p className="text-sm text-yellow-600 mt-1">Needs attention</p>
               </Card>
               <Card className="p-6">
@@ -250,37 +491,51 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                   <h3 className="text-sm text-gray-600">Total Bookings</h3>
                   <Calendar className="w-5 h-5 text-[#00BFA6]" />
                 </div>
-                <p className="text-3xl font-semibold text-[#2B2B2B]">{stats.totalBookings}</p>
-                <p className="text-sm text-green-600 mt-1">+8% from last month</p>
+                <p className="text-3xl font-semibold text-[#2B2B2B]">
+                  {stats.totalBookings}
+                </p>
+                <p className="text-sm text-green-600 mt-1">
+                  +8% from last month
+                </p>
               </Card>
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm text-gray-600">Total Revenue</h3>
                   <DollarSign className="w-5 h-5 text-[#00BFA6]" />
                 </div>
-                <p className="text-3xl font-semibold text-[#2B2B2B]">{stats.totalRevenue.toLocaleString()} EGP</p>
-                <p className="text-sm text-green-600 mt-1">+15% from last month</p>
+                <p className="text-3xl font-semibold text-[#2B2B2B]">
+                  {stats.totalRevenue.toLocaleString()} EGP
+                </p>
+                <p className="text-sm text-green-600 mt-1">
+                  +15% from last month
+                </p>
               </Card>
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm text-gray-600">Active Listings</h3>
                   <Home className="w-5 h-5 text-green-500" />
                 </div>
-                <p className="text-3xl font-semibold text-[#2B2B2B]">{stats.activeListings}</p>
+                <p className="text-3xl font-semibold text-[#2B2B2B]">
+                  {stats.activeListings}
+                </p>
                 <p className="text-sm text-gray-600 mt-1">87% occupancy rate</p>
               </Card>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="p-6">
-                <h3 className="font-semibold text-[#2B2B2B] mb-4">Recent Activity</h3>
+                <h3 className="font-semibold text-[#2B2B2B] mb-4">
+                  Recent Activity
+                </h3>
                 <div className="space-y-4">
                   <div className="flex items-start gap-3 pb-3 border-b">
                     <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
                       <UserCheck className="w-4 h-4 text-green-600" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm">New user registered: Ahmed Hassan</p>
+                      <p className="text-sm">
+                        New user registered: Ahmed Hassan
+                      </p>
                       <p className="text-xs text-gray-500">2 minutes ago</p>
                     </div>
                   </div>
@@ -289,7 +544,9 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                       <Home className="w-4 h-4 text-blue-600" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm">New property listed in North Coast</p>
+                      <p className="text-sm">
+                        New property listed in North Coast
+                      </p>
                       <p className="text-xs text-gray-500">15 minutes ago</p>
                     </div>
                   </div>
@@ -315,21 +572,39 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
               </Card>
 
               <Card className="p-6">
-                <h3 className="font-semibold text-[#2B2B2B] mb-4">Quick Actions</h3>
+                <h3 className="font-semibold text-[#2B2B2B] mb-4">
+                  Quick Actions
+                </h3>
                 <div className="grid grid-cols-2 gap-3">
-                  <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => setActiveTab("approvals")}>
+                  <Button
+                    variant="outline"
+                    className="h-20 flex-col gap-2"
+                    onClick={() => setActiveTab("approvals")}
+                  >
                     <CheckCircle className="w-5 h-5" />
                     <span className="text-sm">Approve Listings</span>
                   </Button>
-                  <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => setActiveTab("users")}>
+                  <Button
+                    variant="outline"
+                    className="h-20 flex-col gap-2"
+                    onClick={() => setActiveTab("users")}
+                  >
                     <Users className="w-5 h-5" />
                     <span className="text-sm">Manage Users</span>
                   </Button>
-                  <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => setActiveTab("reports")}>
+                  <Button
+                    variant="outline"
+                    className="h-20 flex-col gap-2"
+                    onClick={() => setActiveTab("reports")}
+                  >
                     <Flag className="w-5 h-5" />
                     <span className="text-sm">View Reports</span>
                   </Button>
-                  <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => setActiveTab("analytics")}>
+                  <Button
+                    variant="outline"
+                    className="h-20 flex-col gap-2"
+                    onClick={() => setActiveTab("analytics")}
+                  >
                     <TrendingUp className="w-5 h-5" />
                     <span className="text-sm">Analytics</span>
                   </Button>
@@ -341,7 +616,9 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
           {/* Users Tab */}
           <TabsContent value="users" className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold text-[#2B2B2B]">Manage Users</h2>
+              <h2 className="text-2xl font-semibold text-[#2B2B2B]">
+                Manage Users
+              </h2>
               <div className="flex gap-3">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -385,12 +662,17 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                           <Avatar>
                             <AvatarImage src="" />
                             <AvatarFallback className="bg-[#00BFA6] text-white">
-                              {user.name.split(" ").map(n => n[0]).join("")}
+                              {user.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")}
                             </AvatarFallback>
                           </Avatar>
                           <div>
                             <p className="font-medium">{user.name}</p>
-                            <p className="text-sm text-gray-600">{user.email}</p>
+                            <p className="text-sm text-gray-600">
+                              {user.email}
+                            </p>
                           </div>
                         </div>
                       </TableCell>
@@ -400,10 +682,14 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                       <TableCell>{user.joined}</TableCell>
                       <TableCell>
                         {user.bookings && <span>{user.bookings} bookings</span>}
-                        {user.properties && <span>{user.properties} properties</span>}
+                        {user.properties && (
+                          <span>{user.properties} properties</span>
+                        )}
                       </TableCell>
                       <TableCell>
-                        <Badge className={getStatusColor(user.status)}>{user.status}</Badge>
+                        <Badge className={getStatusColor(user.status)}>
+                          {user.status}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -430,9 +716,11 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                                 </>
                               )}
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               className="text-red-600"
-                              onClick={() => handleDelete("User", user.id, user.name)}
+                              onClick={() =>
+                                handleDelete("User", user.id, user.name)
+                              }
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
                               Delete User
@@ -450,7 +738,9 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
           {/* Properties Tab */}
           <TabsContent value="properties" className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold text-[#2B2B2B]">Manage Properties</h2>
+              <h2 className="text-2xl font-semibold text-[#2B2B2B]">
+                Manage Properties
+              </h2>
               <div className="flex gap-3">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -486,14 +776,20 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                     </Badge>
                   </div>
                   <div className="p-4">
-                    <h3 className="font-semibold text-[#2B2B2B] mb-1">{property.title}</h3>
-                    <p className="text-sm text-gray-600 mb-2">by {property.owner}</p>
+                    <h3 className="font-semibold text-[#2B2B2B] mb-1">
+                      {property.title}
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-2">
+                      by {property.owner}
+                    </p>
                     <div className="flex items-center justify-between text-sm mb-3">
                       <span className="flex items-center gap-1">
                         <MapPin className="w-3 h-3" />
                         {property.location}
                       </span>
-                      <span className="font-semibold">{property.price} EGP/night</span>
+                      <span className="font-semibold">
+                        {property.price} EGP/night
+                      </span>
                     </div>
                     <div className="text-sm text-gray-600 mb-4">
                       {property.bookings} total bookings
@@ -503,11 +799,13 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                         <Eye className="w-3 h-3 mr-1" />
                         View
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="text-red-600"
-                        onClick={() => handleDelete("Property", property.id, property.title)}
+                        onClick={() =>
+                          handleDelete("Property", property.id, property.title)
+                        }
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -520,8 +818,10 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
 
           {/* Approvals Tab */}
           <TabsContent value="approvals" className="space-y-6">
-            <h2 className="text-2xl font-semibold text-[#2B2B2B]">Pending Approvals</h2>
-            
+            <h2 className="text-2xl font-semibold text-[#2B2B2B]">
+              Pending Approvals
+            </h2>
+
             {pendingListings.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {pendingListings.map((listing) => (
@@ -536,8 +836,12 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                     <div className="p-6">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <h3 className="font-semibold text-[#2B2B2B] mb-1">{listing.title}</h3>
-                          <p className="text-sm text-gray-600">by {listing.owner}</p>
+                          <h3 className="font-semibold text-[#2B2B2B] mb-1">
+                            {listing.title}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            by {listing.owner}
+                          </p>
                         </div>
                         <Badge variant="outline" className="bg-yellow-50">
                           Pending
@@ -548,23 +852,31 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                           <MapPin className="w-3 h-3" />
                           {listing.location}
                         </span>
-                        <span className="font-semibold">{listing.price} EGP/night</span>
+                        <span className="font-semibold">
+                          {listing.price} EGP/night
+                        </span>
                       </div>
-                      <p className="text-xs text-gray-500 mb-4">Submitted {listing.submitted}</p>
+                      <p className="text-xs text-gray-500 mb-4">
+                        Submitted {listing.submitted}
+                      </p>
                       <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           className="flex-1 bg-green-600 hover:bg-green-700"
-                          onClick={() => handleApprove(listing.id, listing.title)}
+                          onClick={() =>
+                            handleApprove(listing.id, listing.title)
+                          }
                         >
                           <CheckCircle className="w-4 h-4 mr-1" />
                           Approve
                         </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
+                        <Button
+                          size="sm"
+                          variant="outline"
                           className="flex-1 border-red-500 text-red-600 hover:bg-red-50"
-                          onClick={() => handleReject(listing.id, listing.title)}
+                          onClick={() =>
+                            handleReject(listing.id, listing.title)
+                          }
                         >
                           Reject
                         </Button>
@@ -579,7 +891,9 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
             ) : (
               <Card className="p-12 text-center">
                 <CheckCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">All caught up!</h3>
+                <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">
+                  All caught up!
+                </h3>
                 <p className="text-gray-600">No pending listings to review</p>
               </Card>
             )}
@@ -587,8 +901,10 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
 
           {/* Reports Tab */}
           <TabsContent value="reports" className="space-y-6">
-            <h2 className="text-2xl font-semibold text-[#2B2B2B]">Reports & Suspicious Activity</h2>
-            
+            <h2 className="text-2xl font-semibold text-[#2B2B2B]">
+              Reports & Suspicious Activity
+            </h2>
+
             <Card>
               <Table>
                 <TableHeader>
@@ -614,7 +930,9 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                       <TableCell>{report.reporter}</TableCell>
                       <TableCell>{report.date}</TableCell>
                       <TableCell>
-                        <Badge className={getStatusColor(report.status)}>{report.status}</Badge>
+                        <Badge className={getStatusColor(report.status)}>
+                          {report.status}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
@@ -623,7 +941,10 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                             Review
                           </Button>
                           {report.status !== "Resolved" && (
-                            <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700"
+                            >
                               Resolve
                             </Button>
                           )}
@@ -638,11 +959,15 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
 
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">
-            <h2 className="text-2xl font-semibold text-[#2B2B2B]">Analytics & Insights</h2>
-            
+            <h2 className="text-2xl font-semibold text-[#2B2B2B]">
+              Analytics & Insights
+            </h2>
+
             {/* Top Listings */}
             <Card className="p-6">
-              <h3 className="font-semibold text-[#2B2B2B] mb-4">Top Performing Listings</h3>
+              <h3 className="font-semibold text-[#2B2B2B] mb-4">
+                Top Performing Listings
+              </h3>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -654,9 +979,11 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {topListings.map((listing, index) => (
+                  {currentTopListings.map((listing, index) => (
                     <TableRow key={index}>
-                      <TableCell className="font-medium">{listing.property}</TableCell>
+                      <TableCell className="font-medium">
+                        {listing.property}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <MapPin className="w-3 h-3 text-gray-400" />
@@ -664,7 +991,9 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                         </div>
                       </TableCell>
                       <TableCell>{listing.bookings}</TableCell>
-                      <TableCell className="font-semibold">{listing.revenue.toLocaleString()} EGP</TableCell>
+                      <TableCell className="font-semibold">
+                        {listing.revenue.toLocaleString()} EGP
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -679,9 +1008,11 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
 
             {/* Cities Performance */}
             <Card className="p-6">
-              <h3 className="font-semibold text-[#2B2B2B] mb-4">Most Booked Cities</h3>
+              <h3 className="font-semibold text-[#2B2B2B] mb-4">
+                Most Booked Cities
+              </h3>
               <div className="space-y-4">
-                {citiesData.map((city, index) => (
+                {currentCitiesData.map((city, index) => (
                   <div key={index} className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -690,17 +1021,26 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                       </div>
                       <div className="flex items-center gap-4 text-sm">
                         <span>{city.bookings} bookings</span>
-                        <span className="font-semibold">{city.revenue.toLocaleString()} EGP</span>
+                        <span className="font-semibold">
+                          {city.revenue.toLocaleString()} EGP
+                        </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex-1 bg-gray-200 rounded-full h-2">
                         <div
                           className="bg-[#00BFA6] h-2 rounded-full"
-                          style={{ width: `${(city.bookings / citiesData[0].bookings) * 100}%` }}
+                          style={{
+                            width: `${
+                              (city.bookings / currentCitiesData[0].bookings) *
+                              100
+                            }%`,
+                          }}
                         />
                       </div>
-                      <span className="text-xs text-gray-600 w-20 text-right">{city.properties} properties</span>
+                      <span className="text-xs text-gray-600 w-20 text-right">
+                        {city.properties} properties
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -708,20 +1048,147 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Favorites Section */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-[#2B2B2B] mb-4">
+            Recent Favorites
+          </h3>
+          <div className="space-y-4">
+            {currentFavorites.length > 0 ? (
+              currentFavorites.slice(0, 5).map((favorite: any) => (
+                <div
+                  key={favorite.favoriteId}
+                  className="flex items-center gap-4 p-4 border rounded-lg"
+                >
+                  <div className="flex-1">
+                    <h4 className="font-medium">{favorite.property.titleEn}</h4>
+                    <p className="text-sm text-gray-600">
+                      {favorite.property.city}, {favorite.property.governorate}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Added: {new Date(favorite.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold">
+                      {favorite.property.pricePerNight} EGP/night
+                    </p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500">No favorites found.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Reviews Section */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-[#2B2B2B] mb-4">
+            Recent Reviews
+          </h3>
+          <div className="space-y-4">
+            {currentReviews.length > 0 ? (
+              currentReviews.slice(0, 5).map((review: any) => (
+                <div key={review.reviewId} className="p-4 border rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-medium">
+                      {review.reviewer.firstName} {review.reviewer.lastName}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      <span className="text-sm">{review.overallRating}</span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {review.reviewText}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Property: {review.propertyTitle}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Date: {new Date(review.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500">No reviews found.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Profile Section */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-[#2B2B2B] mb-4">
+            Admin Profile
+          </h3>
+          {currentProfile ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                {currentProfile.profilePhoto && (
+                  <img
+                    src={currentProfile.profilePhoto}
+                    alt="Profile"
+                    className="w-16 h-16 rounded-full object-cover"
+                  />
+                )}
+                <div>
+                  <h4 className="font-medium">
+                    {currentProfile.firstName} {currentProfile.lastName}
+                  </h4>
+                  <p className="text-sm text-gray-600">
+                    {currentProfile.email}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {currentProfile.phoneNumber}
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium">User Type:</span>{" "}
+                  {currentProfile.userType}
+                </div>
+                <div>
+                  <span className="font-medium">Verified:</span>{" "}
+                  {currentProfile.emailVerified ? "Yes" : "No"}
+                </div>
+                <div>
+                  <span className="font-medium">Active:</span>{" "}
+                  {currentProfile.isActive ? "Yes" : "No"}
+                </div>
+                <div>
+                  <span className="font-medium">Joined:</span>{" "}
+                  {new Date(currentProfile.createdAt).toLocaleDateString()}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-500">Profile data not available.</p>
+          )}
+        </div>
       </div>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}>
+      <AlertDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {deleteDialog.type}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{deleteDialog.name}"? This action cannot be undone.
+              Are you sure you want to delete "{deleteDialog.name}"? This action
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

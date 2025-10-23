@@ -1,7 +1,23 @@
 import { useState } from "react";
-import { Menu, X, Globe, Heart, Star, Trash2, User, LogOut, LayoutDashboard } from "lucide-react";
+import {
+  Menu,
+  X,
+  Globe,
+  Heart,
+  Star,
+  Trash2,
+  User,
+  LogOut,
+  LayoutDashboard,
+} from "lucide-react";
 import { Button } from "./ui/button";
-import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "./ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle,
+  SheetDescription,
+} from "./ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,21 +38,29 @@ interface NavbarProps {
   onSelectFavourite?: (page: string, propertyId?: string) => void;
   user?: UserType | null;
   onLogout?: () => void;
+  language?: "en" | "ar";
+  onLanguageChange?: (language: "en" | "ar") => void;
 }
 
-export function Navbar({ 
-  onNavigate, 
+export function Navbar({
+  onNavigate,
   currentPage = "home",
   favourites = [],
   onRemoveFavourite,
   onSelectFavourite,
   user = null,
   onLogout,
+  language = "en",
+  onLanguageChange,
 }: NavbarProps) {
-  const [language, setLanguage] = useState<"en" | "ar">("en");
+  const [localLanguage, setLocalLanguage] = useState<"en" | "ar">(language);
 
   const toggleLanguage = () => {
-    setLanguage(language === "en" ? "ar" : "en");
+    const newLang = localLanguage === "en" ? "ar" : "en";
+    setLocalLanguage(newLang);
+    if (onLanguageChange) {
+      onLanguageChange(newLang);
+    }
   };
 
   const handleNavigation = (page: string) => {
@@ -45,7 +69,7 @@ export function Navbar({
     }
   };
 
-  const isArabic = language === "ar";
+  const isArabic = localLanguage === "ar";
 
   return (
     <nav className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-gray-200">
@@ -83,9 +107,7 @@ export function Navbar({
                 <Button variant="ghost" size="icon" className="relative">
                   <Heart className="w-5 h-5" />
                   {favourites.length > 0 && (
-                    <Badge 
-                      className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-[#FF6B6B] hover:bg-[#FF6B6B]"
-                    >
+                    <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-[#FF6B6B] hover:bg-[#FF6B6B]">
                       {favourites.length}
                     </Badge>
                   )}
@@ -96,10 +118,11 @@ export function Navbar({
                   {isArabic ? "المفضلة" : "Favourites"}
                 </SheetTitle>
                 <SheetDescription className="sr-only">
-                  {isArabic ? "قائمة العقارات المفضلة لديك" : "Your saved favourite properties"}
+                  {isArabic
+                    ? "قائمة العقارات المفضلة لديك"
+                    : "Your saved favourite properties"}
                 </SheetDescription>
                 <div className="flex flex-col h-full">
-                  
                   {favourites.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
                       <Heart className="w-16 h-16 text-gray-300 mb-4" />
@@ -107,8 +130,8 @@ export function Navbar({
                         {isArabic ? "لا توجد مفضلات بعد" : "No favourites yet"}
                       </h3>
                       <p className="text-gray-600 mb-6">
-                        {isArabic 
-                          ? "ابدأ بإضافة عقارات إلى قائمة المفضلة الخاصة بك" 
+                        {isArabic
+                          ? "ابدأ بإضافة عقارات إلى قائمة المفضلة الخاصة بك"
                           : "Start adding properties to your favourites list"}
                       </p>
                       <Button
@@ -127,11 +150,14 @@ export function Navbar({
                           key={property.id}
                           className="group flex gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
                         >
-                          <div 
+                          <div
                             className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer"
                             onClick={() => {
                               if (onSelectFavourite) {
-                                onSelectFavourite("property-details", property.id);
+                                onSelectFavourite(
+                                  "property-details",
+                                  property.id
+                                );
                               }
                             }}
                           >
@@ -142,23 +168,29 @@ export function Navbar({
                             />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 
+                            <h3
                               className="font-semibold text-[#2B2B2B] line-clamp-1 cursor-pointer hover:text-[#00BFA6]"
                               onClick={() => {
                                 if (onSelectFavourite) {
-                                  onSelectFavourite("property-details", property.id);
+                                  onSelectFavourite(
+                                    "property-details",
+                                    property.id
+                                  );
                                 }
                               }}
                             >
                               {property.title}
                             </h3>
-                            <p className="text-sm text-gray-600 line-clamp-1">{property.location}</p>
+                            <p className="text-sm text-gray-600 line-clamp-1">
+                              {property.location}
+                            </p>
                             <div className="flex items-center gap-1 mt-1">
                               <Star className="w-3 h-3 fill-[#2B2B2B] text-[#2B2B2B]" />
                               <span className="text-sm">{property.rating}</span>
                             </div>
                             <p className="text-sm font-semibold text-[#2B2B2B] mt-1">
-                              {property.price} EGP / {isArabic ? "ليلة" : "night"}
+                              {property.price} EGP /{" "}
+                              {isArabic ? "ليلة" : "night"}
                             </p>
                           </div>
                           <Button
@@ -186,14 +218,24 @@ export function Navbar({
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="gap-2">
                   <Globe className="w-4 h-4" />
-                  <span>{language.toUpperCase()}</span>
+                  <span>{localLanguage.toUpperCase()}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setLanguage("en")}>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setLocalLanguage("en");
+                    if (onLanguageChange) onLanguageChange("en");
+                  }}
+                >
                   English
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setLanguage("ar")}>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setLocalLanguage("ar");
+                    if (onLanguageChange) onLanguageChange("ar");
+                  }}
+                >
                   العربية
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -214,11 +256,21 @@ export function Navbar({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <div className="px-2 py-1.5">
-                    <p className="text-sm font-semibold text-[#2B2B2B]">{user.name}</p>
+                    <p className="text-sm font-semibold text-[#2B2B2B]">
+                      {user.name}
+                    </p>
                     <p className="text-xs text-gray-600">{user.email}</p>
                   </div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => handleNavigation(user.role === "owner" ? "host-dashboard" : "user-dashboard")}>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      handleNavigation(
+                        user.role === "owner"
+                          ? "host-dashboard"
+                          : "user-dashboard"
+                      )
+                    }
+                  >
                     <LayoutDashboard className="w-4 h-4 mr-2" />
                     {isArabic ? "لوحة التحكم" : "Dashboard"}
                   </DropdownMenuItem>
@@ -294,7 +346,7 @@ export function Navbar({
                   className="justify-start gap-2"
                 >
                   <Globe className="w-4 h-4" />
-                  <span>{language === "en" ? "العربية" : "English"}</span>
+                  <span>{localLanguage === "en" ? "العربية" : "English"}</span>
                 </Button>
               </div>
             </SheetContent>

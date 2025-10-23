@@ -10,14 +10,14 @@ import api from "../../../api";
 
 interface LoginPageProps {
   onNavigate: (page: string) => void;
-  onLoginSuccess?: (userData: any) => void;
+  onLogin?: (email: string, password: string) => Promise<void>;
   language?: Language;
   onLanguageChange?: (lang: Language) => void;
 }
 
 export function LoginPage({
   onNavigate,
-  onLoginSuccess,
+  onLogin,
   language = "en",
   onLanguageChange,
 }: LoginPageProps) {
@@ -33,27 +33,8 @@ export function LoginPage({
     setIsLoading(true);
 
     try {
-      // Call API login
-      const response = await api.login(email, password);
-
-      // Get user profile after successful login
-      const userProfile = await api.getProfile();
-
-      // Pass user data to parent component
-      if (onLoginSuccess) {
-        onLoginSuccess({
-          ...response,
-          profile: userProfile,
-        });
-      }
-
-      // Navigate based on user type
-      if (userProfile.userType === "admin") {
-        onNavigate("admin-dashboard");
-      } else if (userProfile.userType === "landlord") {
-        onNavigate("host-dashboard");
-      } else {
-        onNavigate("user-dashboard");
+      if (onLogin) {
+        await onLogin(email, password);
       }
     } catch (err: any) {
       console.error("Login error:", err);
