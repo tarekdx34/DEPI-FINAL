@@ -13,7 +13,6 @@ interface PropertyCardProps {
   isFavourite?: boolean;
   onToggleFavourite?: (property: any) => void;
 }
-
 export function PropertyCard({
   id,
   image,

@@ -14,7 +14,11 @@ import { format } from "date-fns";
 import { SlidersHorizontal, Loader2 } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { Language, translations } from "../../lib/translations";
-import api, { PropertyResponse, SearchRequest } from "../../../api";
+import api, {
+  PropertyResponse,
+  SearchRequest,
+  PropertyImageResponse,
+} from "../../../api";
 
 interface PropertiesPageProps {
   onNavigate: (page: string, propertyId?: string) => void;
@@ -30,6 +34,9 @@ export function PropertiesPage({
   language = "en",
 }: PropertiesPageProps) {
   const t = translations[language].properties;
+  const [propertyImages, setPropertyImages] = useState<Record<number, string>>(
+    {}
+  );
 
   // Search filters state
   const [location, setLocation] = useState("");
@@ -113,6 +120,41 @@ export function PropertiesPage({
       console.error("Error loading cities:", err);
     }
   };
+  const loadPropertyImages = async (properties: PropertyResponse[]) => {
+    const imagePromises = properties.map(async (property) => {
+      try {
+        const images = await api.getPropertyImages(property.propertyId);
+        // Find the cover image (isCover: true) or use the first image
+        const coverImage = images.find((img) => img.isCover) || images[0];
+        console.log(images);
+        return {
+          propertyId: property.propertyId,
+          imageUrl: coverImage?.imageUrl || null,
+        };
+      } catch (err) {
+        console.error(
+          `Error loading images for property ${property.propertyId}:`,
+          err
+        );
+        return {
+          propertyId: property.propertyId,
+          imageUrl: null,
+        };
+      }
+    });
+
+    const imageResults = await Promise.all(imagePromises);
+
+    // Convert array to object map
+    const imageMap: Record<number, string> = {};
+    imageResults.forEach(({ propertyId, imageUrl }) => {
+      if (imageUrl) {
+        imageMap[propertyId] = imageUrl;
+      }
+    });
+
+    setPropertyImages((prev) => ({ ...prev, ...imageMap }));
+  };
 
   const searchProperties = async () => {
     try {
@@ -149,23 +191,28 @@ export function PropertiesPage({
       }
 
       // Apply sorting
+      console.log("🔧 [DEBUG] Current sortBy value:", sortBy);
       switch (sortBy) {
         case "price-low":
-          searchParams.sortBy = "pricePerNight";
+          searchParams.sortBy = "price";
           searchParams.sortDirection = "ASC";
           break;
         case "price-high":
-          searchParams.sortBy = "pricePerNight";
+          searchParams.sortBy = "price";
           searchParams.sortDirection = "DESC";
           break;
         case "rating":
-          searchParams.sortBy = "averageRating";
+          searchParams.sortBy = "rating";
           searchParams.sortDirection = "DESC";
           break;
         default:
-          searchParams.sortBy = "createdAt";
+          searchParams.sortBy = "created";
           searchParams.sortDirection = "DESC";
       }
+      console.log("🔧 [DEBUG] Applied sort params:", {
+        sortBy: searchParams.sortBy,
+        sortDirection: searchParams.sortDirection,
+      });
 
       const response = await api.advancedSearch(searchParams);
 
@@ -173,6 +220,9 @@ export function PropertiesPage({
       setTotalPages(response.pagination.totalPages);
       setTotalItems(response.pagination.totalItems);
       setCurrentPage(response.pagination.currentPage);
+      if (response.properties.length > 0) {
+        loadPropertyImages(response.properties);
+      }
     } catch (err) {
       console.error("Error searching properties:", err);
       setError("Failed to load properties. Please try again.");
@@ -196,9 +246,13 @@ export function PropertiesPage({
   const mapPropertyToCard = (property: PropertyResponse) => ({
     id: property.propertyId.toString(),
     image:
+      propertyImages[property.propertyId] || // Use loaded cover image
       property.coverImage ||
       "https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f",
-    title: language === "ar" ? property.titleAr : property.titleEn,
+    title:
+      language === "ar"
+        ? property.titleAr
+        : property.titleEn || property.titleAr,
     location: `${property.city}, ${property.governorate}`,
     rating: property.averageRating || 0,
     reviews: property.totalReviews || 0,
