@@ -139,6 +139,8 @@ public class PropertyDto {
     public static class ListResponse {
         private Long propertyId;
         private String titleAr;
+        private String titleEn;
+
         private String slug;
         private Property.PropertyType propertyType;
         private String governorate;

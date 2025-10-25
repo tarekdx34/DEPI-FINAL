@@ -261,6 +261,7 @@ public class SearchService {
         PropertyDto.ListResponse response = new PropertyDto.ListResponse();
         response.setPropertyId(property.getPropertyId());
         response.setTitleAr(property.getTitleAr());
+        response.setTitleEn(property.getTitleEn());
         response.setSlug(property.getSlug());
         response.setPropertyType(property.getPropertyType());
         response.setGovernorate(property.getGovernorate());

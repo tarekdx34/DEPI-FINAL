@@ -1,29 +1,29 @@
 package com.ajarly.backend.controller;
 
-import com.ajarly.backend.dto.*;
+import com.ajarly.backend.dto.PropertyImageResponse;
 import com.ajarly.backend.service.PropertyImageService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 /**
- * Property Image Controller
+ * Property Image Controller - Feature 3
  * 
- * Uses JWT authentication from request attributes
+ * Handles image upload, deletion, and management for properties
  */
 @RestController
-@RequestMapping("/api/properties")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
-@Slf4j
 @CrossOrigin(origins = "*")
+@Slf4j
 public class PropertyImageController {
     
     private final PropertyImageService propertyImageService;
@@ -41,11 +41,11 @@ public class PropertyImageController {
     
     /**
      * Upload images for a property
-     * POST /api/properties/{propertyId}/images
+     * POST /api/v1/properties/{propertyId}/images
      */
-    @PostMapping(value = "/{propertyId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping("/properties/{propertyId}/images")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ImageUploadResponse> uploadImages(
+    public ResponseEntity<?> uploadImages(
             @PathVariable Long propertyId,
             @RequestParam("files") List<MultipartFile> files,
             HttpServletRequest httpRequest) {
@@ -61,80 +61,60 @@ public class PropertyImageController {
                 userId
             );
             
-            ImageUploadResponse response = ImageUploadResponse.builder()
-                .success(true)
-                .message(String.format("Successfully uploaded %d image(s)", uploadedImages.size()))
-                .images(uploadedImages)
-                .totalImages(uploadedImages.size())
-                .build();
+            // Create response manually since DTO structure might vary
+            Map<String, Object> response = Map.of(
+                "uploadedCount", uploadedImages.size(),
+                "images", uploadedImages
+            );
             
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-            
-        } catch (IllegalArgumentException e) {
-            log.error("Validation error: {}", e.getMessage());
-            ImageUploadResponse response = ImageUploadResponse.builder()
-                .success(false)
-                .message(e.getMessage())
-                .build();
-            return ResponseEntity.badRequest().body(response);
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "success", true,
+                "message", "Images uploaded successfully",
+                "message_ar", "تم رفع الصور بنجاح",
+                "data", response
+            ));
             
         } catch (RuntimeException e) {
-            log.error("Error uploading images: {}", e.getMessage());
-            ImageUploadResponse response = ImageUploadResponse.builder()
-                .success(false)
-                .message(e.getMessage())
-                .build();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            log.error("Error uploading images for property {}: {}", propertyId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
         }
     }
     
     /**
-     * Get all images for a property (public endpoint)
-     * GET /api/properties/{propertyId}/images
+     * Get all images for a property (PUBLIC - No authentication required)
+     * GET /api/v1/properties/{propertyId}/images
      */
-    @GetMapping("/{propertyId}/images")
-    public ResponseEntity<List<PropertyImageResponse>> getPropertyImages(
-            @PathVariable Long propertyId) {
-        
+    @GetMapping("/properties/{propertyId}/images")
+    public ResponseEntity<?> getPropertyImages(@PathVariable Long propertyId) {
         try {
             log.info("Fetching images for property {}", propertyId);
             
             List<PropertyImageResponse> images = propertyImageService.getPropertyImages(propertyId);
-            return ResponseEntity.ok(images);
             
-        } catch (Exception e) {
-            log.error("Error fetching images for property {}: {}", propertyId, e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-    
-    /**
-     * Get single image by ID (public endpoint)
-     * GET /api/properties/images/{imageId}
-     */
-    @GetMapping("/images/{imageId}")
-    public ResponseEntity<PropertyImageResponse> getImageById(
-            @PathVariable Long imageId) {
-        
-        try {
-            log.info("Fetching image {}", imageId);
-            
-            PropertyImageResponse image = propertyImageService.getImageById(imageId);
-            return ResponseEntity.ok(image);
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "data", images
+            ));
             
         } catch (RuntimeException e) {
-            log.error("Error fetching image {}: {}", imageId, e.getMessage());
-            return ResponseEntity.notFound().build();
+            log.error("Error fetching images for property {}: {}", propertyId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
         }
     }
     
     /**
      * Delete an image
-     * DELETE /api/properties/images/{imageId}
+     * DELETE /api/v1/properties/images/{imageId}
      */
-    @DeleteMapping("/images/{imageId}")
+    @DeleteMapping("/properties/images/{imageId}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ImageDeleteResponse> deleteImage(
+    public ResponseEntity<?> deleteImage(
             @PathVariable Long imageId,
             HttpServletRequest httpRequest) {
         
@@ -145,31 +125,35 @@ public class PropertyImageController {
             
             propertyImageService.deleteImage(imageId, userId);
             
-            ImageDeleteResponse response = ImageDeleteResponse.builder()
-                .success(true)
-                .message("Image deleted successfully")
-                .deletedImageId(imageId)
-                .build();
+            Map<String, Object> response = Map.of(
+                "imageId", imageId,
+                "deleted", true,
+                "message", "Image deleted successfully"
+            );
             
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Image deleted successfully",
+                "message_ar", "تم حذف الصورة بنجاح",
+                "data", response
+            ));
             
         } catch (RuntimeException e) {
             log.error("Error deleting image {}: {}", imageId, e.getMessage());
-            ImageDeleteResponse response = ImageDeleteResponse.builder()
-                .success(false)
-                .message(e.getMessage())
-                .build();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
         }
     }
     
     /**
      * Set an image as cover
-     * PUT /api/properties/images/{imageId}/cover
+     * PUT /api/v1/properties/images/{imageId}/cover
      */
-    @PutMapping("/images/{imageId}/cover")
+    @PutMapping("/properties/images/{imageId}/cover")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<CoverImageResponse> setCoverImage(
+    public ResponseEntity<?> setCoverImage(
             @PathVariable Long imageId,
             HttpServletRequest httpRequest) {
         
@@ -178,23 +162,53 @@ public class PropertyImageController {
             
             log.info("User {} setting image {} as cover", userId, imageId);
             
-            PropertyImageResponse updatedImage = propertyImageService.setCoverImage(imageId, userId);
+            PropertyImageResponse coverImage = propertyImageService.setCoverImage(imageId, userId);
             
-            CoverImageResponse response = CoverImageResponse.builder()
-                .success(true)
-                .message("Cover image set successfully")
-                .coverImageId(updatedImage.getImageId())
-                .build();
+            Map<String, Object> response = Map.of(
+                "imageId", coverImage.getImageId(),
+                "imageUrl", coverImage.getImageUrl(),
+                "isCover", true,
+                "message", "Cover image set successfully"
+            );
             
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Cover image set successfully",
+                "message_ar", "تم تعيين صورة الغلاف بنجاح",
+                "data", response
+            ));
             
         } catch (RuntimeException e) {
             log.error("Error setting cover image {}: {}", imageId, e.getMessage());
-            CoverImageResponse response = CoverImageResponse.builder()
-                .success(false)
-                .message(e.getMessage())
-                .build();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
+        }
+    }
+    
+    /**
+     * Get a single image by ID
+     * GET /api/v1/properties/images/{imageId}
+     */
+    @GetMapping("/properties/images/{imageId}")
+    public ResponseEntity<?> getImageById(@PathVariable Long imageId) {
+        try {
+            log.info("Fetching image {}", imageId);
+            
+            PropertyImageResponse image = propertyImageService.getImageById(imageId);
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "data", image
+            ));
+            
+        } catch (RuntimeException e) {
+            log.error("Error fetching image {}: {}", imageId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
         }
     }
 }

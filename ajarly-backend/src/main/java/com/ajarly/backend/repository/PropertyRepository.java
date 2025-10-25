@@ -20,7 +20,8 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
     
     // Find by owner
     Page<Property> findByOwner_UserId(Long ownerId, Pageable pageable);
-    
+    Page<Property> findByStatus(Property.PropertyStatus status, Pageable pageable);
+
     // Check if slug exists
     boolean existsBySlug(String slug);
     
