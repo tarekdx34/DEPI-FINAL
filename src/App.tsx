@@ -7,8 +7,8 @@ import { RegisterPage } from "./components/pages/RegisterPage";
 import { PropertiesPage } from "./components/pages/PropertiesPage";
 import { PropertyDetailsPage } from "./components/pages/PropertyDetailsPage";
 import { BookingConfirmationPage } from "./components/pages/BookingConfirmationPage";
-import { UserDashboard } from "./components/pages/UserDashboard";
-import { HostDashboard } from "./components/pages/HostDashboard";
+import { RenterDashboard } from "./components/dashboard/renter/RenterDashboard";
+import { OwnerDashboard } from "./components/dashboard/owner/OwnerDashboard";
 import { ForgotPasswordPage } from "./components/pages/ForgotPasswordPage";
 import { AdminDashboard } from "./components/pages/AdminDashboard";
 import { AboutUsPage } from "./components/pages/AboutUsPage";
@@ -32,6 +32,7 @@ type Page =
   | "booking-confirmation"
   | "user-dashboard"
   | "host-dashboard"
+  | "owner-dashboard"
   | "admin-dashboard"
   | "about"
   | "contact"
@@ -71,14 +72,58 @@ export default function App() {
   const [favourites, setFavourites] = useState<Property[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [language, setLanguage] = useState<Language>("en");
+  const [isNavigating, setIsNavigating] = useState(false);
 
-  // Apply RTL direction when language changes
+  // ✅ Check for existing auth on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        try {
+          const userProfile = await api.getProfile();
+          const user: User = {
+            userId: userProfile.userId,
+            name: userProfile.firstName + " " + userProfile.lastName,
+            email: userProfile.email,
+            role:
+              userProfile.userType === "landlord"
+                ? "owner"
+                : userProfile.userType === "admin"
+                ? "admin"
+                : "renter",
+            avatar: userProfile.profilePhoto,
+            phoneNumber: userProfile.phoneNumber,
+            isActive: userProfile.isActive,
+            userType: userProfile.userType,
+          };
+          setUser(user);
+          console.log("✅ Auth restored for:", user.email);
+        } catch (error) {
+          console.error("❌ Auth check failed:", error);
+          localStorage.removeItem("authToken");
+        }
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  // ✅ Apply RTL direction when language changes
   useEffect(() => {
     document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
     document.documentElement.lang = language;
   }, [language]);
 
+  // ✅ FIXED: Navigate with proper state management
   const handleNavigate = (page: string, propertyId?: string) => {
+    console.log(
+      "🔄 Navigation requested to:",
+      page,
+      propertyId ? `Property: ${propertyId}` : ""
+    );
+
+    setIsNavigating(true);
+
     // Parse query parameters from page string
     const [pageName, queryString] = page.split("?");
     const params = new URLSearchParams(queryString || "");
@@ -90,16 +135,26 @@ export default function App() {
       setRegisterAsHost(false);
     }
 
+    // Update state
     setCurrentPage(pageName as Page);
+
     if (propertyId) {
       setSelectedPropertyId(propertyId);
     }
-    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    // Scroll to top
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      setIsNavigating(false);
+    });
+
+    console.log("✅ Navigation complete. Current page:", pageName);
   };
 
   const handleHostRegistration = () => {
+    console.log("🏠 New host registration");
     setIsNewHost(true);
-    handleNavigate("host-dashboard");
+    handleNavigate("owner-dashboard");
   };
 
   const toggleFavourite = (property: Property) => {
@@ -121,10 +176,16 @@ export default function App() {
     setFavourites((prev) => prev.filter((fav) => fav.id !== propertyId));
   };
 
+  // ✅ FIXED: Login handler with better error handling and navigation
   const handleLogin = async (email: string, password: string) => {
     try {
+      console.log("1️⃣ Starting login for:", email);
+
       const response = await api.login(email, password);
+      console.log("2️⃣ Login response received:", response);
+
       const userProfile = await api.getProfile();
+      console.log("3️⃣ User profile loaded:", userProfile);
 
       const user: User = {
         userId: userProfile.userId,
@@ -143,23 +204,41 @@ export default function App() {
       };
 
       setUser(user);
-      toast.success("Login successful!");
+      console.log("4️⃣ User state updated:", user);
 
-      // Navigate based on user type
+      toast.success(`Welcome back, ${user.name}!`);
+
+      // ✅ Navigate based on user type with delay to ensure state updates
+      let targetPage: Page;
+
       if (userProfile.userType === "admin") {
-        handleNavigate("admin-dashboard");
+        targetPage = "admin-dashboard";
       } else if (userProfile.userType === "landlord") {
-        handleNavigate("host-dashboard");
+        targetPage = "owner-dashboard";
       } else {
-        handleNavigate("user-dashboard");
+        targetPage = "user-dashboard";
       }
-    } catch (error) {
-      toast.error("Login failed. Please check your credentials.");
-      console.error("Login error:", error);
-      throw error; // Re-throw to let LoginPage handle the error display
+
+      console.log("5️⃣ Navigating to:", targetPage);
+
+      // Use setTimeout to ensure state updates complete
+      setTimeout(() => {
+        handleNavigate(targetPage);
+      }, 100);
+    } catch (error: any) {
+      console.error("❌ Login error:", error);
+
+      const errorMessage =
+        error?.message ||
+        error?.data?.message ||
+        "Login failed. Please check your credentials.";
+      toast.error(errorMessage);
+
+      throw error;
     }
   };
 
+  // ✅ FIXED: Register handler
   const handleRegister = async (
     name: string,
     email: string,
@@ -167,6 +246,8 @@ export default function App() {
     role: "renter" | "owner"
   ) => {
     try {
+      console.log("📝 Starting registration:", { email, role });
+
       const [firstName, lastName] = name.split(" ");
       const response = await api.register({
         email,
@@ -177,6 +258,8 @@ export default function App() {
         userType: role === "owner" ? "landlord" : "renter",
       });
 
+      console.log("✅ Registration successful:", response);
+
       const userProfile = await api.getProfile();
 
       const user: User = {
@@ -196,36 +279,72 @@ export default function App() {
       };
 
       setUser(user);
-      toast.success("Registration successful!");
+      toast.success(`Welcome to Ajarly, ${user.name}!`);
 
-      if (role === "owner") {
-        handleHostRegistration();
-      } else {
-        handleNavigate("home");
-      }
-    } catch (error) {
-      toast.error("Registration failed. Please try again.");
-      console.error("Registration error:", error);
+      // Navigate based on role
+      setTimeout(() => {
+        if (role === "owner") {
+          handleHostRegistration();
+        } else {
+          handleNavigate("home");
+        }
+      }, 100);
+    } catch (error: any) {
+      console.error("❌ Registration error:", error);
+
+      const errorMessage =
+        error?.message ||
+        error?.data?.message ||
+        "Registration failed. Please try again.";
+      toast.error(errorMessage);
     }
   };
 
+  // ✅ FIXED: Logout handler
   const handleLogout = async () => {
     try {
+      console.log("👋 Logging out user:", user?.email);
+
       await api.logout();
       setUser(null);
       setFavourites([]);
+
       toast.success("Logged out successfully!");
-      handleNavigate("home");
+
+      setTimeout(() => {
+        handleNavigate("home");
+      }, 100);
     } catch (error) {
-      // Even if logout fails, clear local state
+      console.error("❌ Logout error:", error);
+
+      // Clear state anyway
       setUser(null);
       setFavourites([]);
       handleNavigate("home");
-      console.error("Logout error:", error);
     }
   };
 
+  // ✅ FIXED: Render page with better logging
   const renderPage = () => {
+    console.log(
+      "🎯 Rendering page:",
+      currentPage,
+      "User:",
+      user?.userType || "Not logged in"
+    );
+
+    // Show loading during navigation
+    if (isNavigating) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-[#F9F6F1]">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-[#00BFA6] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading...</p>
+          </div>
+        </div>
+      );
+    }
+
     switch (currentPage) {
       case "home":
         return (
@@ -237,6 +356,7 @@ export default function App() {
             user={user}
           />
         );
+
       case "login":
         return (
           <LoginPage
@@ -246,6 +366,7 @@ export default function App() {
             onLanguageChange={setLanguage}
           />
         );
+
       case "register":
         return (
           <RegisterPage
@@ -256,6 +377,7 @@ export default function App() {
             onLanguageChange={setLanguage}
           />
         );
+
       case "forgot-password":
         return (
           <ForgotPasswordPage
@@ -264,6 +386,7 @@ export default function App() {
             onLanguageChange={setLanguage}
           />
         );
+
       case "properties":
         return (
           <PropertiesPage
@@ -273,6 +396,7 @@ export default function App() {
             language={language}
           />
         );
+
       case "property-details":
         return (
           <PropertyDetailsPage
@@ -281,6 +405,7 @@ export default function App() {
             language={language}
           />
         );
+
       case "booking-confirmation":
         return (
           <BookingConfirmationPage
@@ -288,34 +413,49 @@ export default function App() {
             language={language}
           />
         );
+
       case "user-dashboard":
+        console.log("🏠 Rendering RenterDashboard");
         return (
-          <UserDashboard onNavigate={handleNavigate} language={language} />
-        );
-      case "host-dashboard":
-        return (
-          <HostDashboard
+          <RenterDashboard
             onNavigate={handleNavigate}
-            showAddPropertyOnMount={isNewHost}
-            language={language}
+            currentUser={user}
+            onUserUpdate={setUser}
           />
         );
+
+      case "owner-dashboard":
+        console.log("🏠 Rendering OwnerDashboard for:", user?.name);
+        return (
+          <OwnerDashboard
+            onNavigate={handleNavigate}
+            showAddPropertyOnMount={isNewHost}
+          />
+        );
+
       case "admin-dashboard":
+        console.log("👑 Rendering AdminDashboard");
         return (
           <AdminDashboard onNavigate={handleNavigate} language={language} />
         );
+
       case "about":
         return <AboutUsPage onNavigate={handleNavigate} language={language} />;
+
       case "contact":
         return <ContactPage onNavigate={handleNavigate} language={language} />;
+
       case "faq":
         return <FAQPage onNavigate={handleNavigate} language={language} />;
+
       case "support":
         return <SupportPage onNavigate={handleNavigate} language={language} />;
+
       case "privacy-policy":
         return (
           <PrivacyPolicyPage onNavigate={handleNavigate} language={language} />
         );
+
       case "terms":
         return (
           <TermsConditionsPage
@@ -323,13 +463,17 @@ export default function App() {
             language={language}
           />
         );
+
       default:
+        console.warn("⚠️ Unknown page:", currentPage, "Redirecting to home");
+        setTimeout(() => handleNavigate("home"), 0);
         return (
           <HomePage
             onNavigate={handleNavigate}
             toggleFavourite={toggleFavourite}
             isFavourite={isFavourite}
             language={language}
+            user={user}
           />
         );
     }
@@ -341,6 +485,7 @@ export default function App() {
     "booking-confirmation",
     "forgot-password",
   ].includes(currentPage);
+
   const showFooter = ![
     "login",
     "register",
@@ -363,9 +508,12 @@ export default function App() {
           onLanguageChange={setLanguage}
         />
       )}
+
       <main className="flex-1">{renderPage()}</main>
+
       {showFooter && <Footer onNavigate={handleNavigate} language={language} />}
-      <Toaster />
+
+      <Toaster position="top-right" richColors closeButton duration={4000} />
     </div>
   );
 }

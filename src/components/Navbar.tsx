@@ -65,8 +65,34 @@ export function Navbar({
 
   const handleNavigation = (page: string) => {
     if (onNavigate) {
+      console.log('🔄 Navbar navigation to:', page);
       onNavigate(page);
     }
+  };
+
+  // ✅ CRITICAL FIX: Get correct dashboard based on user type
+  const getDashboardPage = () => {
+    if (!user) return "user-dashboard";
+    
+    console.log('🎯 Getting dashboard for user:', user.userType, user.role);
+    
+    // Check userType first (from backend)
+    if (user.userType === "landlord") {
+      return "owner-dashboard";
+    }
+    if (user.userType === "admin") {
+      return "admin-dashboard";
+    }
+    
+    // Fallback to role
+    if (user.role === "owner") {
+      return "owner-dashboard";
+    }
+    if (user.role === "admin") {
+      return "admin-dashboard";
+    }
+    
+    return "user-dashboard";
   };
 
   const isArabic = localLanguage === "ar";
@@ -262,20 +288,31 @@ export function Navbar({
                     <p className="text-xs text-gray-600">{user.email}</p>
                   </div>
                   <DropdownMenuSeparator />
+                  
+                  {/* ✅ CRITICAL FIX: Dashboard navigation */}
                   <DropdownMenuItem
-                    onClick={() =>
-                      handleNavigation(
-                        user.role === "owner"
-                          ? "host-dashboard"
-                          : "user-dashboard"
-                      )
-                    }
+                    onClick={() => {
+                      const dashboardPage = getDashboardPage();
+                      console.log('🏠 Navigating to dashboard:', dashboardPage);
+                      handleNavigation(dashboardPage);
+                    }}
+                    className="cursor-pointer"
                   >
                     <LayoutDashboard className="w-4 h-4 mr-2" />
                     {isArabic ? "لوحة التحكم" : "Dashboard"}
                   </DropdownMenuItem>
+                  
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={onLogout} className="text-red-600">
+                  
+                  <DropdownMenuItem 
+                    onClick={() => {
+                      console.log('👋 Logging out...');
+                      if (onLogout) {
+                        onLogout();
+                      }
+                    }}
+                    className="text-red-600 cursor-pointer"
+                  >
                     <LogOut className="w-4 h-4 mr-2" />
                     {isArabic ? "تسجيل الخروج" : "Log out"}
                   </DropdownMenuItem>
@@ -315,31 +352,82 @@ export function Navbar({
                 {isArabic ? "قائمة التنقل الرئيسية" : "Main navigation menu"}
               </SheetDescription>
               <div className="flex flex-col gap-6 mt-8">
-                <button
-                  onClick={() => handleNavigation("properties")}
-                  className="text-left text-lg text-[#2B2B2B] hover:text-[#00BFA6] transition-colors"
-                >
-                  {isArabic ? "استكشف" : "Explore"}
-                </button>
-                <button
-                  onClick={() => handleNavigation("register?role=owner")}
-                  className="text-left text-lg text-[#2B2B2B] hover:text-[#00BFA6] transition-colors"
-                >
-                  {isArabic ? "كن مضيفاً" : "Become a Host"}
-                </button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleNavigation("login")}
-                  className="justify-start border-[#00BFA6] text-[#00BFA6]"
-                >
-                  {isArabic ? "تسجيل الدخول" : "Log in"}
-                </Button>
-                <Button
-                  onClick={() => handleNavigation("register")}
-                  className="justify-start bg-[#FF6B6B] text-white"
-                >
-                  {isArabic ? "إنشاء حساب" : "Sign up"}
-                </Button>
+                {user ? (
+                  <>
+                    {/* User Info */}
+                    <div className="pb-4 border-b">
+                      <p className="text-sm font-semibold text-[#2B2B2B]">
+                        {user.name}
+                      </p>
+                      <p className="text-xs text-gray-600">{user.email}</p>
+                    </div>
+                    
+                    {/* ✅ Dashboard Button for Mobile */}
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        const dashboardPage = getDashboardPage();
+                        console.log('📱 Mobile dashboard navigation:', dashboardPage);
+                        handleNavigation(dashboardPage);
+                      }}
+                      className="justify-start gap-2 border-[#00BFA6] text-[#00BFA6]"
+                    >
+                      <LayoutDashboard className="w-4 h-4" />
+                      {isArabic ? "لوحة التحكم" : "Dashboard"}
+                    </Button>
+                    
+                    <button
+                      onClick={() => handleNavigation("properties")}
+                      className="text-left text-lg text-[#2B2B2B] hover:text-[#00BFA6] transition-colors"
+                    >
+                      {isArabic ? "استكشف" : "Explore"}
+                    </button>
+                    
+                    {/* Logout Button */}
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        console.log('👋 Mobile logout');
+                        if (onLogout) {
+                          onLogout();
+                        }
+                      }}
+                      className="justify-start gap-2 border-red-600 text-red-600"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      {isArabic ? "تسجيل الخروج" : "Log out"}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => handleNavigation("properties")}
+                      className="text-left text-lg text-[#2B2B2B] hover:text-[#00BFA6] transition-colors"
+                    >
+                      {isArabic ? "استكشف" : "Explore"}
+                    </button>
+                    <button
+                      onClick={() => handleNavigation("register?role=owner")}
+                      className="text-left text-lg text-[#2B2B2B] hover:text-[#00BFA6] transition-colors"
+                    >
+                      {isArabic ? "كن مضيفاً" : "Become a Host"}
+                    </button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleNavigation("login")}
+                      className="justify-start border-[#00BFA6] text-[#00BFA6]"
+                    >
+                      {isArabic ? "تسجيل الدخول" : "Log in"}
+                    </Button>
+                    <Button
+                      onClick={() => handleNavigation("register")}
+                      className="justify-start bg-[#FF6B6B] text-white"
+                    >
+                      {isArabic ? "إنشاء حساب" : "Sign up"}
+                    </Button>
+                  </>
+                )}
+                
                 <Button
                   variant="ghost"
                   onClick={toggleLanguage}

@@ -279,7 +279,7 @@ export function BookingConfirmationPage({
           </div>
           <div className="space-y-2">
             <Button
-              onClick={() => onNavigate("user-dashboard")}
+              onClick={() => onNavigate("user-dashboard?tab=trips")} // ✅ ADD ?tab=trips
               className="w-full bg-[#00BFA6] hover:bg-[#00A890] text-white"
             >
               {t.viewTrips}
