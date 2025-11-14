@@ -11,7 +11,7 @@ import { BookingConfirmationPage } from "./components/pages/BookingConfirmationP
 import { RenterDashboard } from "./components/dashboard/renter/RenterDashboard";
 import { OwnerDashboard } from "./components/dashboard/owner/OwnerDashboard";
 import { ForgotPasswordPage } from "./components/pages/ForgotPasswordPage";
-import { AdminDashboard } from "./components/pages/AdminDashboard";
+import { AdminDashboard } from "./components/dashboard/admin/AdminDashboard";
 import { AboutUsPage } from "./components/pages/AboutUsPage";
 import { ContactPage } from "./components/pages/ContactPage";
 import { FAQPage } from "./components/pages/FAQPage";
@@ -56,7 +56,9 @@ export interface User {
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("home");
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string | undefined>();
+  const [selectedPropertyId, setSelectedPropertyId] = useState<
+    string | undefined
+  >();
   const [registerAsHost, setRegisterAsHost] = useState(false);
   const [isNewHost, setIsNewHost] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -105,7 +107,11 @@ export default function App() {
 
   // ✅ Navigation handler
   const handleNavigate = (page: string, propertyId?: string) => {
-    console.log("🔄 Navigation requested to:", page, propertyId ? `Property: ${propertyId}` : "");
+    console.log(
+      "🔄 Navigation requested to:",
+      page,
+      propertyId ? `Property: ${propertyId}` : ""
+    );
 
     setIsNavigating(true);
 
@@ -282,7 +288,12 @@ export default function App() {
 
   // ✅ Render page
   const renderPage = () => {
-    console.log("🎯 Rendering page:", currentPage, "User:", user?.userType || "Not logged in");
+    console.log(
+      "🎯 Rendering page:",
+      currentPage,
+      "User:",
+      user?.userType || "Not logged in"
+    );
 
     if (isNavigating) {
       return (
@@ -297,7 +308,13 @@ export default function App() {
 
     switch (currentPage) {
       case "home":
-        return <HomePage onNavigate={handleNavigate} language={language} user={user} />;
+        return (
+          <HomePage
+            onNavigate={handleNavigate}
+            language={language}
+            user={user}
+          />
+        );
 
       case "login":
         return (
@@ -330,7 +347,9 @@ export default function App() {
         );
 
       case "properties":
-        return <PropertiesPage onNavigate={handleNavigate} language={language} />;
+        return (
+          <PropertiesPage onNavigate={handleNavigate} language={language} />
+        );
 
       case "property-details":
         return (
@@ -342,7 +361,12 @@ export default function App() {
         );
 
       case "booking-confirmation":
-        return <BookingConfirmationPage onNavigate={handleNavigate} language={language} />;
+        return (
+          <BookingConfirmationPage
+            onNavigate={handleNavigate}
+            language={language}
+          />
+        );
 
       case "user-dashboard":
         console.log("🏠 Rendering RenterDashboard");
@@ -365,7 +389,9 @@ export default function App() {
 
       case "admin-dashboard":
         console.log("👑 Rendering AdminDashboard");
-        return <AdminDashboard onNavigate={handleNavigate} language={language} />;
+        return (
+          <AdminDashboard onNavigate={handleNavigate} language={language} />
+        );
 
       case "about":
         return <AboutUsPage onNavigate={handleNavigate} language={language} />;
@@ -380,15 +406,28 @@ export default function App() {
         return <SupportPage onNavigate={handleNavigate} language={language} />;
 
       case "privacy-policy":
-        return <PrivacyPolicyPage onNavigate={handleNavigate} language={language} />;
+        return (
+          <PrivacyPolicyPage onNavigate={handleNavigate} language={language} />
+        );
 
       case "terms":
-        return <TermsConditionsPage onNavigate={handleNavigate} language={language} />;
+        return (
+          <TermsConditionsPage
+            onNavigate={handleNavigate}
+            language={language}
+          />
+        );
 
       default:
         console.warn("⚠️ Unknown page:", currentPage, "Redirecting to home");
         setTimeout(() => handleNavigate("home"), 0);
-        return <HomePage onNavigate={handleNavigate} language={language} user={user} />;
+        return (
+          <HomePage
+            onNavigate={handleNavigate}
+            language={language}
+            user={user}
+          />
+        );
     }
   };
 
@@ -422,7 +461,9 @@ export default function App() {
 
         <main className="flex-1">{renderPage()}</main>
 
-        {showFooter && <Footer onNavigate={handleNavigate} language={language} />}
+        {showFooter && (
+          <Footer onNavigate={handleNavigate} language={language} />
+        )}
 
         <Toaster position="top-right" richColors closeButton duration={4000} />
       </div>

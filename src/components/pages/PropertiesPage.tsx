@@ -2,7 +2,13 @@
 import { useState, useEffect } from "react";
 import { PropertyCard } from "../PropertyCard";
 import { Button } from "../ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 import { Slider } from "../ui/slider";
 import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
@@ -16,11 +22,14 @@ interface PropertiesPageProps {
   language?: Language;
 }
 
-export function PropertiesPage({ onNavigate, language = "en" }: PropertiesPageProps) {
+export function PropertiesPage({
+  onNavigate,
+  language = "en",
+}: PropertiesPageProps) {
   const [properties, setProperties] = useState<PropertyResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
-  
+
   // Search filters
   const [governorate, setGovernorate] = useState("");
   const [city, setCity] = useState("");
@@ -29,9 +38,11 @@ export function PropertiesPage({ onNavigate, language = "en" }: PropertiesPagePr
   const [priceRange, setPriceRange] = useState([0, 50000]);
   const [bedrooms, setBedrooms] = useState("");
   const [furnished, setFurnished] = useState<boolean | undefined>(undefined);
-  const [petsAllowed, setPetsAllowed] = useState<boolean | undefined>(undefined);
+  const [petsAllowed, setPetsAllowed] = useState<boolean | undefined>(
+    undefined
+  );
   const [sortBy, setSortBy] = useState("recommended");
-  
+
   // Dropdown options
   const [governorates, setGovernorates] = useState<string[]>([]);
   const [cities, setCities] = useState<string[]>([]);
@@ -43,7 +54,7 @@ export function PropertiesPage({ onNavigate, language = "en" }: PropertiesPagePr
     // Check auth status
     const token = localStorage.getItem("authToken");
     setIsLoggedIn(!!token);
-    
+
     // Load initial data
     loadGovernorates();
     searchProperties();
@@ -96,11 +107,15 @@ export function PropertiesPage({ onNavigate, language = "en" }: PropertiesPagePr
       console.log("🔍 Search params:", searchParams);
 
       const response = await api.advancedSearch(searchParams);
-      
+
       // ✅ Validate response
       if (response && Array.isArray(response.properties)) {
         setProperties(response.properties);
-        console.log("✅ Found properties:", response.properties.length);
+        console.log(
+          "✅ Found properties:",
+          response.properties.length,
+          response.properties
+        );
       } else {
         console.warn("⚠️ Invalid search response:", response);
         setProperties([]);
@@ -128,7 +143,7 @@ export function PropertiesPage({ onNavigate, language = "en" }: PropertiesPagePr
     setFurnished(undefined);
     setPetsAllowed(undefined);
     setSortBy("recommended");
-    
+
     // Reload all properties
     setTimeout(() => searchProperties(), 100);
   };
@@ -141,20 +156,30 @@ export function PropertiesPage({ onNavigate, language = "en" }: PropertiesPagePr
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-semibold text-[#2B2B2B]">
-                {language === "ar" ? "العقارات المتاحة" : "Available Properties"}
+                {language === "ar"
+                  ? "العقارات المتاحة"
+                  : "Available Properties"}
               </h1>
               <p className="text-gray-600 mt-1">
                 {loading ? (
-                  language === "ar" ? "جاري التحميل..." : "Loading..."
+                  language === "ar" ? (
+                    "جاري التحميل..."
+                  ) : (
+                    "Loading..."
+                  )
                 ) : (
                   <>
                     {properties.length}{" "}
-                    {language === "ar" ? "عقار متاح" : `propert${properties.length === 1 ? "y" : "ies"} available`}
+                    {language === "ar"
+                      ? "عقار متاح"
+                      : `propert${
+                          properties.length === 1 ? "y" : "ies"
+                        } available`}
                   </>
                 )}
               </p>
             </div>
-            
+
             <Button
               onClick={() => setShowFilters(!showFilters)}
               variant="outline"
@@ -182,7 +207,11 @@ export function PropertiesPage({ onNavigate, language = "en" }: PropertiesPagePr
                   <Label>{language === "ar" ? "الموقع" : "Location"}</Label>
                   <Select value={governorate} onValueChange={setGovernorate}>
                     <SelectTrigger>
-                      <SelectValue placeholder={language === "ar" ? "المحافظة" : "Governorate"} />
+                      <SelectValue
+                        placeholder={
+                          language === "ar" ? "المحافظة" : "Governorate"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {governorates.map((gov) => (
@@ -196,7 +225,9 @@ export function PropertiesPage({ onNavigate, language = "en" }: PropertiesPagePr
                   {governorate && (
                     <Select value={city} onValueChange={setCity}>
                       <SelectTrigger>
-                        <SelectValue placeholder={language === "ar" ? "المدينة" : "City"} />
+                        <SelectValue
+                          placeholder={language === "ar" ? "المدينة" : "City"}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {cities.map((c) => (
@@ -211,32 +242,60 @@ export function PropertiesPage({ onNavigate, language = "en" }: PropertiesPagePr
 
                 {/* Property Type */}
                 <div className="space-y-3">
-                  <Label>{language === "ar" ? "نوع العقار" : "Property Type"}</Label>
+                  <Label>
+                    {language === "ar" ? "نوع العقار" : "Property Type"}
+                  </Label>
                   <Select value={propertyType} onValueChange={setPropertyType}>
                     <SelectTrigger>
-                      <SelectValue placeholder={language === "ar" ? "اختر النوع" : "Select type"} />
+                      <SelectValue
+                        placeholder={
+                          language === "ar" ? "اختر النوع" : "Select type"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="apartment">{language === "ar" ? "شقة" : "Apartment"}</SelectItem>
-                      <SelectItem value="villa">{language === "ar" ? "فيلا" : "Villa"}</SelectItem>
-                      <SelectItem value="chalet">{language === "ar" ? "شاليه" : "Chalet"}</SelectItem>
-                      <SelectItem value="studio">{language === "ar" ? "استوديو" : "Studio"}</SelectItem>
+                      <SelectItem value="apartment">
+                        {language === "ar" ? "شقة" : "Apartment"}
+                      </SelectItem>
+                      <SelectItem value="villa">
+                        {language === "ar" ? "فيلا" : "Villa"}
+                      </SelectItem>
+                      <SelectItem value="chalet">
+                        {language === "ar" ? "شاليه" : "Chalet"}
+                      </SelectItem>
+                      <SelectItem value="studio">
+                        {language === "ar" ? "استوديو" : "Studio"}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Rental Type */}
                 <div className="space-y-3">
-                  <Label>{language === "ar" ? "نوع الإيجار" : "Rental Type"}</Label>
+                  <Label>
+                    {language === "ar" ? "نوع الإيجار" : "Rental Type"}
+                  </Label>
                   <Select value={rentalType} onValueChange={setRentalType}>
                     <SelectTrigger>
-                      <SelectValue placeholder={language === "ar" ? "اختر المدة" : "Select duration"} />
+                      <SelectValue
+                        placeholder={
+                          language === "ar" ? "اختر المدة" : "Select duration"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="daily">{language === "ar" ? "يومي" : "Daily"}</SelectItem>
-                      <SelectItem value="weekly">{language === "ar" ? "أسبوعي" : "Weekly"}</SelectItem>
-                      <SelectItem value="monthly">{language === "ar" ? "شهري" : "Monthly"}</SelectItem>
-                      <SelectItem value="yearly">{language === "ar" ? "سنوي" : "Yearly"}</SelectItem>
+                      <SelectItem value="daily">
+                        {language === "ar" ? "يومي" : "Daily"}
+                      </SelectItem>
+                      <SelectItem value="weekly">
+                        {language === "ar" ? "أسبوعي" : "Weekly"}
+                      </SelectItem>
+                      <SelectItem value="monthly">
+                        {language === "ar" ? "شهري" : "Monthly"}
+                      </SelectItem>
+                      <SelectItem value="yearly">
+                        {language === "ar" ? "سنوي" : "Yearly"}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -244,7 +303,8 @@ export function PropertiesPage({ onNavigate, language = "en" }: PropertiesPagePr
                 {/* Price Range */}
                 <div className="space-y-3">
                   <Label>
-                    {language === "ar" ? "السعر" : "Price Range"}: {priceRange[0]} - {priceRange[1]} EGP
+                    {language === "ar" ? "السعر" : "Price Range"}:{" "}
+                    {priceRange[0]} - {priceRange[1]} EGP
                   </Label>
                   <Slider
                     min={0}
@@ -260,7 +320,9 @@ export function PropertiesPage({ onNavigate, language = "en" }: PropertiesPagePr
                   <Label>{language === "ar" ? "عدد الغرف" : "Bedrooms"}</Label>
                   <Select value={bedrooms} onValueChange={setBedrooms}>
                     <SelectTrigger>
-                      <SelectValue placeholder={language === "ar" ? "أي عدد" : "Any"} />
+                      <SelectValue
+                        placeholder={language === "ar" ? "أي عدد" : "Any"}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {[1, 2, 3, 4, 5].map((num) => (
@@ -275,22 +337,37 @@ export function PropertiesPage({ onNavigate, language = "en" }: PropertiesPagePr
                 {/* Furnished */}
                 <div className="flex items-center justify-between">
                   <Label>{language === "ar" ? "مفروش" : "Furnished"}</Label>
-                  <Switch checked={furnished || false} onCheckedChange={setFurnished} />
+                  <Switch
+                    checked={furnished || false}
+                    onCheckedChange={setFurnished}
+                  />
                 </div>
 
                 {/* Pets */}
                 <div className="flex items-center justify-between">
-                  <Label>{language === "ar" ? "يسمح بالحيوانات" : "Pets Allowed"}</Label>
-                  <Switch checked={petsAllowed || false} onCheckedChange={setPetsAllowed} />
+                  <Label>
+                    {language === "ar" ? "يسمح بالحيوانات" : "Pets Allowed"}
+                  </Label>
+                  <Switch
+                    checked={petsAllowed || false}
+                    onCheckedChange={setPetsAllowed}
+                  />
                 </div>
 
                 {/* Action Buttons */}
                 <div className="space-y-2 pt-4">
-                  <Button onClick={handleSearch} className="w-full bg-[#00BFA6] hover:bg-[#00A890]">
+                  <Button
+                    onClick={handleSearch}
+                    className="w-full bg-[#00BFA6] hover:bg-[#00A890]"
+                  >
                     <Search className="w-4 h-4 mr-2" />
                     {language === "ar" ? "بحث" : "Search"}
                   </Button>
-                  <Button onClick={handleReset} variant="outline" className="w-full">
+                  <Button
+                    onClick={handleReset}
+                    variant="outline"
+                    className="w-full"
+                  >
                     {language === "ar" ? "إعادة تعيين" : "Reset Filters"}
                   </Button>
                 </div>
@@ -307,10 +384,18 @@ export function PropertiesPage({ onNavigate, language = "en" }: PropertiesPagePr
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="recommended">{language === "ar" ? "موصى به" : "Recommended"}</SelectItem>
-                  <SelectItem value="pricePerNight">{language === "ar" ? "السعر" : "Price"}</SelectItem>
-                  <SelectItem value="averageRating">{language === "ar" ? "التقييم" : "Rating"}</SelectItem>
-                  <SelectItem value="createdAt">{language === "ar" ? "الأحدث" : "Newest"}</SelectItem>
+                  <SelectItem value="recommended">
+                    {language === "ar" ? "موصى به" : "Recommended"}
+                  </SelectItem>
+                  <SelectItem value="pricePerNight">
+                    {language === "ar" ? "السعر" : "Price"}
+                  </SelectItem>
+                  <SelectItem value="averageRating">
+                    {language === "ar" ? "التقييم" : "Rating"}
+                  </SelectItem>
+                  <SelectItem value="createdAt">
+                    {language === "ar" ? "الأحدث" : "Newest"}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -326,9 +411,15 @@ export function PropertiesPage({ onNavigate, language = "en" }: PropertiesPagePr
             {!loading && properties.length === 0 && (
               <div className="text-center py-20">
                 <p className="text-gray-600 text-lg">
-                  {language === "ar" ? "لا توجد عقارات متاحة" : "No properties found"}
+                  {language === "ar"
+                    ? "لا توجد عقارات متاحة"
+                    : "No properties found"}
                 </p>
-                <Button onClick={handleReset} variant="outline" className="mt-4">
+                <Button
+                  onClick={handleReset}
+                  variant="outline"
+                  className="mt-4"
+                >
                   {language === "ar" ? "مسح الفلاتر" : "Clear Filters"}
                 </Button>
               </div>

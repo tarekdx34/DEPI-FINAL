@@ -1,9 +1,22 @@
 // src/components/pages/HomePage.tsx - Updated
-import { Search, Shield, Users, Clock, ChevronRight, RefreshCw } from "lucide-react";
+import {
+  Search,
+  Shield,
+  Users,
+  Clock,
+  ChevronRight,
+  RefreshCw,
+} from "lucide-react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { Button } from "../ui/button";
 import { PropertyCard } from "../PropertyCard";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
 import { format } from "date-fns";
@@ -24,8 +37,12 @@ export function HomePage({ onNavigate, language = "en", user }: HomePageProps) {
   const [checkOut, setCheckOut] = useState<Date | undefined>();
   const [guests, setGuests] = useState("");
 
-  const [featuredProperties, setFeaturedProperties] = useState<PropertyResponse[]>([]);
-  const [popularLocations, setPopularLocations] = useState<PopularLocation[]>([]);
+  const [featuredProperties, setFeaturedProperties] = useState<
+    PropertyResponse[]
+  >([]);
+  const [popularLocations, setPopularLocations] = useState<PopularLocation[]>(
+    []
+  );
   const [governorates, setGovernorates] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +87,9 @@ export function HomePage({ onNavigate, language = "en", user }: HomePageProps) {
       }
     } catch (err: any) {
       console.error("Error loading home data:", err);
-      setError(err?.message || "Failed to load properties. Please try again later.");
+      setError(
+        err?.message || "Failed to load properties. Please try again later."
+      );
     } finally {
       setLoading(false);
     }
@@ -99,7 +118,8 @@ export function HomePage({ onNavigate, language = "en", user }: HomePageProps) {
     const params = new URLSearchParams();
     if (location) params.set("governorate", location);
     if (checkIn) params.set("checkInDate", checkIn.toISOString().split("T")[0]);
-    if (checkOut) params.set("checkOutDate", checkOut.toISOString().split("T")[0]);
+    if (checkOut)
+      params.set("checkOutDate", checkOut.toISOString().split("T")[0]);
     if (guests) params.set("minGuests", guests);
 
     onNavigate("properties");
@@ -157,7 +177,9 @@ export function HomePage({ onNavigate, language = "en", user }: HomePageProps) {
             <div className="flex-1 px-4 py-3 border-b md:border-b-0 md:border-r border-gray-200">
               <Select value={location} onValueChange={setLocation}>
                 <SelectTrigger className="border-0 bg-transparent h-auto p-0 focus:ring-0 focus:ring-offset-0">
-                  <SelectValue placeholder={t?.searchPlaceholder || "Where are you going?"} />
+                  <SelectValue
+                    placeholder={t?.searchPlaceholder || "Where are you going?"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {governorates.map((gov) => (
@@ -172,23 +194,36 @@ export function HomePage({ onNavigate, language = "en", user }: HomePageProps) {
             <Popover>
               <PopoverTrigger asChild>
                 <button className="flex-1 px-4 py-3 text-left border-b md:border-b-0 md:border-r border-gray-200 hover:bg-gray-50 rounded-lg transition-colors">
-                  <span className="text-sm text-gray-500 block">{t?.checkIn || "Check in"}</span>
+                  <span className="text-sm text-gray-500 block">
+                    {t?.checkIn || "Check in"}
+                  </span>
                   <span className="font-medium">
-                    {checkIn ? format(checkIn, "MMM dd") : t?.selectDates || "Select dates"}
+                    {checkIn
+                      ? format(checkIn, "MMM dd")
+                      : t?.selectDates || "Select dates"}
                   </span>
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={checkIn} onSelect={setCheckIn} initialFocus />
+                <Calendar
+                  mode="single"
+                  selected={checkIn}
+                  onSelect={setCheckIn}
+                  initialFocus
+                />
               </PopoverContent>
             </Popover>
 
             <Popover>
               <PopoverTrigger asChild>
                 <button className="flex-1 px-4 py-3 text-left border-b md:border-b-0 md:border-r border-gray-200 hover:bg-gray-50 rounded-lg transition-colors">
-                  <span className="text-sm text-gray-500 block">{t?.checkOut || "Check out"}</span>
+                  <span className="text-sm text-gray-500 block">
+                    {t?.checkOut || "Check out"}
+                  </span>
                   <span className="font-medium">
-                    {checkOut ? format(checkOut, "MMM dd") : t?.selectDates || "Select dates"}
+                    {checkOut
+                      ? format(checkOut, "MMM dd")
+                      : t?.selectDates || "Select dates"}
                   </span>
                 </button>
               </PopoverTrigger>
@@ -211,7 +246,9 @@ export function HomePage({ onNavigate, language = "en", user }: HomePageProps) {
                 <SelectContent>
                   {[1, 2, 3, 4, 5, 6].map((num) => (
                     <SelectItem key={num} value={num.toString()}>
-                      {language === "ar" ? `${num} ضيوف` : `${num} Guest${num > 1 ? "s" : ""}`}
+                      {language === "ar"
+                        ? `${num} ضيوف`
+                        : `${num} Guest${num > 1 ? "s" : ""}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -223,8 +260,9 @@ export function HomePage({ onNavigate, language = "en", user }: HomePageProps) {
               size="lg"
               className="bg-[#FF6B6B] hover:bg-[#FF5252] text-white rounded-full px-8"
             >
-              <Search className={`w-5 h-5 ${language === "ar" ? "ml-2" : "mr-2"}`} />
-              {t?.search || "Search"}
+              <Search
+                className={`w-5 h-5 ${language === "ar" ? "ml-2" : "mr-2"}`}
+              />
             </Button>
           </div>
         </div>
@@ -245,7 +283,10 @@ export function HomePage({ onNavigate, language = "en", user }: HomePageProps) {
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-64 bg-gray-200 animate-pulse rounded-2xl" />
+                <div
+                  key={i}
+                  className="h-64 bg-gray-200 animate-pulse rounded-2xl"
+                />
               ))}
             </div>
           ) : (
@@ -267,12 +308,16 @@ export function HomePage({ onNavigate, language = "en", user }: HomePageProps) {
                       language === "ar" ? "right-6" : "left-6"
                     } text-white`}
                   >
-                    <h3 className="text-2xl font-semibold mb-1">{location.city}</h3>
+                    <h3 className="text-2xl font-semibold mb-1">
+                      {location.city}
+                    </h3>
                     <p className="text-sm text-white/90">
-                      {location.propertyCount} {language === "ar" ? "عقار" : "properties"}
+                      {location.propertyCount}{" "}
+                      {language === "ar" ? "عقار" : "properties"}
                     </p>
                     <p className="text-xs text-white/80 mt-1">
-                      {language === "ar" ? "من" : "From"} {location.minPrice} EGP
+                      {language === "ar" ? "من" : "From"} {location.minPrice}{" "}
+                      EGP
                     </p>
                   </div>
                 </button>
@@ -300,7 +345,9 @@ export function HomePage({ onNavigate, language = "en", user }: HomePageProps) {
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                   />
                 </div>
-                <h3 className="font-semibold text-[#2B2B2B]">{category.title}</h3>
+                <h3 className="font-semibold text-[#2B2B2B]">
+                  {category.title}
+                </h3>
               </button>
             ))}
           </div>
@@ -320,7 +367,9 @@ export function HomePage({ onNavigate, language = "en", user }: HomePageProps) {
                 disabled={refreshing}
                 className="text-gray-600"
               >
-                <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+                <RefreshCw
+                  className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
+                />
                 Refresh
               </Button>
               <Button
@@ -329,7 +378,9 @@ export function HomePage({ onNavigate, language = "en", user }: HomePageProps) {
                 className="text-[#00BFA6] hover:text-[#00A890] gap-1"
               >
                 {language === "ar" ? "عرض الكل" : "View all"}
-                <ChevronRight className={`w-4 h-4 ${language === "ar" ? "rotate-180" : ""}`} />
+                <ChevronRight
+                  className={`w-4 h-4 ${language === "ar" ? "rotate-180" : ""}`}
+                />
               </Button>
             </div>
           </div>
@@ -384,7 +435,8 @@ export function HomePage({ onNavigate, language = "en", user }: HomePageProps) {
                 {t?.localExpertise || "Local Expertise"}
               </h3>
               <p className="text-gray-600">
-                {t?.localExpertiseDesc || "Deep knowledge of Egyptian properties"}
+                {t?.localExpertiseDesc ||
+                  "Deep knowledge of Egyptian properties"}
               </p>
             </div>
             <div className="text-center">
@@ -394,7 +446,9 @@ export function HomePage({ onNavigate, language = "en", user }: HomePageProps) {
               <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">
                 {t?.support247 || "24/7 Support"}
               </h3>
-              <p className="text-gray-600">{t?.supportDesc || "Always here to help you"}</p>
+              <p className="text-gray-600">
+                {t?.supportDesc || "Always here to help you"}
+              </p>
             </div>
           </div>
         </section>
