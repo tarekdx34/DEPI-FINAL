@@ -1,4 +1,5 @@
-// api.ts - Complete API Client for Ajarly Platform (All 13 Features)
+// api.ts - Complete API Client for Ajarly Platform - UPDATED VERSION
+// Includes all 13 features + Fixed Admin Reviews Endpoints
 
 const API_BASE_URL = "http://localhost:8081/api/v1";
 
@@ -55,6 +56,15 @@ interface UserProfile {
 }
 
 // ===== PROPERTY TYPES =====
+interface PropertyBasicInfo {
+  propertyId: number;
+  titleAr: string;
+  titleEn: string;
+  city: string;
+  governorate: string;
+  coverImage?: string;
+}
+
 interface PropertyCreateRequest {
   titleAr: string;
   titleEn: string;
@@ -150,13 +160,7 @@ interface BookingCreateRequest {
 interface BookingResponse {
   bookingId: number;
   bookingReference: string;
-  property: {
-    propertyId: number;
-    titleAr: string;
-    titleEn: string;
-    city: string;
-    governorate: string;
-  };
+  property: PropertyBasicInfo;
   renter: {
     userId: number;
     firstName: string;
@@ -175,12 +179,15 @@ interface BookingResponse {
   checkOutDate: string;
   numberOfNights: number;
   numberOfGuests: number;
+  numberOfAdults: number;
+  numberOfChildren: number;
   pricePerNight: number;
   subtotal: number;
   cleaningFee: number;
   serviceFee: number;
   totalPrice: number;
   securityDeposit: number;
+  refundAmount?: number;
   status: string;
   paymentStatus: string;
   specialRequests?: string;
@@ -219,6 +226,7 @@ interface ReviewResponse {
   bookingId: number;
   propertyId: number;
   propertyTitle: string;
+  property: PropertyBasicInfo;
   reviewer: {
     userId: number;
     firstName: string;
@@ -240,6 +248,7 @@ interface ReviewResponse {
   ownerResponseDate?: string;
   isApproved: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
 
 interface ReviewStatsResponse {
@@ -252,6 +261,14 @@ interface ReviewStatsResponse {
     locationAvg: number;
     valueAvg: number;
   };
+}
+
+interface ReviewAdminStatsResponse {
+  totalReviews: number;
+  pendingReviews: number;
+  approvedReviews: number;
+  rejectedReviews: number;
+  averageRating: number;
 }
 
 // ===== FAVORITE TYPES =====
@@ -658,7 +675,6 @@ class ApiClient {
       ...options.headers,
     };
 
-    // Only add Content-Type if not FormData
     if (!(options.body instanceof FormData)) {
       headers["Content-Type"] = "application/json";
     }
@@ -737,6 +753,49 @@ class ApiClient {
     };
 
     return mapping[method] || method.toLowerCase();
+  }
+
+  // ============================================
+  // HELPERS: Normalize responses
+  // ============================================
+  
+  // ✅ Helper to normalize booking response
+  private normalizeBooking(booking: any): BookingResponse {
+    return {
+      ...booking,
+      property: {
+        propertyId: booking.property?.propertyId || booking.propertyId,
+        titleAr: booking.property?.titleAr || booking.propertyTitle || "",
+        titleEn: booking.property?.titleEn || booking.propertyTitle || "",
+        city: booking.property?.city || "",
+        governorate: booking.property?.governorate || "",
+        coverImage: booking.property?.coverImage || 
+                   booking.property?.coverImageUrl ||
+                   "https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f?w=800&q=80"
+      }
+    };
+  }
+
+  // ✅ Helper to normalize review response
+  private normalizeReview(review: any): ReviewResponse {
+    return {
+      ...review,
+      property: review.property || {
+        propertyId: review.propertyId,
+        titleAr: review.propertyTitle || "",
+        titleEn: review.propertyTitle || "",
+        city: "",
+        governorate: "",
+        coverImage: "https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f?w=800&q=80"
+      },
+      reviewer: review.reviewer || {
+        userId: 0,
+        firstName: "Unknown",
+        lastName: "User",
+        verified: false,
+        totalReviews: 0
+      }
+    };
   }
 
   // ============================================
@@ -882,56 +941,63 @@ class ApiClient {
   // ============================================
 
   async createBooking(data: BookingCreateRequest): Promise<BookingResponse> {
-    return this.request<BookingResponse>("/bookings", {
+    const booking = await this.request<any>("/bookings", {
       method: "POST",
       body: JSON.stringify(data),
     });
+    return this.normalizeBooking(booking);
   }
 
   async getBookings(status?: string): Promise<BookingResponse[]> {
-    return this.request<BookingResponse[]>(
+    const bookings = await this.request<any[]>(
       `/bookings${status ? `?status=${status}` : ""}`
     );
+    return bookings.map(b => this.normalizeBooking(b));
   }
 
   async getBooking(id: number): Promise<BookingResponse> {
-    return this.request<BookingResponse>(`/bookings/${id}`);
+    const booking = await this.request<any>(`/bookings/${id}`);
+    return this.normalizeBooking(booking);
   }
 
   async confirmBooking(
     id: number,
     ownerResponse?: string
   ): Promise<BookingResponse> {
-    return this.request<BookingResponse>(`/bookings/${id}/confirm`, {
+    const booking = await this.request<any>(`/bookings/${id}/confirm`, {
       method: "PUT",
       body: JSON.stringify({ ownerResponse: ownerResponse || "" }),
     });
+    return this.normalizeBooking(booking);
   }
 
   async rejectBooking(
     id: number,
     rejectionReason: string
   ): Promise<BookingResponse> {
-    return this.request<BookingResponse>(`/bookings/${id}/reject`, {
+    const booking = await this.request<any>(`/bookings/${id}/reject`, {
       method: "PUT",
       body: JSON.stringify({ rejectionReason }),
     });
+    return this.normalizeBooking(booking);
   }
 
   async cancelBooking(
     id: number,
     cancellationReason: string
   ): Promise<BookingResponse> {
-    return this.request<BookingResponse>(`/bookings/${id}/cancel`, {
+    const booking = await this.request<any>(`/bookings/${id}/cancel`, {
       method: "PUT",
       body: JSON.stringify({ cancellationReason }),
     });
+    return this.normalizeBooking(booking);
   }
 
   async getOwnerBookings(status?: string): Promise<BookingResponse[]> {
-    return this.request<BookingResponse[]>(
+    const bookings = await this.request<any[]>(
       `/bookings/owner${status ? `?status=${status}` : ""}`
     );
+    return bookings.map(b => this.normalizeBooking(b));
   }
 
   async checkAvailability(
@@ -945,22 +1011,25 @@ class ApiClient {
   }
 
   async getUpcomingBookings(): Promise<BookingResponse[]> {
-    return this.request<BookingResponse[]>("/bookings/upcoming");
+    const bookings = await this.request<any[]>("/bookings/upcoming");
+    return bookings.map(b => this.normalizeBooking(b));
   }
 
   async getOwnerUpcomingBookings(): Promise<BookingResponse[]> {
-    return this.request<BookingResponse[]>("/bookings/owner/upcoming");
+    const bookings = await this.request<any[]>("/bookings/owner/upcoming");
+    return bookings.map(b => this.normalizeBooking(b));
   }
 
   // ============================================
-  // 5. REVIEWS
+  // 5. REVIEWS (RENTER/OWNER)
   // ============================================
 
   async createReview(data: ReviewCreateRequest): Promise<ReviewResponse> {
-    return this.request<ReviewResponse>("/reviews", {
+    const review = await this.request<any>("/reviews", {
       method: "POST",
       body: JSON.stringify(data),
     });
+    return this.normalizeReview(review);
   }
 
   async getPropertyReviews(
@@ -972,9 +1041,15 @@ class ApiClient {
         .filter(([_, v]) => v !== undefined)
         .map(([k, v]) => [k, String(v)])
     ).toString();
-    return this.request<PaginatedResponse<ReviewResponse>>(
+    
+    const response = await this.request<PaginatedResponse<any>>(
       `/reviews/property/${propertyId}${queryString ? `?${queryString}` : ""}`
     );
+
+    return {
+      ...response,
+      content: response.content.map(r => this.normalizeReview(r))
+    };
   }
 
   async getPropertyReviewStats(
@@ -989,10 +1064,11 @@ class ApiClient {
     reviewId: number,
     ownerResponse: string
   ): Promise<ReviewResponse> {
-    return this.request<ReviewResponse>(`/reviews/${reviewId}/response`, {
+    const review = await this.request<any>(`/reviews/${reviewId}/response`, {
       method: "PUT",
       body: JSON.stringify({ ownerResponse }),
     });
+    return this.normalizeReview(review);
   }
 
   async canReviewBooking(bookingId: number): Promise<{ canReview: boolean }> {
@@ -1001,8 +1077,368 @@ class ApiClient {
     );
   }
 
+  async getMyReviews(params?: any): Promise<PaginatedResponse<ReviewResponse>> {
+    const queryString = new URLSearchParams(
+      Object.entries(params || {})
+        .filter(([_, v]) => v !== undefined)
+        .map(([k, v]) => [k, String(v)])
+    ).toString();
+    
+    const response = await this.request<PaginatedResponse<any>>(
+      `/reviews/my-reviews${queryString ? `?${queryString}` : ""}`
+    );
+
+    return {
+      ...response,
+      content: response.content.map(r => this.normalizeReview(r))
+    };
+  }
+
+  async deleteReview(reviewId: number): Promise<void> {
+    return this.request<void>(`/reviews/${reviewId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async updateReview(reviewId: number, data: Partial<ReviewCreateRequest>): Promise<ReviewResponse> {
+    const review = await this.request<any>(`/reviews/${reviewId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+    return this.normalizeReview(review);
+  }
+
   // ============================================
-  // 6. FAVORITES
+  // DIAGNOSTIC HELPERS
+  // ============================================
+
+  /**
+   * 🔍 Test admin reviews endpoint connectivity
+   * Use this to diagnose endpoint issues
+   */
+  async testAdminReviewsEndpoint(): Promise<{
+    success: boolean;
+    workingEndpoint?: string;
+    error?: string;
+    details?: any;
+  }> {
+    const testEndpoints = [
+      '/admin/reviews',
+      '/reviews/admin',
+      '/reviews',
+      '/admin/reviews?page=0&size=1',
+    ];
+
+    console.log('🔍 Testing admin reviews endpoints...');
+
+    for (const endpoint of testEndpoints) {
+      try {
+        console.log(`Testing: ${endpoint}`);
+        const response = await this.request<any>(endpoint);
+        
+        console.log(`✅ SUCCESS with: ${endpoint}`, response);
+        
+        return {
+          success: true,
+          workingEndpoint: endpoint,
+          details: response
+        };
+      } catch (error: any) {
+        console.log(`❌ FAILED: ${endpoint} - ${error.message} (Status: ${error.status})`);
+        
+        if (endpoint === testEndpoints[testEndpoints.length - 1]) {
+          return {
+            success: false,
+            error: error.message,
+            details: {
+              status: error.status,
+              data: error.data,
+              testedEndpoints: testEndpoints
+            }
+          };
+        }
+      }
+    }
+
+    return {
+      success: false,
+      error: 'All endpoints failed',
+      details: { testedEndpoints: testEndpoints }
+    };
+  }
+
+  /**
+   * 🔍 Check if user has admin privileges
+   */
+  async checkAdminAccess(): Promise<{
+    isAdmin: boolean;
+    userType?: string;
+    error?: string;
+  }> {
+    try {
+      const profile = await this.getProfile();
+      
+      return {
+        isAdmin: profile.userType === 'admin',
+        userType: profile.userType
+      };
+    } catch (error: any) {
+      return {
+        isAdmin: false,
+        error: error.message
+      };
+    }
+  }
+
+  // ============================================
+// 6. REVIEWS (ADMIN) - ✅ FINAL WORKING VERSION
+// ============================================
+// Replace ONLY this section in your api.ts file
+
+/**
+ * ✅ Get all reviews with admin filtering - REAL BACKEND
+ */
+async getReviewsAdmin(params?: {
+  page?: number;
+  size?: number;
+  status?: "all" | "pending" | "approved";
+}): Promise<PaginatedResponse<ReviewResponse>> {
+  console.log(`\n📊 ========================================`);
+  console.log(`📊 FETCHING ADMIN REVIEWS`);
+  console.log(`📊 Filter: ${params?.status || 'all'}`);
+  console.log(`📊 ========================================\n`);
+  
+  const queryParams: Record<string, string> = {
+    page: String(params?.page ?? 0),
+    size: String(params?.size ?? 50),
+    sortBy: 'createdAt',
+    sortDirection: 'DESC'
+  };
+
+  // Apply filter
+  if (params?.status === "pending") {
+    queryParams.isApproved = 'false';
+  } else if (params?.status === "approved") {
+    queryParams.isApproved = 'true';
+  }
+  // For "all", don't add isApproved filter
+
+  const queryString = new URLSearchParams(queryParams).toString();
+  
+  try {
+    // ✅ Use correct admin endpoint
+    const endpoint = `/reviews/admin/all?${queryString}`;
+    console.log(`🔄 API Call: ${this.baseURL}${endpoint}`);
+    
+    const response = await this.request<any>(endpoint);
+    console.log(`✅ Response received:`, response);
+
+    // Handle response structure
+    let reviewsData = response;
+    
+    // Unwrap if nested in 'data'
+    if (response.data) {
+      reviewsData = response.data;
+    }
+    
+    // Extract pagination info
+    let content: any[] = [];
+    let totalElements = 0;
+    let totalPages = 0;
+    let currentPage = 0;
+    let pageSize = 50;
+
+    if (reviewsData.content) {
+      // Paginated response
+      content = reviewsData.content;
+      totalElements = reviewsData.totalElements || 0;
+      totalPages = reviewsData.totalPages || 0;
+      currentPage = reviewsData.currentPage || 0;
+      pageSize = reviewsData.pageSize || 50;
+    } else if (Array.isArray(reviewsData)) {
+      // Array response
+      content = reviewsData;
+      totalElements = reviewsData.length;
+      totalPages = 1;
+      currentPage = 0;
+    }
+
+    console.log(`✅ Processing ${content.length} reviews...`);
+
+    // Normalize reviews
+    const normalizedReviews = content.map((r, index) => {
+      try {
+        return this.normalizeReview(r);
+      } catch (err) {
+        console.error(`⚠️ Failed to normalize review ${index}:`, err);
+        return null;
+      }
+    }).filter(r => r !== null) as ReviewResponse[];
+
+    console.log(`✅ Successfully loaded ${normalizedReviews.length} reviews\n`);
+
+    return {
+      content: normalizedReviews,
+      totalElements: totalElements,
+      totalPages: totalPages,
+      currentPage: currentPage,
+      pageSize: pageSize
+    };
+    
+  } catch (error: any) {
+    console.error(`\n❌ ========================================`);
+    console.error(`❌ FAILED TO FETCH REVIEWS`);
+    console.error(`❌ Status: ${error.status}`);
+    console.error(`❌ Message: ${error.message}`);
+    console.error(`❌ ========================================\n`);
+    
+    // Better error handling
+    if (error.status === 403) {
+      throw new ApiError(
+        "Access denied. Please ensure you're logged in as Admin.",
+        403,
+        error.data
+      );
+    } else if (error.status === 500) {
+      // Return empty result instead of crashing
+      console.warn("⚠️ Server error, returning empty result");
+      return {
+        content: [],
+        totalElements: 0,
+        totalPages: 0,
+        currentPage: 0,
+        pageSize: 50
+      };
+    }
+    
+    throw error;
+  }
+}
+
+/**
+ * ✅ Get review statistics for admin - REAL BACKEND
+ */
+async getReviewStats(): Promise<ReviewAdminStatsResponse> {
+  console.log("\n📊 Fetching admin review stats...");
+  
+  try {
+    const endpoint = '/reviews/admin/stats';
+    console.log(`🔄 API Call: ${this.baseURL}${endpoint}`);
+    
+    const stats = await this.request<any>(endpoint);
+    
+    console.log("✅ Stats received:", stats);
+    
+    return {
+      totalReviews: stats.totalReviews || 0,
+      pendingReviews: stats.pendingReviews || 0,
+      approvedReviews: stats.approvedReviews || 0,
+      rejectedReviews: stats.rejectedReviews || 0,
+      averageRating: stats.averageRating || 0
+    };
+    
+  } catch (error: any) {
+    console.error("❌ Failed to fetch stats:", error);
+    
+    // Return default stats on error
+    return {
+      totalReviews: 0,
+      pendingReviews: 0,
+      approvedReviews: 0,
+      rejectedReviews: 0,
+      averageRating: 0
+    };
+  }
+}
+
+/**
+ * ✅ Approve review - REAL BACKEND
+ */
+async approveReview(reviewId: number): Promise<ReviewResponse> {
+  console.log(`\n✅ ========================================`);
+  console.log(`✅ APPROVING REVIEW ${reviewId}`);
+  console.log(`✅ ========================================\n`);
+  
+  try {
+    const endpoint = `/reviews/${reviewId}/approve`;
+    console.log(`🔄 API Call: ${this.baseURL}${endpoint}`);
+    
+    const review = await this.request<any>(endpoint, {
+      method: "PUT"
+    });
+    
+    console.log("✅ Review approved:", review);
+    
+    return this.normalizeReview(review);
+    
+  } catch (error: any) {
+    console.error(`\n❌ ========================================`);
+    console.error(`❌ APPROVE FAILED`);
+    console.error(`❌ Status: ${error.status}`);
+    console.error(`❌ Message: ${error.message}`);
+    console.error(`❌ Data:`, error.data);
+    console.error(`❌ ========================================\n`);
+    
+    throw error;
+  }
+}
+
+/**
+ * ✅ Reject review - REAL BACKEND
+ */
+async rejectReview(reviewId: number, reason?: string): Promise<ReviewResponse> {
+  console.log(`\n❌ ========================================`);
+  console.log(`❌ REJECTING REVIEW ${reviewId}`);
+  console.log(`❌ Reason: ${reason || 'No reason provided'}`);
+  console.log(`❌ ========================================\n`);
+  
+  try {
+    const endpoint = `/reviews/${reviewId}/reject`;
+    console.log(`🔄 API Call: ${this.baseURL}${endpoint}`);
+    
+    const review = await this.request<any>(endpoint, {
+      method: "PUT",
+      body: JSON.stringify({ 
+        reason: reason || "Does not meet guidelines" 
+      }),
+    });
+    
+    console.log("✅ Review rejected:", review);
+    
+    return this.normalizeReview(review);
+    
+  } catch (error: any) {
+    console.error(`\n❌ ========================================`);
+    console.error(`❌ REJECT FAILED`);
+    console.error(`❌ Status: ${error.status}`);
+    console.error(`❌ Message: ${error.message}`);
+    console.error(`❌ ========================================\n`);
+    
+    throw error;
+  }
+}
+
+/**
+ * ✅ Delete review as admin - REAL BACKEND
+ */
+async deleteReviewAdmin(reviewId: number): Promise<void> {
+  console.log(`\n🗑️ Deleting review ${reviewId}...`);
+  
+  try {
+    await this.request<void>(`/reviews/${reviewId}`, {
+      method: "DELETE",
+    });
+    
+    console.log("✅ Review deleted successfully\n");
+    
+  } catch (error: any) {
+    console.error("❌ Delete failed:", error.message, "\n");
+    throw error;
+  }
+}
+
+  // ============================================
+  // 7. FAVORITES
   // ============================================
 
   async addFavorite(
@@ -1041,7 +1477,7 @@ class ApiClient {
   }
 
   // ============================================
-  // 7. USER PROFILE
+  // 8. USER PROFILE
   // ============================================
 
   async updateProfile(data: UpdateProfileRequest): Promise<UserProfile> {
@@ -1082,7 +1518,7 @@ class ApiClient {
   }
 
   // ============================================
-  // 8. ADVANCED SEARCH
+  // 9. ADVANCED SEARCH
   // ============================================
 
   async advancedSearch(params: SearchRequest): Promise<SearchResponse> {
@@ -1117,7 +1553,7 @@ class ApiClient {
   }
 
   // ============================================
-  // 9. ADMIN DASHBOARD
+  // 10. ADMIN DASHBOARD
   // ============================================
 
   async getDashboardStats(): Promise<DashboardStatsResponse> {
@@ -1181,7 +1617,7 @@ class ApiClient {
   }
 
   // ============================================
-  // 10. REPORTS
+  // 11. REPORTS
   // ============================================
 
   async createReport(data: ReportCreateRequest): Promise<ReportResponse> {
@@ -1273,13 +1709,12 @@ class ApiClient {
   }
 
   // ============================================
-  // 11. PAYMENTS (✅ FIXED)
+  // 12. PAYMENTS
   // ============================================
 
   async createPaymentIntent(
     data: PaymentIntentRequest
   ): Promise<PaymentIntentResponse> {
-    // ✅ Map payment method to backend enum value
     const mappedData = {
       ...data,
       paymentMethod: this.mapPaymentMethod(data.paymentMethod),
@@ -1338,7 +1773,7 @@ class ApiClient {
   }
 
   // ============================================
-  // 12. SUBSCRIPTIONS
+  // 13. SUBSCRIPTIONS
   // ============================================
 
   async getSubscriptionPlans(): Promise<SubscriptionPlanResponse[]> {
@@ -1368,7 +1803,7 @@ class ApiClient {
   }
 
   // ============================================
-  // 13. ANALYTICS
+  // 14. ANALYTICS
   // ============================================
 
   async getPropertyAnalytics(
@@ -1436,10 +1871,8 @@ export const formatApiError = (error: unknown): string => {
   return "An unexpected error occurred";
 };
 
-// ✅ Enhanced error formatting for payment errors
 export const formatPaymentError = (error: unknown): string => {
   if (error instanceof ApiError) {
-    // Check for specific payment errors
     if (error.message.includes("enum")) {
       return "Payment method not supported. Please try again.";
     }
@@ -1465,59 +1898,47 @@ export default api;
 export { ApiError, ApiClient };
 
 export type {
-  // Auth
   ApiResponse,
   AuthResponse,
   RegisterRequest,
   UserProfile,
-  // Properties
   PropertyCreateRequest,
   PropertyResponse,
-  // Images
+  PropertyBasicInfo,
   PropertyImageResponse,
   ImageUploadResponse,
-  // Bookings
   BookingCreateRequest,
   BookingResponse,
   AvailabilityResponse,
-  // Reviews
   ReviewCreateRequest,
   ReviewResponse,
   ReviewStatsResponse,
-  // Favorites
+  ReviewAdminStatsResponse,
   FavoriteResponse,
   FavoriteCheckResponse,
-  // User Profile
   UpdateProfileRequest,
   ChangePasswordRequest,
   PhoneVerificationResponse,
-  // Admin
   DashboardStatsResponse,
   PendingPropertyResponse,
-  // Reports
   ReportCreateRequest,
   ReportResponse,
-  // Payments
   PaymentIntentRequest,
   PaymentIntentResponse,
   PaymentConfirmRequest,
   TransactionResponse,
   RefundRequest,
-  // Subscriptions
   SubscriptionPlanResponse,
   SubscribeRequest,
   SubscriptionResponse,
   SubscriptionLimitsResponse,
-  // Analytics
   PropertyAnalyticsResponse,
   OwnerDashboardResponse,
   PlatformAnalyticsResponse,
-  // Search
   SearchRequest,
   SearchResponse,
   LocationSuggestion,
   PopularLocation,
-  // Pagination
   PaginatedResponse,
   PaginationResponse,
-};
+}

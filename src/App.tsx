@@ -1,3 +1,4 @@
+// src/App.tsx - Enhanced Version with Fixed Navbar Props
 import { useState, useEffect } from "react";
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
@@ -18,6 +19,7 @@ import { SupportPage } from "./components/pages/SupportPage";
 import { PrivacyPolicyPage } from "./components/pages/PrivacyPolicyPage";
 import { TermsConditionsPage } from "./components/pages/TermsConditionsPage";
 import { Toaster } from "./components/ui/sonner";
+import { FavoritesProvider } from "./contexts/FavoritesContext";
 import { Language } from "./lib/translations";
 import api from "../api";
 import { toast } from "sonner";
@@ -41,16 +43,6 @@ type Page =
   | "privacy-policy"
   | "terms";
 
-export interface Property {
-  id: string;
-  image: string;
-  title: string;
-  location: string;
-  rating: number;
-  reviews: number;
-  price: number;
-}
-
 export interface User {
   userId: number;
   name: string;
@@ -64,12 +56,9 @@ export interface User {
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("home");
-  const [selectedPropertyId, setSelectedPropertyId] = useState<
-    string | undefined
-  >();
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | undefined>();
   const [registerAsHost, setRegisterAsHost] = useState(false);
   const [isNewHost, setIsNewHost] = useState(false);
-  const [favourites, setFavourites] = useState<Property[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [language, setLanguage] = useState<Language>("en");
   const [isNavigating, setIsNavigating] = useState(false);
@@ -114,35 +103,27 @@ export default function App() {
     document.documentElement.lang = language;
   }, [language]);
 
-  // ✅ FIXED: Navigate with proper state management
+  // ✅ Navigation handler
   const handleNavigate = (page: string, propertyId?: string) => {
-    console.log(
-      "🔄 Navigation requested to:",
-      page,
-      propertyId ? `Property: ${propertyId}` : ""
-    );
+    console.log("🔄 Navigation requested to:", page, propertyId ? `Property: ${propertyId}` : "");
 
     setIsNavigating(true);
 
-    // Parse query parameters from page string
     const [pageName, queryString] = page.split("?");
     const params = new URLSearchParams(queryString || "");
 
-    // Check if registering as host
     if (pageName === "register" && params.get("role") === "owner") {
       setRegisterAsHost(true);
     } else if (pageName === "register") {
       setRegisterAsHost(false);
     }
 
-    // Update state
     setCurrentPage(pageName as Page);
 
     if (propertyId) {
       setSelectedPropertyId(propertyId);
     }
 
-    // Scroll to top
     requestAnimationFrame(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
       setIsNavigating(false);
@@ -157,26 +138,7 @@ export default function App() {
     handleNavigate("owner-dashboard");
   };
 
-  const toggleFavourite = (property: Property) => {
-    setFavourites((prev) => {
-      const exists = prev.find((fav) => fav.id === property.id);
-      if (exists) {
-        return prev.filter((fav) => fav.id !== property.id);
-      } else {
-        return [...prev, property];
-      }
-    });
-  };
-
-  const isFavourite = (propertyId: string) => {
-    return favourites.some((fav) => fav.id === propertyId);
-  };
-
-  const removeFavourite = (propertyId: string) => {
-    setFavourites((prev) => prev.filter((fav) => fav.id !== propertyId));
-  };
-
-  // ✅ FIXED: Login handler with better error handling and navigation
+  // ✅ Login handler
   const handleLogin = async (email: string, password: string) => {
     try {
       console.log("1️⃣ Starting login for:", email);
@@ -208,7 +170,6 @@ export default function App() {
 
       toast.success(`Welcome back, ${user.name}!`);
 
-      // ✅ Navigate based on user type with delay to ensure state updates
       let targetPage: Page;
 
       if (userProfile.userType === "admin") {
@@ -221,7 +182,6 @@ export default function App() {
 
       console.log("5️⃣ Navigating to:", targetPage);
 
-      // Use setTimeout to ensure state updates complete
       setTimeout(() => {
         handleNavigate(targetPage);
       }, 100);
@@ -238,7 +198,7 @@ export default function App() {
     }
   };
 
-  // ✅ FIXED: Register handler
+  // ✅ Register handler
   const handleRegister = async (
     name: string,
     email: string,
@@ -281,7 +241,6 @@ export default function App() {
       setUser(user);
       toast.success(`Welcome to Ajarly, ${user.name}!`);
 
-      // Navigate based on role
       setTimeout(() => {
         if (role === "owner") {
           handleHostRegistration();
@@ -300,14 +259,13 @@ export default function App() {
     }
   };
 
-  // ✅ FIXED: Logout handler
+  // ✅ Logout handler
   const handleLogout = async () => {
     try {
       console.log("👋 Logging out user:", user?.email);
 
       await api.logout();
       setUser(null);
-      setFavourites([]);
 
       toast.success("Logged out successfully!");
 
@@ -317,23 +275,15 @@ export default function App() {
     } catch (error) {
       console.error("❌ Logout error:", error);
 
-      // Clear state anyway
       setUser(null);
-      setFavourites([]);
       handleNavigate("home");
     }
   };
 
-  // ✅ FIXED: Render page with better logging
+  // ✅ Render page
   const renderPage = () => {
-    console.log(
-      "🎯 Rendering page:",
-      currentPage,
-      "User:",
-      user?.userType || "Not logged in"
-    );
+    console.log("🎯 Rendering page:", currentPage, "User:", user?.userType || "Not logged in");
 
-    // Show loading during navigation
     if (isNavigating) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-[#F9F6F1]">
@@ -347,15 +297,7 @@ export default function App() {
 
     switch (currentPage) {
       case "home":
-        return (
-          <HomePage
-            onNavigate={handleNavigate}
-            toggleFavourite={toggleFavourite}
-            isFavourite={isFavourite}
-            language={language}
-            user={user}
-          />
-        );
+        return <HomePage onNavigate={handleNavigate} language={language} user={user} />;
 
       case "login":
         return (
@@ -388,14 +330,7 @@ export default function App() {
         );
 
       case "properties":
-        return (
-          <PropertiesPage
-            onNavigate={handleNavigate}
-            toggleFavourite={toggleFavourite}
-            isFavourite={isFavourite}
-            language={language}
-          />
-        );
+        return <PropertiesPage onNavigate={handleNavigate} language={language} />;
 
       case "property-details":
         return (
@@ -407,12 +342,7 @@ export default function App() {
         );
 
       case "booking-confirmation":
-        return (
-          <BookingConfirmationPage
-            onNavigate={handleNavigate}
-            language={language}
-          />
-        );
+        return <BookingConfirmationPage onNavigate={handleNavigate} language={language} />;
 
       case "user-dashboard":
         console.log("🏠 Rendering RenterDashboard");
@@ -435,9 +365,7 @@ export default function App() {
 
       case "admin-dashboard":
         console.log("👑 Rendering AdminDashboard");
-        return (
-          <AdminDashboard onNavigate={handleNavigate} language={language} />
-        );
+        return <AdminDashboard onNavigate={handleNavigate} language={language} />;
 
       case "about":
         return <AboutUsPage onNavigate={handleNavigate} language={language} />;
@@ -452,30 +380,15 @@ export default function App() {
         return <SupportPage onNavigate={handleNavigate} language={language} />;
 
       case "privacy-policy":
-        return (
-          <PrivacyPolicyPage onNavigate={handleNavigate} language={language} />
-        );
+        return <PrivacyPolicyPage onNavigate={handleNavigate} language={language} />;
 
       case "terms":
-        return (
-          <TermsConditionsPage
-            onNavigate={handleNavigate}
-            language={language}
-          />
-        );
+        return <TermsConditionsPage onNavigate={handleNavigate} language={language} />;
 
       default:
         console.warn("⚠️ Unknown page:", currentPage, "Redirecting to home");
         setTimeout(() => handleNavigate("home"), 0);
-        return (
-          <HomePage
-            onNavigate={handleNavigate}
-            toggleFavourite={toggleFavourite}
-            isFavourite={isFavourite}
-            language={language}
-            user={user}
-          />
-        );
+        return <HomePage onNavigate={handleNavigate} language={language} user={user} />;
     }
   };
 
@@ -494,26 +407,25 @@ export default function App() {
   ].includes(currentPage);
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
-      {showNavbar && (
-        <Navbar
-          onNavigate={handleNavigate}
-          currentPage={currentPage}
-          favourites={favourites}
-          onRemoveFavourite={removeFavourite}
-          onSelectFavourite={handleNavigate}
-          user={user}
-          onLogout={handleLogout}
-          language={language}
-          onLanguageChange={setLanguage}
-        />
-      )}
+    <FavoritesProvider>
+      <div className="min-h-screen flex flex-col bg-white">
+        {showNavbar && (
+          <Navbar
+            onNavigate={handleNavigate}
+            currentPage={currentPage}
+            user={user}
+            onLogout={handleLogout}
+            language={language}
+            onLanguageChange={setLanguage}
+          />
+        )}
 
-      <main className="flex-1">{renderPage()}</main>
+        <main className="flex-1">{renderPage()}</main>
 
-      {showFooter && <Footer onNavigate={handleNavigate} language={language} />}
+        {showFooter && <Footer onNavigate={handleNavigate} language={language} />}
 
-      <Toaster position="top-right" richColors closeButton duration={4000} />
-    </div>
+        <Toaster position="top-right" richColors closeButton duration={4000} />
+      </div>
+    </FavoritesProvider>
   );
 }

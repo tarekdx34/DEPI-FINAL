@@ -1,50 +1,27 @@
-// src/components/dashboard/renter/favorites/FavoritesTab.tsx
+// src/components/dashboard/renter/favorites/FavoritesTab.tsx - النسخة النهائية
 import { useState, useEffect } from "react";
 import { Card } from "../../../ui/card";
 import { Button } from "../../../ui/button";
 import { Badge } from "../../../ui/badge";
 import { ImageWithFallback } from "../../../figma/ImageWithFallback";
 import { EmptyState } from "../../shared/components/EmptyState";
-import api, { FavoriteResponse } from "../../../../../api";
+import { useFavorites } from "../../../../contexts/FavoritesContext";
 import { Heart, MapPin, Loader2, Star } from "lucide-react";
-import { toast } from "sonner";
 
 interface FavoritesTabProps {
   onNavigate: (page: string, id?: string) => void;
 }
 
 export function FavoritesTab({ onNavigate }: FavoritesTabProps) {
-  const [favorites, setFavorites] = useState<FavoriteResponse[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { favorites, loading, removeFromFavorites } = useFavorites();
   const [removingId, setRemovingId] = useState<number | null>(null);
-
-  useEffect(() => {
-    fetchFavorites();
-  }, []);
-
-  const fetchFavorites = async () => {
-    try {
-      setLoading(true);
-      const response = await api.getFavorites({ page: 0, size: 100 });
-      setFavorites(response?.content || []);
-    } catch (err) {
-      console.error('Error fetching favorites:', err);
-      toast.error('Failed to load favorites');
-      setFavorites([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleRemoveFavorite = async (propertyId: number) => {
     try {
       setRemovingId(propertyId);
-      await api.removeFavorite(propertyId);
-      setFavorites(favorites.filter(f => f.property.propertyId !== propertyId));
-      toast.success('Removed from favorites');
+      await removeFromFavorites(propertyId);
     } catch (err) {
       console.error('Error removing favorite:', err);
-      toast.error('Failed to remove favorite');
     } finally {
       setRemovingId(null);
     }

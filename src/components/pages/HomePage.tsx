@@ -1,15 +1,9 @@
-import { Search, Shield, Users, Clock, ChevronRight, Home as HomeIcon, MapPin, Bed, Users as UsersIcon, Star, Heart, RefreshCw } from "lucide-react";
+// src/components/pages/HomePage.tsx - Updated
+import { Search, Shield, Users, Clock, ChevronRight, RefreshCw } from "lucide-react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { Button } from "../ui/button";
-import { Card } from "../ui/card";
-import { Badge } from "../ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
+import { PropertyCard } from "../PropertyCard";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
 import { format } from "date-fns";
@@ -19,26 +13,17 @@ import api, { PropertyResponse, PopularLocation } from "../../../api";
 
 interface HomePageProps {
   onNavigate: (page: string, propertyId?: string) => void;
-  toggleFavourite?: (property: any) => void;
-  isFavourite?: (propertyId: string) => boolean;
   language?: Language;
   user?: any | null;
 }
 
-export function HomePage({
-  onNavigate,
-  toggleFavourite,
-  isFavourite,
-  language = "en",
-  user,
-}: HomePageProps) {
+export function HomePage({ onNavigate, language = "en", user }: HomePageProps) {
   const t = translations[language]?.home || translations.en.home;
   const [location, setLocation] = useState("");
   const [checkIn, setCheckIn] = useState<Date | undefined>();
   const [checkOut, setCheckOut] = useState<Date | undefined>();
   const [guests, setGuests] = useState("");
 
-  // API State
   const [featuredProperties, setFeaturedProperties] = useState<PropertyResponse[]>([]);
   const [popularLocations, setPopularLocations] = useState<PopularLocation[]>([]);
   const [governorates, setGovernorates] = useState<string[]>([]);
@@ -48,16 +33,15 @@ export function HomePage({
 
   useEffect(() => {
     loadHomeData();
-    
-    // ✅ Refresh when user comes back to page
+
     const handleFocus = () => {
       if (!loading) {
         handleRefresh();
       }
     };
-    window.addEventListener('focus', handleFocus);
-    
-    return () => window.removeEventListener('focus', handleFocus);
+    window.addEventListener("focus", handleFocus);
+
+    return () => window.removeEventListener("focus", handleFocus);
   }, []);
 
   const loadHomeData = async () => {
@@ -65,40 +49,33 @@ export function HomePage({
       setLoading(true);
       setError(null);
 
-      // Load featured properties
       const propertiesResponse = await api.getProperties({
         page: 0,
-        size: 8, // ✅ Increased to 8
+        size: 8,
         sortBy: "averageRating",
         sortDirection: "DESC",
       });
-      console.log("Featured properties response:", propertiesResponse);
       if (propertiesResponse?.content) {
         setFeaturedProperties(propertiesResponse.content);
       }
 
-      // Load popular locations
       const locationsResponse = await api.getPopularLocations(3);
       if (locationsResponse) {
         setPopularLocations(locationsResponse);
       }
 
-      // Load governorates for search dropdown
       const governoratesResponse = await api.getGovernorates();
       if (governoratesResponse) {
         setGovernorates(governoratesResponse);
       }
     } catch (err: any) {
       console.error("Error loading home data:", err);
-      setError(
-        err?.message || "Failed to load properties. Please try again later."
-      );
+      setError(err?.message || "Failed to load properties. Please try again later.");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ NEW: Manual refresh function
   const handleRefresh = async () => {
     try {
       setRefreshing(true);
@@ -128,29 +105,26 @@ export function HomePage({
     onNavigate("properties");
   };
 
-  // ✅ Toggle favorite function
-  const handleToggleFavorite = (property: PropertyResponse) => {
-    if (toggleFavourite) {
-      toggleFavourite(property);
-    }
-  };
-
   const categories = [
     {
       title: "Beachfront",
-      image: "https://images.unsplash.com/photo-1678788762802-0c6c6cdd89fe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWFjaGZyb250JTIwcHJvcGVydHl8ZW58MXx8fHwxNzYxMTYxMzg0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      image:
+        "https://images.unsplash.com/photo-1678788762802-0c6c6cdd89fe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWFjaGZyb250JTIwcHJvcGVydHl8ZW58MXx8fHwxNzYxMTYxMzg0fDA&ixlib=rb-4.1.0&q=80&w=1080",
     },
     {
       title: "Family Homes",
-      image: "https://images.unsplash.com/photo-1629359080404-2dafcfd9f159?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYW1pbHklMjB2YWNhdGlvbiUyMGhvbWV8ZW58MXx8fHwxNzYxMTYxMzgzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      image:
+        "https://images.unsplash.com/photo-1629359080404-2dafcfd9f159?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYW1pbHklMjB2YWNhdGlvbiUyMGhvbWV8ZW58MXx8fHwxNzYxMTYxMzgzfDA&ixlib=rb-4.1.0&q=80&w=1080",
     },
     {
       title: "Chalets",
-      image: "https://images.unsplash.com/photo-1638310081327-5b4b5da6d155?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWFjaCUyMGNoYWxldCUyMHBvb2x8ZW58MXx8fHwxNzYxMTYxMzgzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      image:
+        "https://images.unsplash.com/photo-1638310081327-5b4b5da6d155?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWFjaCUyMGNoYWxldCUyMHBvb2x8ZW58MXx8fHwxNzYxMTYxMzgzfDA&ixlib=rb-4.1.0&q=80&w=1080",
     },
     {
       title: "City Apartments",
-      image: "https://images.unsplash.com/photo-1700126689261-1f5bdfe5adcc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBhcGFydG1lbnQlMjBjaXR5fGVufDF8fHx8MTc2MTEwNjkyM3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      image:
+        "https://images.unsplash.com/photo-1700126689261-1f5bdfe5adcc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBhcGFydG1lbnQlMjBjaXR5fGVufDF8fHx8MTc2MTEwNjkyM3ww&ixlib=rb-4.1.0&q=80&w=1080",
     },
   ];
 
@@ -237,7 +211,7 @@ export function HomePage({
                 <SelectContent>
                   {[1, 2, 3, 4, 5, 6].map((num) => (
                     <SelectItem key={num} value={num.toString()}>
-                      {language === "ar" ? `${num} ضيوف` : `${num} Guest${num > 1 ? 's' : ''}`}
+                      {language === "ar" ? `${num} ضيوف` : `${num} Guest${num > 1 ? "s" : ""}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -257,14 +231,13 @@ export function HomePage({
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        {/* Error Message */}
         {error && (
           <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
             {error}
           </div>
         )}
 
-        {/* Explore Nearby - Popular Locations */}
+        {/* Popular Locations */}
         <section className="mb-16">
           <h2 className="text-3xl font-semibold text-[#2B2B2B] mb-8">
             {t?.popularDestinations || "Popular Destinations"}
@@ -289,7 +262,11 @@ export function HomePage({
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className={`absolute bottom-6 ${language === "ar" ? "right-6" : "left-6"} text-white`}>
+                  <div
+                    className={`absolute bottom-6 ${
+                      language === "ar" ? "right-6" : "left-6"
+                    } text-white`}
+                  >
                     <h3 className="text-2xl font-semibold mb-1">{location.city}</h3>
                     <p className="text-sm text-white/90">
                       {location.propertyCount} {language === "ar" ? "عقار" : "properties"}
@@ -304,7 +281,7 @@ export function HomePage({
           )}
         </section>
 
-        {/* Live Anywhere */}
+        {/* Categories */}
         <section className="mb-16">
           <h2 className="text-3xl font-semibold text-[#2B2B2B] mb-8">
             {language === "ar" ? "عش في أي مكان" : "Live Anywhere"}
@@ -329,7 +306,7 @@ export function HomePage({
           </div>
         </section>
 
-        {/* ✅ Featured Properties - CARD STYLE */}
+        {/* ✅ Featured Properties - Using PropertyCard with Favorites */}
         <section className="mb-16">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-3xl font-semibold text-[#2B2B2B]">
@@ -343,7 +320,7 @@ export function HomePage({
                 disabled={refreshing}
                 className="text-gray-600"
               >
-                <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
                 Refresh
               </Button>
               <Button
@@ -370,99 +347,13 @@ export function HomePage({
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {featuredProperties.map((property) => (
-                <Card 
-                  key={property.propertyId} 
-                  className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
-                  onClick={() => onNavigate("property-details", property.propertyId.toString())}
-                >
-                  {/* Property Image */}
-                  <div className="relative h-48 bg-gray-200">
-                    {property.coverImage ? (
-                      <img
-                        src={property.coverImage}
-                        alt={property.titleEn || property.titleAr}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <HomeIcon className="w-12 h-12 text-gray-400" />
-                      </div>
-                    )}
-                    
-                    {/* Favorite Button */}
-                    {user && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleFavorite(property);
-                        }}
-                        className="absolute top-3 right-3 bg-white/90 hover:bg-white rounded-full p-2 transition-colors"
-                      >
-                        <Heart 
-                          className={`w-4 h-4 ${
-                            isFavourite && isFavourite(property.propertyId.toString()) 
-                              ? 'fill-red-500 text-red-500' 
-                              : 'text-gray-600'
-                          }`}
-                        />
-                      </button>
-                    )}
-
-                    {/* Featured Badge */}
-                    {property.isFeatured && (
-                      <Badge className="absolute top-3 left-3 bg-[#00BFA6]">
-                        Featured
-                      </Badge>
-                    )}
-                  </div>
-
-                  <div className="p-4">
-                    <h3 className="font-semibold text-lg text-[#2B2B2B] mb-2 line-clamp-1">
-                      {language === "ar" ? property.titleAr : property.titleEn}
-                    </h3>
-
-                    <div className="flex items-center gap-1 text-sm text-gray-600 mb-3">
-                      <MapPin className="w-4 h-4 flex-shrink-0" />
-                      <span className="line-clamp-1">
-                        {property.city}, {property.governorate}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                      <div className="flex items-center gap-1">
-                        <Bed className="w-4 h-4" />
-                        <span>{property.bedrooms}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <UsersIcon className="w-4 h-4" />
-                        <span>{property.guestsCapacity}</span>
-                      </div>
-                      {property.averageRating > 0 && (
-                        <div className="flex items-center gap-1">
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          <span>{property.averageRating.toFixed(1)}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between pt-3 border-t">
-                      <div>
-                        <p className="text-sm font-semibold text-[#2B2B2B]">
-                          {property.pricePerNight?.toLocaleString() || 0} EGP
-                        </p>
-                        <p className="text-xs text-gray-500">per night</p>
-                      </div>
-                      {property.totalReviews > 0 && (
-                        <p className="text-xs text-gray-500">
-                          {property.totalReviews} {language === "ar" ? "تقييم" : "reviews"}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </Card>
+                <PropertyCard
+                  key={property.propertyId}
+                  property={property}
+                  onNavigate={onNavigate}
+                  language={language}
+                  showFavorite={!!user}
+                />
               ))}
             </div>
           )}
@@ -503,9 +394,7 @@ export function HomePage({
               <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">
                 {t?.support247 || "24/7 Support"}
               </h3>
-              <p className="text-gray-600">
-                {t?.supportDesc || "Always here to help you"}
-              </p>
+              <p className="text-gray-600">{t?.supportDesc || "Always here to help you"}</p>
             </div>
           </div>
         </section>

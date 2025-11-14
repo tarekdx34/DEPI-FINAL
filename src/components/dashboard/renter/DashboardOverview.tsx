@@ -1,21 +1,127 @@
-// src/components/dashboard/renter/DashboardOverview.tsx
+// src/components/dashboard/renter/DashboardOverview.tsx - FINAL FIXED
+import { useState, useEffect } from "react";
 import { StatsCards } from "./dashboard/StatsCards";
 import { UpcomingBookingsSummary } from "./dashboard/UpcomingBookingsSummary";
 import { RecentActivity } from "./dashboard/RecentActivity";
 import { EmptyState } from "../shared/components/EmptyState";
-import { useDashboardStats } from "../../../hooks/useDashboardStats";
-import { useBookings } from "../../../hooks/useBookings";
+import { useFavorites } from "../../../contexts/FavoritesContext";
 import { Calendar, Loader2 } from "lucide-react";
+import api from "../../../../api";
 
 interface DashboardOverviewProps {
   onNavigate: (page: string, id?: string) => void;
 }
 
-export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
-  const { stats, recentActivity, loading: statsLoading } = useDashboardStats();
-  const { upcomingBookings, loading: bookingsLoading } = useBookings();
+// ✅ Complete DashboardStats type matching StatsCards requirements
+interface DashboardStats {
+  totalTrips: number;
+  upcomingTrips: number;
+  totalFavorites: number;
+  reviewsGiven: number;
+  completedTrips: number;
+  cancelledTrips: number;
+  totalSpent: number;
+  pendingReviews: number;
+}
 
-  const loading = statsLoading || bookingsLoading;
+export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
+  const { favorites, refreshFavorites } = useFavorites();
+  
+  const [stats, setStats] = useState<DashboardStats>({
+    totalTrips: 0,
+    upcomingTrips: 0,
+    totalFavorites: 0,
+    reviewsGiven: 0,
+    completedTrips: 0,
+    cancelledTrips: 0,
+    totalSpent: 0,
+    pendingReviews: 0,
+  });
+  
+  const [upcomingBookings, setUpcomingBookings] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // ✅ Initial load
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  // ✅ Update favorites count when changed
+  useEffect(() => {
+    console.log('✅ Favorites count updated:', favorites.length);
+    setStats(prev => ({
+      ...prev,
+      totalFavorites: favorites.length,
+    }));
+    updateRecentActivity();
+  }, [favorites.length]);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      await refreshFavorites();
+
+      const allBookings = await api.getBookings().catch(() => []);
+      const upcomingData = await api.getUpcomingBookings().catch(() => []);
+
+      // ✅ Calculate all required stats
+      const completedCount = allBookings?.filter((b: any) => b.status === 'completed').length || 0;
+      const cancelledCount = allBookings?.filter((b: any) => b.status === 'cancelled').length || 0;
+      const totalSpentAmount = allBookings?.reduce((sum: number, b: any) => 
+        sum + (b.totalPrice || 0), 0) || 0;
+
+      setStats({
+        totalTrips: allBookings?.length || 0,
+        upcomingTrips: upcomingData?.length || 0,
+        totalFavorites: favorites.length,
+        reviewsGiven: 0,
+        completedTrips: completedCount,
+        cancelledTrips: cancelledCount,
+        totalSpent: totalSpentAmount,
+        pendingReviews: 0,
+      });
+
+      setUpcomingBookings(upcomingData || []);
+      updateRecentActivity(allBookings);
+      
+    } catch (error) {
+      console.error('❌ Dashboard error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateRecentActivity = (bookings?: any[]) => {
+    const activities: any[] = [];
+
+    if (bookings && bookings.length > 0) {
+      bookings.slice(0, 3).forEach((booking: any) => {
+        activities.push({
+          id: booking.bookingId,
+          type: 'booking',
+          title: booking.property?.titleEn || 'Property',
+          subtitle: `Booked for ${booking.numberOfNights || 0} nights`,
+          timestamp: '1h ago',
+        });
+      });
+    }
+
+    if (favorites.length > 0) {
+      favorites.slice(0, 2).forEach((fav: any) => {
+        activities.push({
+          id: fav.favoriteId,
+          type: 'favorite',
+          title: fav.property?.titleEn || 'Property',
+          subtitle: 'Added to favorites',
+          timestamp: '2h ago',
+        });
+      });
+    }
+
+    setRecentActivity(activities.slice(0, 5));
+  };
 
   if (loading) {
     return (
@@ -25,13 +131,12 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
     );
   }
 
-  // Show empty state if no activity
   if (stats.totalTrips === 0 && stats.totalFavorites === 0) {
     return (
       <EmptyState
         icon={Calendar}
         title="Welcome to Your Dashboard"
-        description="Start your journey by exploring available properties and making your first booking!"
+        description="Start your journey by exploring available properties!"
         actionLabel="Browse Properties"
         onAction={() => onNavigate("properties")}
       />

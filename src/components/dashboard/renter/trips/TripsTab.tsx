@@ -1,4 +1,4 @@
-// src/components/dashboard/renter/trips/TripsTab.tsx
+// src/components/dashboard/renter/trips/TripsTab.tsx - FINAL VERSION
 import { useState, useEffect } from "react";
 import { Card } from "../../../ui/card";
 import { Button } from "../../../ui/button";
@@ -6,6 +6,7 @@ import { Badge } from "../../../ui/badge";
 import { ImageWithFallback } from "../../../figma/ImageWithFallback";
 import { EmptyState } from "../../shared/components/EmptyState";
 import { useBookings } from "../../../../hooks/useBookings";
+import api from "../../../../../api";
 import {
   Calendar,
   MapPin,
@@ -25,7 +26,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../../../ui/alert-dialog";
-import { toast } from "sonner";
 
 interface TripsTabProps {
   onNavigate: (page: string, id?: string) => void;
@@ -41,12 +41,10 @@ export function TripsTab({ onNavigate }: TripsTabProps) {
     fetchBookings,
   } = useBookings();
   const [cancelBookingId, setCancelBookingId] = useState<number | null>(null);
-  // ✅ ADD: Debug logging
-  useEffect(() => {
-    console.log("📊 TripsTab Debug:");
-    console.log("Upcoming bookings:", upcomingBookings);
-    console.log("Past bookings:", pastBookings);
-  }, [upcomingBookings, pastBookings]);
+  
+  // ✅ Track which bookings have reviews
+  const [existingReviews, setExistingReviews] = useState<Set<number>>(new Set());
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -56,8 +54,50 @@ export function TripsTab({ onNavigate }: TripsTabProps) {
       year: "numeric",
     });
   };
+
+  // ✅ Check for existing APPROVED reviews only
+  const checkExistingReviews = async () => {
+    try {
+      setReviewsLoading(true);
+      const myReviews = await api.getMyReviews({ page: 0, size: 100 });
+      
+      // ✅ Only count APPROVED reviews
+      const reviewedBookingIds = new Set(
+        myReviews.content
+          .filter((review) => review.isApproved) // ✅ Filter approved only
+          .map((review) => review.bookingId)
+      );
+      
+      setExistingReviews(reviewedBookingIds);
+      console.log("📋 Approved reviews for bookings:", Array.from(reviewedBookingIds));
+    } catch (error) {
+      console.warn("⚠️ Could not fetch reviews:", error);
+      // Don't block UI if reviews can't be fetched
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchBookings();
+    checkExistingReviews(); // ✅ Fetch reviews on mount
+  }, []);
+
+  // ✅ Refresh reviews when coming back from write-review page
+  useEffect(() => {
+    // Re-check reviews every time the component is visible
+    checkExistingReviews();
+  }, [pastBookings]); // Re-check when bookings change
+
+  // ✅ Listen for focus events (when user comes back to tab)
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log("🔄 Window focused - refreshing reviews");
+      checkExistingReviews();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   useEffect(() => {
@@ -65,7 +105,6 @@ export function TripsTab({ onNavigate }: TripsTabProps) {
     console.log("Upcoming bookings:", upcomingBookings);
     console.log("Past bookings:", pastBookings);
 
-    // ✅ ADD: Check first booking structure
     if (upcomingBookings.length > 0) {
       console.log("🔍 First booking structure:", upcomingBookings[0]);
       console.log("🔍 Property object:", upcomingBookings[0].property);
@@ -118,8 +157,8 @@ export function TripsTab({ onNavigate }: TripsTabProps) {
                 property.governorate || ""
               }`.trim();
               const propertyImage =
-                property.coverImageUrl ||
-                "https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f"; // ✅ FIXED
+                property.coverImage ||
+                "https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f";
 
               return (
                 <Card key={booking.bookingId} className="overflow-hidden">
@@ -258,8 +297,11 @@ export function TripsTab({ onNavigate }: TripsTabProps) {
                 property.governorate || ""
               }`.trim();
               const propertyImage =
-                property.coverImageUrl ||
-                "https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f"; // ✅ FIXED
+                property.coverImage ||
+                "https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f";
+
+              // ✅ Check if review exists for this booking
+              const hasReview = existingReviews.has(booking.bookingId);
 
               return (
                 <Card key={booking.bookingId} className="overflow-hidden">
@@ -322,19 +364,43 @@ export function TripsTab({ onNavigate }: TripsTabProps) {
                         >
                           View Details
                         </Button>
-                        <Button
-                          size="sm"
-                          className="bg-[#00BFA6] hover:bg-[#00A890] gap-2"
-                          onClick={() =>
-                            onNavigate(
-                              "write-review",
-                              String(booking.bookingId)
-                            )
-                          }
-                        >
-                          <Star className="w-4 h-4" />
-                          Write Review
-                        </Button>
+                        
+                        {/* ✅ FIXED: Show different button based on review status */}
+                        {reviewsLoading ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled
+                            className="gap-2"
+                          >
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Checking...
+                          </Button>
+                        ) : !hasReview ? (
+                          <Button
+                            size="sm"
+                            className="bg-[#00BFA6] hover:bg-[#00A890] gap-2"
+                            onClick={() =>
+                              onNavigate(
+                                "write-review",
+                                String(booking.bookingId)
+                              )
+                            }
+                          >
+                            <Star className="w-4 h-4" />
+                            Write Review
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-2 border-[#00BFA6] text-[#00BFA6] hover:bg-[#00BFA6]/5"
+                            onClick={() => onNavigate("reviews")}
+                          >
+                            <Star className="w-4 h-4 fill-[#00BFA6]" />
+                            View Your Review
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -349,7 +415,7 @@ export function TripsTab({ onNavigate }: TripsTabProps) {
         )}
       </div>
 
-      {/* ✅ ADD: Cancelled Trips Section */}
+      {/* Cancelled Trips Section */}
       <div>
         <h2 className="text-2xl font-semibold text-[#2B2B2B] mb-4">
           Cancelled Trips
@@ -370,10 +436,9 @@ export function TripsTab({ onNavigate }: TripsTabProps) {
                 property.governorate || ""
               }`.trim();
               const propertyImage =
-                property.coverImageUrl ||
+                property.coverImage ||
                 "https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f";
 
-              // ✅ Format status text
               const statusText =
                 booking.status === "cancelled_by_renter"
                   ? "Cancelled by You"

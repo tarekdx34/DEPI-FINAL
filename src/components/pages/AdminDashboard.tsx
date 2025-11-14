@@ -18,12 +18,14 @@ import {
   DollarSign,
   Calendar,
   Loader2,
+  MessageSquare,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
+import { AdminReviewsManagement } from "../dashboard/admin/AdminReviewsManagement";
 import {
   Table,
   TableBody,
@@ -50,13 +52,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
 import { toast } from "sonner";
 import api from "../../../api";
 import type {
@@ -75,7 +70,6 @@ interface AdminDashboardProps {
 export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [searchQuery, setSearchQuery] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean;
     type: string;
@@ -92,21 +86,11 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   const [stats, setStats] = useState<DashboardStatsResponse | null>(null);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [properties, setProperties] = useState<PropertyResponse[]>([]);
-  const [pendingListings, setPendingListings] = useState<
-    PendingPropertyResponse[]
-  >([]);
+  const [pendingListings, setPendingListings] = useState<PendingPropertyResponse[]>([]);
   const [reports, setReports] = useState<ReportResponse[]>([]);
-  const [analytics, setAnalytics] = useState<PlatformAnalyticsResponse | null>(
-    null
-  );
+  const [analytics, setAnalytics] = useState<PlatformAnalyticsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Pagination states
-  const [usersPage, setUsersPage] = useState(0);
-  const [propertiesPage, setPropertiesPage] = useState(0);
-  const [pendingPage, setPendingPage] = useState(0);
-  const [reportsPage, setReportsPage] = useState(0);
 
   // Load data on component mount
   useEffect(() => {
@@ -115,7 +99,6 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
 
   const checkAuthAndLoadData = async () => {
     try {
-      // First verify we have admin access by getting profile
       const profile = await api.getProfile();
       console.log("Current user:", profile);
 
@@ -140,111 +123,91 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
       setLoading(true);
       setError(null);
 
-      console.log("Loading dashboard data...");
-
-      // Load dashboard stats first (most important)
+      // Load dashboard stats with error handling
       try {
         const statsData = await api.getDashboardStats();
-        console.log("Stats loaded:", statsData);
+        console.log("✅ Stats loaded:", statsData);
         setStats(statsData);
-      } catch (err) {
-        console.error("Failed to load stats:", err);
+      } catch (err: any) {
+        console.error("❌ Stats failed:", err.message);
+        // Set default stats if API fails
+        setStats({
+          totalUsers: 0,
+          totalProperties: 0,
+          activeProperties: 0,
+          pendingApprovalsCount: 0,
+          totalBookings: 0,
+          totalRevenue: 0,
+          bannedUsersCount: 0,
+          recentActivity: {
+            recentRegistrations: 0,
+            recentPropertyListings: 0,
+            recentBookings: 0
+          }
+        } as DashboardStatsResponse);
       }
 
-      // Load users
+      // Load users with error handling
       try {
         const usersData = await api.getAllUsers({ page: 0, size: 20 });
-        console.log("Users loaded:", usersData);
+        console.log("✅ Users loaded:", usersData);
         setUsers(usersData.content || []);
-      } catch (err) {
-        console.error("Failed to load users:", err);
+      } catch (err: any) {
+        console.error("❌ Users failed:", err.message);
+        setUsers([]);
       }
 
-      // Load properties (handle both array and paginated response)
+      // Load properties with error handling
       try {
         const propertiesData = await api.getProperties({ page: 0, size: 20 });
-        console.log("Properties loaded:", propertiesData);
-        console.log(
-          "First property structure:",
-          propertiesData[0] || propertiesData.content?.[0]
-        );
-        // Handle both array and paginated response
+        console.log("✅ Properties loaded:", propertiesData);
         if (Array.isArray(propertiesData)) {
           setProperties(propertiesData);
         } else {
           setProperties(propertiesData.content || []);
         }
-      } catch (err) {
-        console.error("Failed to load properties:", err);
+      } catch (err: any) {
+        console.error("❌ Properties failed:", err.message);
+        setProperties([]);
       }
 
-      // Load pending properties
+      // Load pending properties with error handling
       try {
-        const pendingData = await api.getPendingProperties({
-          page: 0,
-          size: 20,
-        });
-        console.log("Pending properties loaded:", pendingData);
-        console.log(
-          "Pending count from API:",
-          pendingData.content?.length || 0
-        );
-
-        // Log all statuses to debug
-        const allStatuses = (pendingData.content || []).map(
-          (p: PendingPropertyResponse) => ({
-            id: p.propertyId,
-            title: p.titleEn,
-            status: p.status,
-          })
-        );
-        console.log("All property statuses:", allStatuses);
-
-        // Filter to only show properties with pending status
+        const pendingData = await api.getPendingProperties({ page: 0, size: 20 });
+        console.log("✅ Pending properties loaded:", pendingData);
         const actuallyPending = (pendingData.content || []).filter(
           (p: PendingPropertyResponse) =>
             p.status?.toLowerCase() === "pending" ||
-            p.status?.toLowerCase() === "pending_approval" ||
-            p.status?.toLowerCase() === "pending approval"
+            p.status?.toLowerCase() === "pending_approval"
         );
-
-        console.log("Actually pending count:", actuallyPending.length);
-        console.log(
-          "Filtered pending properties:",
-          actuallyPending.map((p: PendingPropertyResponse) => ({
-            id: p.propertyId,
-            title: p.titleEn,
-            status: p.status,
-          }))
-        );
-
         setPendingListings(actuallyPending);
-      } catch (err) {
-        console.error("Failed to load pending properties:", err);
+      } catch (err: any) {
+        console.error("❌ Pending properties failed:", err.message);
+        setPendingListings([]);
       }
 
-      // Load reports
+      // Load reports with error handling
       try {
         const reportsData = await api.getAllReports({ page: 0, size: 20 });
-        console.log("Reports loaded:", reportsData);
+        console.log("✅ Reports loaded:", reportsData);
         setReports(reportsData.content || []);
-      } catch (err) {
-        console.error("Failed to load reports:", err);
+      } catch (err: any) {
+        console.error("❌ Reports failed:", err.message);
+        setReports([]);
       }
 
-      // Load analytics
+      // Load analytics with error handling
       try {
         const analyticsData = await api.getPlatformAnalytics();
-        console.log("Analytics loaded:", analyticsData);
+        console.log("✅ Analytics loaded:", analyticsData);
         setAnalytics(analyticsData);
-      } catch (err) {
-        console.error("Failed to load analytics:", err);
+      } catch (err: any) {
+        console.error("❌ Analytics failed:", err.message);
+        setAnalytics(null);
       }
     } catch (err) {
       console.error("Failed to load dashboard data:", err);
-      setError(
-        "Failed to load some dashboard data. Check console for details."
-      );
+      setError("Failed to load some dashboard data. Check console for details.");
     } finally {
       setLoading(false);
     }
@@ -261,9 +224,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
         setUsers(users.filter((u) => u.userId !== deleteDialog.id));
       } else if (deleteDialog.type === "Property") {
         await api.deleteProperty(deleteDialog.id);
-        setProperties(
-          properties.filter((p) => p.propertyId !== deleteDialog.id)
-        );
+        setProperties(properties.filter((p) => p.propertyId !== deleteDialog.id));
       }
       toast.success(`${deleteDialog.type} deleted successfully`);
     } catch (err) {
@@ -276,24 +237,12 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   const handleApprove = async (id: number, title: string) => {
     try {
       await api.approveProperty(id);
-      // Remove from pending list immediately for better UX
       setPendingListings(pendingListings.filter((p) => p.propertyId !== id));
       toast.success(`Property "${title}" has been approved`);
-      // Refresh all data to show updated counts
       await loadDashboardData();
     } catch (err) {
       console.error("Approve error:", err);
       toast.error("Failed to approve property");
-      // Reload pending list in case of error
-      try {
-        const pendingData = await api.getPendingProperties({
-          page: 0,
-          size: 20,
-        });
-        setPendingListings(pendingData.content || []);
-      } catch (reloadErr) {
-        console.error("Failed to reload pending properties:", reloadErr);
-      }
     }
   };
 
@@ -312,9 +261,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   const handleBanUser = async (userId: number, userName: string) => {
     try {
       await api.banUser(userId, "Violates terms of service");
-      setUsers(
-        users.map((u) => (u.userId === userId ? { ...u, isActive: false } : u))
-      );
+      setUsers(users.map((u) => (u.userId === userId ? { ...u, isActive: false } : u)));
       toast.success(`User ${userName} has been banned`);
     } catch (err) {
       toast.error("Failed to ban user");
@@ -324,9 +271,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   const handleUnbanUser = async (userId: number, userName: string) => {
     try {
       await api.unbanUser(userId);
-      setUsers(
-        users.map((u) => (u.userId === userId ? { ...u, isActive: true } : u))
-      );
+      setUsers(users.map((u) => (u.userId === userId ? { ...u, isActive: true } : u)));
       toast.success(`User ${userName} has been unbanned`);
     } catch (err) {
       toast.error("Failed to unban user");
@@ -349,9 +294,6 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
       case "pending":
       case "pending_approval":
         return "bg-yellow-100 text-yellow-700";
-      case "investigating":
-      case "in_progress":
-        return "bg-orange-100 text-orange-700";
       default:
         return "bg-gray-100 text-gray-700";
     }
@@ -389,14 +331,9 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
       <div className="min-h-screen bg-[#F9F6F1] flex items-center justify-center">
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-[#2B2B2B] mb-2">
-            Error Loading Dashboard
-          </h2>
+          <h2 className="text-xl font-semibold text-[#2B2B2B] mb-2">Error Loading Dashboard</h2>
           <p className="text-gray-600 mb-4">{error}</p>
-          <Button
-            onClick={loadDashboardData}
-            className="bg-[#00BFA6] hover:bg-[#00A896]"
-          >
+          <Button onClick={loadDashboardData} className="bg-[#00BFA6] hover:bg-[#00A896]">
             Try Again
           </Button>
         </div>
@@ -407,11 +344,10 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   return (
     <div className="min-h-screen bg-[#F9F6F1]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-semibold text-[#2B2B2B]">
-              Admin Dashboard
-            </h1>
+            <h1 className="text-3xl font-semibold text-[#2B2B2B]">Admin Dashboard</h1>
             <p className="text-gray-600 mt-1">Manage your platform</p>
           </div>
           <Button variant="outline" onClick={() => onNavigate("home")}>
@@ -420,7 +356,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-6 mb-8">
+          <TabsList className="grid w-full grid-cols-7 mb-8">
             <TabsTrigger value="overview" className="gap-2">
               <LayoutDashboard className="w-4 h-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -437,10 +373,12 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
               <CheckCircle className="w-4 h-4" />
               <span className="hidden sm:inline">Approvals</span>
               {pendingListings.length > 0 && (
-                <Badge className="ml-1 bg-red-500">
-                  {pendingListings.length}
-                </Badge>
+                <Badge className="ml-1 bg-red-500">{pendingListings.length}</Badge>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="reviews" className="gap-2">
+              <MessageSquare className="w-4 h-4" />
+              <span className="hidden sm:inline">Reviews</span>
             </TabsTrigger>
             <TabsTrigger value="reports" className="gap-2">
               <Flag className="w-4 h-4" />
@@ -454,111 +392,162 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm text-gray-600">Total Users</h3>
-                  <Users className="w-5 h-5 text-[#00BFA6]" />
+            {/* Stats Grid - Clean & Modern */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Total Users Card */}
+              <Card className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-white border-l-4 border-blue-500">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center">
+                      <Users className="w-6 h-6 text-white" />
+                    </div>
+                    <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">
+                      Active
+                    </Badge>
+                  </div>
+                  <h3 className="text-sm font-medium text-gray-600 mb-2">Total Users</h3>
+                  <p className="text-4xl font-bold text-[#2B2B2B] mb-1">
+                    {stats?.totalUsers?.toLocaleString() || 0}
+                  </p>
+                  <p className="text-sm text-gray-500">Registered users</p>
                 </div>
-                <p className="text-3xl font-semibold text-[#2B2B2B]">
-                  {stats?.totalUsers.toLocaleString() || 0}
-                </p>
-                <p className="text-sm text-gray-600 mt-1">Registered users</p>
               </Card>
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm text-gray-600">Total Properties</h3>
-                  <Home className="w-5 h-5 text-[#00BFA6]" />
+
+              {/* Total Properties Card */}
+              <Card className="relative overflow-hidden bg-gradient-to-br from-green-50 to-white border-l-4 border-green-500">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center">
+                      <Home className="w-6 h-6 text-white" />
+                    </div>
+                    <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                      {stats?.activeProperties || 0} Active
+                    </Badge>
+                  </div>
+                  <h3 className="text-sm font-medium text-gray-600 mb-2">Total Properties</h3>
+                  <p className="text-4xl font-bold text-[#2B2B2B] mb-1">
+                    {stats?.totalProperties || 0}
+                  </p>
+                  <p className="text-sm text-gray-500">Listed properties</p>
                 </div>
-                <p className="text-3xl font-semibold text-[#2B2B2B]">
-                  {stats?.totalProperties || 0}
-                </p>
-                <p className="text-sm text-gray-600 mt-1">
-                  {stats?.activeProperties || 0} active
-                </p>
               </Card>
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm text-gray-600">Pending Approvals</h3>
-                  <CheckCircle className="w-5 h-5 text-yellow-500" />
+
+              {/* Pending Approvals Card - HIGHLIGHTED */}
+              <Card className="relative overflow-hidden bg-gradient-to-br from-orange-50 to-white border-l-4 border-orange-500 shadow-lg">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 rounded-xl bg-orange-500 flex items-center justify-center animate-pulse">
+                      <CheckCircle className="w-6 h-6 text-white" />
+                    </div>
+                    <Badge className="bg-orange-500 text-white">
+                      ⚠️ Action Needed
+                    </Badge>
+                  </div>
+                  <h3 className="text-sm font-medium text-gray-600 mb-2">Pending Approvals</h3>
+                  <p className="text-4xl font-bold text-orange-600 mb-1">
+                    {stats?.pendingApprovalsCount || 0}
+                  </p>
+                  <p className="text-sm text-orange-600 font-medium">Awaiting review</p>
                 </div>
-                <p className="text-3xl font-semibold text-[#2B2B2B]">
-                  {stats?.pendingApprovalsCount || 0}
-                </p>
-                <p className="text-sm text-yellow-600 mt-1">Needs attention</p>
               </Card>
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm text-gray-600">Total Bookings</h3>
-                  <Calendar className="w-5 h-5 text-[#00BFA6]" />
+
+              {/* Total Bookings Card */}
+              <Card className="relative overflow-hidden bg-gradient-to-br from-purple-50 to-white border-l-4 border-purple-500">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 rounded-xl bg-purple-500 flex items-center justify-center">
+                      <Calendar className="w-6 h-6 text-white" />
+                    </div>
+                    <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-300">
+                      All Time
+                    </Badge>
+                  </div>
+                  <h3 className="text-sm font-medium text-gray-600 mb-2">Total Bookings</h3>
+                  <p className="text-4xl font-bold text-[#2B2B2B] mb-1">
+                    {stats?.totalBookings || 0}
+                  </p>
+                  <p className="text-sm text-gray-500">Completed bookings</p>
                 </div>
-                <p className="text-3xl font-semibold text-[#2B2B2B]">
-                  {stats?.totalBookings || 0}
-                </p>
-                <p className="text-sm text-gray-600 mt-1">All time bookings</p>
               </Card>
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm text-gray-600">Total Revenue</h3>
-                  <DollarSign className="w-5 h-5 text-[#00BFA6]" />
+
+              {/* Total Revenue Card */}
+              <Card className="relative overflow-hidden bg-gradient-to-br from-emerald-50 to-white border-l-4 border-emerald-500">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-500 flex items-center justify-center">
+                      <DollarSign className="w-6 h-6 text-white" />
+                    </div>
+                    <Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-emerald-300">
+                      Revenue
+                    </Badge>
+                  </div>
+                  <h3 className="text-sm font-medium text-gray-600 mb-2">Total Revenue</h3>
+                  <p className="text-4xl font-bold text-emerald-600 mb-1">
+                    {formatCurrency(stats?.totalRevenue || 0)}
+                  </p>
+                  <p className="text-sm text-gray-500">Platform earnings</p>
                 </div>
-                <p className="text-3xl font-semibold text-[#2B2B2B]">
-                  {formatCurrency(stats?.totalRevenue || 0)}
-                </p>
-                <p className="text-sm text-gray-600 mt-1">Platform revenue</p>
               </Card>
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm text-gray-600">Banned Users</h3>
-                  <UserX className="w-5 h-5 text-red-500" />
+
+              {/* Banned Users Card */}
+              <Card className="relative overflow-hidden bg-gradient-to-br from-red-50 to-white border-l-4 border-red-500">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center">
+                      <UserX className="w-6 h-6 text-white" />
+                    </div>
+                    <Badge variant="outline" className="bg-red-100 text-red-700 border-red-300">
+                      Banned
+                    </Badge>
+                  </div>
+                  <h3 className="text-sm font-medium text-gray-600 mb-2">Banned Users</h3>
+                  <p className="text-4xl font-bold text-red-600 mb-1">
+                    {stats?.bannedUsersCount || 0}
+                  </p>
+                  <p className="text-sm text-gray-500">Suspended accounts</p>
                 </div>
-                <p className="text-3xl font-semibold text-[#2B2B2B]">
-                  {stats?.bannedUsersCount || 0}
-                </p>
-                <p className="text-sm text-gray-600 mt-1">Suspended accounts</p>
               </Card>
             </div>
 
+            {/* Recent Activity & Quick Actions */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="p-6">
-                <h3 className="font-semibold text-[#2B2B2B] mb-4">
+                <h3 className="font-semibold text-[#2B2B2B] mb-4 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-[#00BFA6]" />
                   Recent Activity
                 </h3>
                 <div className="space-y-4">
                   {stats?.recentActivity && (
                     <>
                       <div className="flex items-start gap-3 pb-3 border-b">
-                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                          <UserCheck className="w-4 h-4 text-green-600" />
+                        <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                          <UserCheck className="w-5 h-5 text-green-600" />
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm">
-                            {stats.recentActivity.recentRegistrations} new users
-                            registered
+                          <p className="text-sm font-medium text-[#2B2B2B]">
+                            {stats.recentActivity.recentRegistrations} new users registered
                           </p>
                           <p className="text-xs text-gray-500">Recent period</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3 pb-3 border-b">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                          <Home className="w-4 h-4 text-blue-600" />
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                          <Home className="w-5 h-5 text-blue-600" />
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm">
-                            {stats.recentActivity.recentPropertyListings} new
-                            properties listed
+                          <p className="text-sm font-medium text-[#2B2B2B]">
+                            {stats.recentActivity.recentPropertyListings} new properties listed
                           </p>
                           <p className="text-xs text-gray-500">Recent period</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                          <Calendar className="w-4 h-4 text-purple-600" />
+                        <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                          <Calendar className="w-5 h-5 text-purple-600" />
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm">
-                            {stats.recentActivity.recentBookings} bookings
-                            completed
+                          <p className="text-sm font-medium text-[#2B2B2B]">
+                            {stats.recentActivity.recentBookings} bookings completed
                           </p>
                           <p className="text-xs text-gray-500">Recent period</p>
                         </div>
@@ -569,41 +558,45 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
               </Card>
 
               <Card className="p-6">
-                <h3 className="font-semibold text-[#2B2B2B] mb-4">
+                <h3 className="font-semibold text-[#2B2B2B] mb-4 flex items-center gap-2">
+                  <LayoutDashboard className="w-5 h-5 text-[#00BFA6]" />
                   Quick Actions
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
                   <Button
                     variant="outline"
-                    className="h-20 flex-col gap-2"
+                    className="h-24 flex-col gap-2 hover:bg-[#00BFA6] hover:text-white transition-colors"
                     onClick={() => setActiveTab("approvals")}
                   >
-                    <CheckCircle className="w-5 h-5" />
-                    <span className="text-sm">Approve Listings</span>
+                    <CheckCircle className="w-6 h-6" />
+                    <span className="text-sm font-medium">Approve Listings</span>
+                    {pendingListings.length > 0 && (
+                      <Badge className="bg-red-500 text-white">{pendingListings.length}</Badge>
+                    )}
                   </Button>
                   <Button
                     variant="outline"
-                    className="h-20 flex-col gap-2"
+                    className="h-24 flex-col gap-2 hover:bg-[#00BFA6] hover:text-white transition-colors"
                     onClick={() => setActiveTab("users")}
                   >
-                    <Users className="w-5 h-5" />
-                    <span className="text-sm">Manage Users</span>
+                    <Users className="w-6 h-6" />
+                    <span className="text-sm font-medium">Manage Users</span>
                   </Button>
                   <Button
                     variant="outline"
-                    className="h-20 flex-col gap-2"
-                    onClick={() => setActiveTab("reports")}
+                    className="h-24 flex-col gap-2 hover:bg-[#00BFA6] hover:text-white transition-colors"
+                    onClick={() => setActiveTab("reviews")}
                   >
-                    <Flag className="w-5 h-5" />
-                    <span className="text-sm">View Reports</span>
+                    <MessageSquare className="w-6 h-6" />
+                    <span className="text-sm font-medium">Review Management</span>
                   </Button>
                   <Button
                     variant="outline"
-                    className="h-20 flex-col gap-2"
+                    className="h-24 flex-col gap-2 hover:bg-[#00BFA6] hover:text-white transition-colors"
                     onClick={() => setActiveTab("analytics")}
                   >
-                    <TrendingUp className="w-5 h-5" />
-                    <span className="text-sm">Analytics</span>
+                    <TrendingUp className="w-6 h-6" />
+                    <span className="text-sm font-medium">Analytics</span>
                   </Button>
                 </div>
               </Card>
@@ -645,15 +638,9 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                   {users
                     .filter(
                       (user) =>
-                        user.firstName
-                          .toLowerCase()
-                          .includes(searchQuery.toLowerCase()) ||
-                        user.lastName
-                          .toLowerCase()
-                          .includes(searchQuery.toLowerCase()) ||
-                        user.email
-                          .toLowerCase()
-                          .includes(searchQuery.toLowerCase())
+                        user.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        user.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        user.email.toLowerCase().includes(searchQuery.toLowerCase())
                     )
                     .map((user) => (
                       <TableRow key={user.userId}>
@@ -662,17 +649,12 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                             <Avatar>
                               <AvatarImage src={user.profilePhoto} />
                               <AvatarFallback className="bg-[#00BFA6] text-white">
-                                {user.firstName[0]}
-                                {user.lastName[0]}
+                                {user.firstName[0]}{user.lastName[0]}
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium">
-                                {user.firstName} {user.lastName}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                {user.email}
-                              </p>
+                              <p className="font-medium">{user.firstName} {user.lastName}</p>
+                              <p className="text-sm text-gray-600">{user.email}</p>
                             </div>
                           </div>
                         </TableCell>
@@ -681,30 +663,20 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                         </TableCell>
                         <TableCell>{formatDate(user.createdAt)}</TableCell>
                         <TableCell>
-                          <Badge
-                            className={getStatusColor(
-                              user.isActive ? "active" : "suspended"
-                            )}
-                          >
+                          <Badge className={getStatusColor(user.isActive ? "active" : "suspended")}>
                             {user.isActive ? "Active" : "Banned"}
                           </Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
                             {user.emailVerified && (
-                              <Badge className="bg-blue-100 text-blue-700">
-                                Email ✓
-                              </Badge>
+                              <Badge className="bg-blue-100 text-blue-700">Email ✓</Badge>
                             )}
                             {user.phoneVerified && (
-                              <Badge className="bg-green-100 text-green-700">
-                                Phone ✓
-                              </Badge>
+                              <Badge className="bg-green-100 text-green-700">Phone ✓</Badge>
                             )}
                             {user.nationalIdVerified && (
-                              <Badge className="bg-purple-100 text-purple-700">
-                                ID ✓
-                              </Badge>
+                              <Badge className="bg-purple-100 text-purple-700">ID ✓</Badge>
                             )}
                           </div>
                         </TableCell>
@@ -723,10 +695,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                               {user.isActive ? (
                                 <DropdownMenuItem
                                   onClick={() =>
-                                    handleBanUser(
-                                      user.userId,
-                                      `${user.firstName} ${user.lastName}`
-                                    )
+                                    handleBanUser(user.userId, `${user.firstName} ${user.lastName}`)
                                   }
                                 >
                                   <UserX className="w-4 h-4 mr-2" />
@@ -735,10 +704,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                               ) : (
                                 <DropdownMenuItem
                                   onClick={() =>
-                                    handleUnbanUser(
-                                      user.userId,
-                                      `${user.firstName} ${user.lastName}`
-                                    )
+                                    handleUnbanUser(user.userId, `${user.firstName} ${user.lastName}`)
                                   }
                                 >
                                   <UserCheck className="w-4 h-4 mr-2" />
@@ -764,10 +730,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
               <div className="flex gap-3">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    placeholder="Search properties..."
-                    className="pl-10 w-64"
-                  />
+                  <Input placeholder="Search properties..." className="pl-10 w-64" />
                 </div>
               </div>
             </div>
@@ -775,12 +738,8 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
             {properties.length === 0 ? (
               <Card className="p-12 text-center">
                 <Home className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">
-                  No Properties Found
-                </h3>
-                <p className="text-gray-600">
-                  No properties available in the system
-                </p>
+                <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">No Properties Found</h3>
+                <p className="text-gray-600">No properties available in the system</p>
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -792,11 +751,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                         alt={property.titleEn || property.titleAr || "Property"}
                         className="w-full h-full object-cover"
                       />
-                      <Badge
-                        className={`absolute top-3 right-3 ${getStatusColor(
-                          property.status || "active"
-                        )}`}
-                      >
+                      <Badge className={`absolute top-3 right-3 ${getStatusColor(property.status || "active")}`}>
                         {property.status || "Active"}
                       </Badge>
                     </div>
@@ -804,22 +759,17 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
                           <h3 className="font-semibold text-[#2B2B2B] mb-1 line-clamp-1">
-                            {property.titleEn ||
-                              property.titleAr ||
-                              "Untitled Property"}
+                            {property.titleEn || property.titleAr || "Untitled Property"}
                           </h3>
                           <p className="text-sm text-gray-600 flex items-center gap-1">
                             <MapPin className="w-3 h-3" />
-                            {property.city || "N/A"},{" "}
-                            {property.governorate || "N/A"}
+                            {property.city || "N/A"}, {property.governorate || "N/A"}
                           </p>
                         </div>
                         {property.averageRating > 0 && (
                           <div className="flex items-center gap-1">
                             <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            <span className="text-sm font-medium">
-                              {property.averageRating.toFixed(1)}
-                            </span>
+                            <span className="text-sm font-medium">{property.averageRating.toFixed(1)}</span>
                           </div>
                         )}
                       </div>
@@ -833,20 +783,12 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                       <div className="flex items-center justify-between mb-4">
                         <div>
                           <span className="text-lg font-semibold text-[#2B2B2B]">
-                            {formatCurrency(
-                              property.pricePerNight ||
-                                property.pricePerMonth ||
-                                0
-                            )}
+                            {formatCurrency(property.pricePerNight || property.pricePerMonth || 0)}
                           </span>
-                          <span className="text-sm text-gray-600">
-                            /{property.pricePerNight ? "night" : "month"}
-                          </span>
+                          <span className="text-sm text-gray-600">/{property.pricePerNight ? "night" : "month"}</span>
                         </div>
                         {property.isFeatured && (
-                          <Badge className="bg-purple-100 text-purple-700">
-                            Featured
-                          </Badge>
+                          <Badge className="bg-purple-100 text-purple-700">Featured</Badge>
                         )}
                       </div>
 
@@ -862,10 +804,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                           className="flex-1"
                           onClick={(e) => {
                             e.stopPropagation();
-                            window.open(
-                              `/properties/${property.propertyId}`,
-                              "_blank"
-                            );
+                            window.open(`/properties/${property.propertyId}`, "_blank");
                           }}
                         >
                           <Eye className="w-3 h-3 mr-1" />
@@ -880,13 +819,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
                               onClick={() =>
-                                handleDelete(
-                                  "Property",
-                                  property.propertyId,
-                                  property.titleEn ||
-                                    property.titleAr ||
-                                    "Property"
-                                )
+                                handleDelete("Property", property.propertyId, property.titleEn || property.titleAr || "Property")
                               }
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
@@ -913,19 +846,6 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
               </Button>
             </div>
 
-            {/* Debug: Show status distribution */}
-            {pendingListings.length === 0 &&
-              stats?.pendingApprovalsCount > 0 && (
-                <Card className="p-4 bg-yellow-50 border-yellow-200">
-                  <p className="text-sm text-yellow-800">
-                    <strong>⚠️ Debug:</strong> Stats show{" "}
-                    {stats.pendingApprovalsCount} pending, but filtering found
-                    0. The backend might be returning wrong status values. Check
-                    console for property statuses.
-                  </p>
-                </Card>
-              )}
-
             {pendingListings.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {pendingListings.map((listing) => (
@@ -933,16 +853,12 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                     <div className="p-6">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <h3 className="font-semibold text-[#2B2B2B] mb-1">
-                            {listing.titleEn}
-                          </h3>
+                          <h3 className="font-semibold text-[#2B2B2B] mb-1">{listing.titleEn}</h3>
                           <p className="text-sm text-gray-600">
                             by {listing.ownerName} ({listing.ownerEmail})
                           </p>
                         </div>
-                        <Badge variant="outline" className="bg-yellow-50">
-                          Pending
-                        </Badge>
+                        <Badge variant="outline" className="bg-yellow-50">Pending</Badge>
                       </div>
                       <div className="space-y-2 mb-4">
                         <div className="flex items-center gap-4 text-sm text-gray-600">
@@ -950,29 +866,21 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                             <MapPin className="w-3 h-3" />
                             {listing.city}, {listing.governorate}
                           </span>
-                          <span className="font-semibold">
-                            {formatCurrency(listing.pricePerNight)}/night
-                          </span>
+                          <span className="font-semibold">{formatCurrency(listing.pricePerNight)}/night</span>
                         </div>
                         <div className="flex gap-3 text-sm text-gray-600">
                           <span>{listing.bedrooms} beds</span>
                           <span>{listing.bathrooms} baths</span>
                           <span>{listing.propertyType}</span>
                         </div>
-                        <p className="text-sm text-gray-600 line-clamp-2">
-                          {listing.descriptionEn}
-                        </p>
+                        <p className="text-sm text-gray-600 line-clamp-2">{listing.descriptionEn}</p>
                       </div>
-                      <p className="text-xs text-gray-500 mb-4">
-                        Submitted {formatDate(listing.createdAt)}
-                      </p>
+                      <p className="text-xs text-gray-500 mb-4">Submitted {formatDate(listing.createdAt)}</p>
                       <div className="flex gap-2">
                         <Button
                           size="sm"
                           className="flex-1 bg-green-600 hover:bg-green-700"
-                          onClick={() =>
-                            handleApprove(listing.propertyId, listing.titleEn)
-                          }
+                          onClick={() => handleApprove(listing.propertyId, listing.titleEn)}
                         >
                           <CheckCircle className="w-4 h-4 mr-1" />
                           Approve
@@ -981,9 +889,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                           size="sm"
                           variant="outline"
                           className="flex-1 border-red-500 text-red-600 hover:bg-red-50"
-                          onClick={() =>
-                            handleReject(listing.propertyId, listing.titleEn)
-                          }
+                          onClick={() => handleReject(listing.propertyId, listing.titleEn)}
                         >
                           Reject
                         </Button>
@@ -998,12 +904,15 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
             ) : (
               <Card className="p-12 text-center">
                 <CheckCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">
-                  All caught up!
-                </h3>
+                <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">All caught up!</h3>
                 <p className="text-gray-600">No pending listings to review</p>
               </Card>
             )}
+          </TabsContent>
+
+          {/* Reviews Tab - ✅ هنا الحل */}
+          <TabsContent value="reviews">
+            <AdminReviewsManagement />
           </TabsContent>
 
           {/* Reports Tab */}
@@ -1030,9 +939,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <AlertTriangle className="w-4 h-4 text-red-500" />
-                          <span className="font-medium">
-                            {report.reportType}
-                          </span>
+                          <span className="font-medium">{report.reportType}</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -1041,9 +948,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                       <TableCell>Reporter ID: {report.reporterId}</TableCell>
                       <TableCell>{formatDate(report.createdAt)}</TableCell>
                       <TableCell>
-                        <Badge className={getStatusColor(report.status)}>
-                          {report.status}
-                        </Badge>
+                        <Badge className={getStatusColor(report.status)}>{report.status}</Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
@@ -1052,10 +957,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                             Review
                           </Button>
                           {report.status !== "resolved" && (
-                            <Button
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700"
-                            >
+                            <Button size="sm" className="bg-green-600 hover:bg-green-700">
                               Resolve
                             </Button>
                           )}
@@ -1070,59 +972,35 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
 
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">
-            <h2 className="text-2xl font-semibold text-[#2B2B2B]">
-              Analytics & Insights
-            </h2>
+            <h2 className="text-2xl font-semibold text-[#2B2B2B]">Analytics & Insights</h2>
 
             {analytics && (
               <>
-                {/* Overview Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <Card className="p-4">
                     <h4 className="text-sm text-gray-600 mb-1">New Users</h4>
-                    <p className="text-2xl font-semibold">
-                      {analytics.overview.newUsersInPeriod}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Total: {analytics.overview.totalUsers}
-                    </p>
+                    <p className="text-2xl font-semibold">{analytics.overview.newUsersInPeriod}</p>
+                    <p className="text-xs text-gray-500">Total: {analytics.overview.totalUsers}</p>
                   </Card>
                   <Card className="p-4">
-                    <h4 className="text-sm text-gray-600 mb-1">
-                      New Properties
-                    </h4>
-                    <p className="text-2xl font-semibold">
-                      {analytics.overview.newPropertiesInPeriod}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Total: {analytics.overview.totalProperties}
-                    </p>
+                    <h4 className="text-sm text-gray-600 mb-1">New Properties</h4>
+                    <p className="text-2xl font-semibold">{analytics.overview.newPropertiesInPeriod}</p>
+                    <p className="text-xs text-gray-500">Total: {analytics.overview.totalProperties}</p>
                   </Card>
                   <Card className="p-4">
                     <h4 className="text-sm text-gray-600 mb-1">New Bookings</h4>
-                    <p className="text-2xl font-semibold">
-                      {analytics.overview.newBookingsInPeriod}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Total: {analytics.overview.totalBookings}
-                    </p>
+                    <p className="text-2xl font-semibold">{analytics.overview.newBookingsInPeriod}</p>
+                    <p className="text-xs text-gray-500">Total: {analytics.overview.totalBookings}</p>
                   </Card>
                   <Card className="p-4">
                     <h4 className="text-sm text-gray-600 mb-1">Revenue</h4>
-                    <p className="text-2xl font-semibold">
-                      {formatCurrency(analytics.overview.revenueInPeriod)}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Total: {formatCurrency(analytics.overview.totalRevenue)}
-                    </p>
+                    <p className="text-2xl font-semibold">{formatCurrency(analytics.overview.revenueInPeriod)}</p>
+                    <p className="text-xs text-gray-500">Total: {formatCurrency(analytics.overview.totalRevenue)}</p>
                   </Card>
                 </div>
 
-                {/* Top Locations */}
                 <Card className="p-6">
-                  <h3 className="font-semibold text-[#2B2B2B] mb-4">
-                    Top Performing Locations
-                  </h3>
+                  <h3 className="font-semibold text-[#2B2B2B] mb-4">Top Performing Locations</h3>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -1139,65 +1017,40 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                           <TableCell>
                             <div className="flex items-center gap-1">
                               <MapPin className="w-3 h-3 text-gray-400" />
-                              <span className="font-medium">
-                                {location.city}, {location.governorate}
-                              </span>
+                              <span className="font-medium">{location.city}, {location.governorate}</span>
                             </div>
                           </TableCell>
                           <TableCell>{location.propertyCount}</TableCell>
                           <TableCell>{location.bookingCount}</TableCell>
-                          <TableCell className="font-semibold">
-                            {formatCurrency(location.totalRevenue)}
-                          </TableCell>
-                          <TableCell>
-                            {formatCurrency(location.averagePrice)}
-                          </TableCell>
+                          <TableCell className="font-semibold">{formatCurrency(location.totalRevenue)}</TableCell>
+                          <TableCell>{formatCurrency(location.averagePrice)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </Card>
 
-                {/* Platform Performance */}
                 <Card className="p-6">
-                  <h3 className="font-semibold text-[#2B2B2B] mb-4">
-                    Platform Performance
-                  </h3>
+                  <h3 className="font-semibold text-[#2B2B2B] mb-4">Platform Performance</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <h4 className="text-sm text-gray-600 mb-2">
-                        Active Properties
-                      </h4>
-                      <p className="text-2xl font-semibold">
-                        {analytics.overview.activeProperties}
-                      </p>
+                      <h4 className="text-sm text-gray-600 mb-2">Active Properties</h4>
+                      <p className="text-2xl font-semibold">{analytics.overview.activeProperties}</p>
                       <p className="text-xs text-gray-500">
-                        {(
-                          (analytics.overview.activeProperties /
-                            analytics.overview.totalProperties) *
-                          100
-                        ).toFixed(1)}
-                        % of total
+                        {((analytics.overview.activeProperties / analytics.overview.totalProperties) * 100).toFixed(1)}% of total
                       </p>
                     </div>
                     <div>
                       <h4 className="text-sm text-gray-600 mb-2">Avg Rating</h4>
                       <div className="flex items-center gap-2">
-                        <p className="text-2xl font-semibold">
-                          {analytics.overview.averagePlatformRating.toFixed(1)}
-                        </p>
+                        <p className="text-2xl font-semibold">{analytics.overview.averagePlatformRating.toFixed(1)}</p>
                         <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                       </div>
-                      <p className="text-xs text-gray-500">
-                        {analytics.overview.totalReviews} reviews
-                      </p>
+                      <p className="text-xs text-gray-500">{analytics.overview.totalReviews} reviews</p>
                     </div>
                     <div>
                       <h4 className="text-sm text-gray-600 mb-2">Period</h4>
-                      <p className="text-sm">
-                        {formatDate(analytics.startDate)} -{" "}
-                        {formatDate(analytics.endDate)}
-                      </p>
+                      <p className="text-sm">{formatDate(analytics.startDate)} - {formatDate(analytics.endDate)}</p>
                     </div>
                   </div>
                 </Card>
@@ -1207,9 +1060,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
             {!analytics && (
               <Card className="p-12 text-center">
                 <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">
-                  No Analytics Data
-                </h3>
+                <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">No Analytics Data</h3>
                 <p className="text-gray-600">Analytics data is not available</p>
               </Card>
             )}
@@ -1218,24 +1069,17 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
       </div>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={deleteDialog.open}
-        onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}
-      >
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {deleteDialog.type}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{deleteDialog.name}"? This action
-              cannot be undone.
+              Are you sure you want to delete "{deleteDialog.name}"? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -1,514 +1,355 @@
+// src/components/pages/PropertiesPage.tsx - Fixed Version
 import { useState, useEffect } from "react";
 import { PropertyCard } from "../PropertyCard";
 import { Button } from "../ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { Calendar } from "../ui/calendar";
-import { format } from "date-fns";
-import { SlidersHorizontal, Loader2 } from "lucide-react";
-import { Badge } from "../ui/badge";
-import { Language, translations } from "../../lib/translations";
-import api, {
-  PropertyResponse,
-  SearchRequest,
-  PropertyImageResponse,
-} from "../../../api";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Slider } from "../ui/slider";
+import { Switch } from "../ui/switch";
+import { Label } from "../ui/label";
+import { Search, SlidersHorizontal, Loader2 } from "lucide-react";
+import api, { PropertyResponse, SearchRequest } from "../../../api";
+import { toast } from "sonner";
+import { Language } from "../../lib/translations";
 
 interface PropertiesPageProps {
   onNavigate: (page: string, propertyId?: string) => void;
-  toggleFavourite?: (property: any) => void;
-  isFavourite?: (propertyId: string) => boolean;
   language?: Language;
 }
 
-export function PropertiesPage({
-  onNavigate,
-  toggleFavourite,
-  isFavourite,
-  language = "en",
-}: PropertiesPageProps) {
-  const t = translations[language].properties;
-  const [propertyImages, setPropertyImages] = useState<Record<number, string>>(
-    {}
-  );
-
-  // Search filters state
-  const [location, setLocation] = useState("");
-  const [checkIn, setCheckIn] = useState<Date | undefined>();
-  const [checkOut, setCheckOut] = useState<Date | undefined>();
-  const [guests, setGuests] = useState("");
-  const [activeFilter, setActiveFilter] = useState<string>("all");
-  const [sortBy, setSortBy] = useState("recommended");
-
-  // API state
+export function PropertiesPage({ onNavigate, language = "en" }: PropertiesPageProps) {
   const [properties, setProperties] = useState<PropertyResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
+  
+  // Search filters
+  const [governorate, setGovernorate] = useState("");
+  const [city, setCity] = useState("");
+  const [propertyType, setPropertyType] = useState("");
+  const [rentalType, setRentalType] = useState("");
+  const [priceRange, setPriceRange] = useState([0, 50000]);
+  const [bedrooms, setBedrooms] = useState("");
+  const [furnished, setFurnished] = useState<boolean | undefined>(undefined);
+  const [petsAllowed, setPetsAllowed] = useState<boolean | undefined>(undefined);
+  const [sortBy, setSortBy] = useState("recommended");
+  
+  // Dropdown options
   const [governorates, setGovernorates] = useState<string[]>([]);
   const [cities, setCities] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalItems, setTotalItems] = useState(0);
 
-  const filters = [
-    {
-      id: "all",
-      label: language === "ar" ? "الكل" : "All",
-      propertyType: undefined,
-    },
-    {
-      id: "beachfront",
-      label: language === "ar" ? "على الشاطئ" : "Beachfront",
-      propertyType: "villa",
-    },
-    {
-      id: "family",
-      label: language === "ar" ? "منازل عائلية" : "Family Homes",
-      propertyType: "house",
-    },
-    {
-      id: "luxury",
-      label: language === "ar" ? "فاخر" : "Luxury",
-      propertyType: "villa",
-    },
-    {
-      id: "chalet",
-      label: language === "ar" ? "شاليه" : "Chalet",
-      propertyType: "chalet",
-    },
-    {
-      id: "apartment",
-      label: language === "ar" ? "شقة" : "Apartment",
-      propertyType: "apartment",
-    },
-  ];
+  // Check if user is logged in
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    loadInitialData();
+    // Check auth status
+    const token = localStorage.getItem("authToken");
+    setIsLoggedIn(!!token);
+    
+    // Load initial data
+    loadGovernorates();
+    searchProperties();
   }, []);
 
   useEffect(() => {
-    if (location) {
-      loadCities(location);
+    if (governorate) {
+      loadCities(governorate);
     }
-  }, [location]);
+  }, [governorate]);
 
-  useEffect(() => {
-    searchProperties();
-  }, [activeFilter, sortBy, currentPage, location, checkIn, checkOut, guests]);
-
-  const loadInitialData = async () => {
+  const loadGovernorates = async () => {
     try {
-      const govs = await api.getGovernorates();
-      setGovernorates(govs);
+      const data = await api.getGovernorates();
+      setGovernorates(data || []);
     } catch (err) {
       console.error("Error loading governorates:", err);
     }
   };
 
-  const loadCities = async (governorate: string) => {
+  const loadCities = async (gov: string) => {
     try {
-      const citiesData = await api.getCities(governorate);
-      setCities(citiesData);
+      const data = await api.getCities(gov);
+      setCities(data || []);
     } catch (err) {
       console.error("Error loading cities:", err);
     }
-  };
-  const loadPropertyImages = async (properties: PropertyResponse[]) => {
-    const imagePromises = properties.map(async (property) => {
-      try {
-        const images = await api.getPropertyImages(property.propertyId);
-        // Find the cover image (isCover: true) or use the first image
-        const coverImage = images.find((img) => img.isCover) || images[0];
-        console.log(images);
-        return {
-          propertyId: property.propertyId,
-          imageUrl: coverImage?.imageUrl || null,
-        };
-      } catch (err) {
-        console.error(
-          `Error loading images for property ${property.propertyId}:`,
-          err
-        );
-        return {
-          propertyId: property.propertyId,
-          imageUrl: null,
-        };
-      }
-    });
-
-    const imageResults = await Promise.all(imagePromises);
-
-    // Convert array to object map
-    const imageMap: Record<number, string> = {};
-    imageResults.forEach(({ propertyId, imageUrl }) => {
-      if (imageUrl) {
-        imageMap[propertyId] = imageUrl;
-      }
-    });
-
-    setPropertyImages((prev) => ({ ...prev, ...imageMap }));
   };
 
   const searchProperties = async () => {
     try {
       setLoading(true);
-      setError(null);
 
       const searchParams: SearchRequest = {
-        page: currentPage,
-        size: 12,
+        governorate: governorate || undefined,
+        city: city || undefined,
+        propertyType: propertyType || undefined,
+        rentalType: rentalType || undefined,
+        minPrice: priceRange[0] > 0 ? priceRange[0] : undefined,
+        maxPrice: priceRange[1] < 50000 ? priceRange[1] : undefined,
+        minBedrooms: bedrooms ? parseInt(bedrooms) : undefined,
+        furnished: furnished,
+        petsAllowed: petsAllowed,
+        sortBy: sortBy === "recommended" ? "averageRating" : sortBy,
+        sortDirection: "DESC",
+        page: 0,
+        size: 20,
       };
 
-      // Apply location filter
-      if (location) {
-        searchParams.governorate = location;
-      }
-
-      // Apply date filters
-      if (checkIn) {
-        searchParams.checkInDate = checkIn.toISOString().split("T")[0];
-      }
-      if (checkOut) {
-        searchParams.checkOutDate = checkOut.toISOString().split("T")[0];
-      }
-
-      // Apply guests filter
-      if (guests) {
-        searchParams.minGuests = parseInt(guests);
-      }
-
-      // Apply property type filter
-      const activeFilterData = filters.find((f) => f.id === activeFilter);
-      if (activeFilterData?.propertyType) {
-        searchParams.propertyType = activeFilterData.propertyType;
-      }
-
-      // Apply sorting
-      console.log("🔧 [DEBUG] Current sortBy value:", sortBy);
-      switch (sortBy) {
-        case "price-low":
-          searchParams.sortBy = "price";
-          searchParams.sortDirection = "ASC";
-          break;
-        case "price-high":
-          searchParams.sortBy = "price";
-          searchParams.sortDirection = "DESC";
-          break;
-        case "rating":
-          searchParams.sortBy = "rating";
-          searchParams.sortDirection = "DESC";
-          break;
-        default:
-          searchParams.sortBy = "created";
-          searchParams.sortDirection = "DESC";
-      }
-      console.log("🔧 [DEBUG] Applied sort params:", {
-        sortBy: searchParams.sortBy,
-        sortDirection: searchParams.sortDirection,
-      });
+      console.log("🔍 Search params:", searchParams);
 
       const response = await api.advancedSearch(searchParams);
-
-      setProperties(response.properties);
-      setTotalPages(response.pagination.totalPages);
-      setTotalItems(response.pagination.totalItems);
-      setCurrentPage(response.pagination.currentPage);
-      if (response.properties.length > 0) {
-        loadPropertyImages(response.properties);
+      
+      // ✅ Validate response
+      if (response && Array.isArray(response.properties)) {
+        setProperties(response.properties);
+        console.log("✅ Found properties:", response.properties.length);
+      } else {
+        console.warn("⚠️ Invalid search response:", response);
+        setProperties([]);
       }
-    } catch (err) {
-      console.error("Error searching properties:", err);
-      setError("Failed to load properties. Please try again.");
+    } catch (err: any) {
+      console.error("❌ Search error:", err);
+      toast.error("Failed to load properties");
+      setProperties([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFilterChange = (filterId: string) => {
-    setActiveFilter(filterId);
-    setCurrentPage(0); // Reset to first page
+  const handleSearch = () => {
+    searchProperties();
   };
 
-  const handleLoadMore = () => {
-    if (currentPage < totalPages - 1) {
-      setCurrentPage((prev) => prev + 1);
-    }
+  const handleReset = () => {
+    setGovernorate("");
+    setCity("");
+    setPropertyType("");
+    setRentalType("");
+    setPriceRange([0, 50000]);
+    setBedrooms("");
+    setFurnished(undefined);
+    setPetsAllowed(undefined);
+    setSortBy("recommended");
+    
+    // Reload all properties
+    setTimeout(() => searchProperties(), 100);
   };
-
-  // Map PropertyResponse to PropertyCard format
-  const mapPropertyToCard = (property: PropertyResponse) => ({
-    id: property.propertyId.toString(),
-    image:
-      propertyImages[property.propertyId] || // Use loaded cover image
-      property.coverImage ||
-      "https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f",
-    title:
-      language === "ar"
-        ? property.titleAr
-        : property.titleEn || property.titleAr,
-    location: `${property.city}, ${property.governorate}`,
-    rating: property.averageRating || 0,
-    reviews: property.totalReviews || 0,
-    price: property.pricePerNight || property.pricePerMonth || 0,
-  });
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Sticky Search Bar */}
-      <div className="sticky top-20 z-40 bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
-            <div className="flex-1 flex flex-wrap gap-2 items-center">
-              <Select value={location} onValueChange={setLocation}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder={t.location} />
-                </SelectTrigger>
-                <SelectContent>
-                  {governorates.map((gov) => (
-                    <SelectItem key={gov} value={gov}>
-                      {gov}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-[160px] justify-start">
-                    {checkIn
-                      ? format(checkIn, "MMM dd")
-                      : translations[language].propertyDetails.checkIn}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={checkIn}
-                    onSelect={setCheckIn}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-[160px] justify-start">
-                    {checkOut
-                      ? format(checkOut, "MMM dd")
-                      : translations[language].propertyDetails.checkOut}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={checkOut}
-                    onSelect={setCheckOut}
-                    initialFocus
-                    disabled={(date) => (checkIn ? date < checkIn : false)}
-                  />
-                </PopoverContent>
-              </Popover>
-
-              <Select value={guests} onValueChange={setGuests}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue
-                    placeholder={
-                      translations[language].propertyDetails.guestsLabel
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">
-                    {language === "ar" ? "١ ضيف" : "1 Guest"}
-                  </SelectItem>
-                  <SelectItem value="2">
-                    {language === "ar" ? "٢ ضيوف" : "2 Guests"}
-                  </SelectItem>
-                  <SelectItem value="3">
-                    {language === "ar" ? "٣ ضيوف" : "3 Guests"}
-                  </SelectItem>
-                  <SelectItem value="4">
-                    {language === "ar" ? "٤ ضيوف" : "4 Guests"}
-                  </SelectItem>
-                  <SelectItem value="5">
-                    {language === "ar" ? "٥ ضيوف" : "5 Guests"}
-                  </SelectItem>
-                  <SelectItem value="6">
-                    {language === "ar" ? "٦+ ضيوف" : "6+ Guests"}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-semibold text-[#2B2B2B]">
+                {language === "ar" ? "العقارات المتاحة" : "Available Properties"}
+              </h1>
+              <p className="text-gray-600 mt-1">
+                {loading ? (
+                  language === "ar" ? "جاري التحميل..." : "Loading..."
+                ) : (
+                  <>
+                    {properties.length}{" "}
+                    {language === "ar" ? "عقار متاح" : `propert${properties.length === 1 ? "y" : "ies"} available`}
+                  </>
+                )}
+              </p>
             </div>
-
+            
             <Button
-              onClick={searchProperties}
-              className="bg-[#00BFA6] hover:bg-[#00A890] text-white md:w-auto"
+              onClick={() => setShowFilters(!showFilters)}
+              variant="outline"
+              className="flex items-center gap-2"
             >
-              {translations[language].home.search}
+              <SlidersHorizontal className="w-4 h-4" />
+              {language === "ar" ? "الفلاتر" : "Filters"}
             </Button>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Filters */}
-        <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
-          <Button variant="outline" size="sm" className="gap-2 flex-shrink-0">
-            <SlidersHorizontal className="w-4 h-4" />
-            {t.filters}
-          </Button>
-          {filters.map((filter) => (
-            <Badge
-              key={filter.id}
-              variant={activeFilter === filter.id ? "default" : "outline"}
-              className={`cursor-pointer px-4 py-2 flex-shrink-0 ${
-                activeFilter === filter.id
-                  ? "bg-[#00BFA6] hover:bg-[#00A890] text-white"
-                  : "hover:bg-gray-100"
-              }`}
-              onClick={() => handleFilterChange(filter.id)}
-            >
-              {filter.label}
-            </Badge>
-          ))}
-        </div>
+        <div className="flex gap-8">
+          {/* Filters Sidebar */}
+          {showFilters && (
+            <div className="w-80 flex-shrink-0">
+              <div className="bg-white rounded-lg shadow-sm p-6 space-y-6 sticky top-8">
+                <h3 className="font-semibold text-lg text-[#2B2B2B]">
+                  {language === "ar" ? "تصفية النتائج" : "Filter Results"}
+                </h3>
 
-        {/* Error Message */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-            {error}
-          </div>
-        )}
+                {/* Location */}
+                <div className="space-y-3">
+                  <Label>{language === "ar" ? "الموقع" : "Location"}</Label>
+                  <Select value={governorate} onValueChange={setGovernorate}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={language === "ar" ? "المحافظة" : "Governorate"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {governorates.map((gov) => (
+                        <SelectItem key={gov} value={gov}>
+                          {gov}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-        {/* Results Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-semibold text-[#2B2B2B]">
-            {loading
-              ? language === "ar"
-                ? "جاري البحث..."
-                : "Searching..."
-              : t.showingProperties.replace("{{count}}", totalItems.toString())}
-          </h2>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">
-              {language === "ar" ? "ترتيب حسب:" : "Sort by:"}
-            </span>
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="recommended">
-                  {language === "ar" ? "موصى به" : "Recommended"}
-                </SelectItem>
-                <SelectItem value="price-low">
-                  {language === "ar"
-                    ? "السعر: من الأقل إلى الأعلى"
-                    : "Price: Low to High"}
-                </SelectItem>
-                <SelectItem value="price-high">
-                  {language === "ar"
-                    ? "السعر: من الأعلى إلى الأقل"
-                    : "Price: High to Low"}
-                </SelectItem>
-                <SelectItem value="rating">
-                  {language === "ar" ? "الأعلى تقييماً" : "Highest Rated"}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+                  {governorate && (
+                    <Select value={city} onValueChange={setCity}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={language === "ar" ? "المدينة" : "City"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cities.map((c) => (
+                          <SelectItem key={c} value={c}>
+                            {c}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
 
-        {/* Loading State */}
-        {loading && properties.length === 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <div key={i} className="space-y-3">
-                <div className="h-48 bg-gray-200 animate-pulse rounded-2xl" />
-                <div className="h-4 bg-gray-200 animate-pulse rounded" />
-                <div className="h-4 bg-gray-200 animate-pulse rounded w-2/3" />
+                {/* Property Type */}
+                <div className="space-y-3">
+                  <Label>{language === "ar" ? "نوع العقار" : "Property Type"}</Label>
+                  <Select value={propertyType} onValueChange={setPropertyType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={language === "ar" ? "اختر النوع" : "Select type"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="apartment">{language === "ar" ? "شقة" : "Apartment"}</SelectItem>
+                      <SelectItem value="villa">{language === "ar" ? "فيلا" : "Villa"}</SelectItem>
+                      <SelectItem value="chalet">{language === "ar" ? "شاليه" : "Chalet"}</SelectItem>
+                      <SelectItem value="studio">{language === "ar" ? "استوديو" : "Studio"}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Rental Type */}
+                <div className="space-y-3">
+                  <Label>{language === "ar" ? "نوع الإيجار" : "Rental Type"}</Label>
+                  <Select value={rentalType} onValueChange={setRentalType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={language === "ar" ? "اختر المدة" : "Select duration"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">{language === "ar" ? "يومي" : "Daily"}</SelectItem>
+                      <SelectItem value="weekly">{language === "ar" ? "أسبوعي" : "Weekly"}</SelectItem>
+                      <SelectItem value="monthly">{language === "ar" ? "شهري" : "Monthly"}</SelectItem>
+                      <SelectItem value="yearly">{language === "ar" ? "سنوي" : "Yearly"}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Price Range */}
+                <div className="space-y-3">
+                  <Label>
+                    {language === "ar" ? "السعر" : "Price Range"}: {priceRange[0]} - {priceRange[1]} EGP
+                  </Label>
+                  <Slider
+                    min={0}
+                    max={50000}
+                    step={500}
+                    value={priceRange}
+                    onValueChange={setPriceRange}
+                  />
+                </div>
+
+                {/* Bedrooms */}
+                <div className="space-y-3">
+                  <Label>{language === "ar" ? "عدد الغرف" : "Bedrooms"}</Label>
+                  <Select value={bedrooms} onValueChange={setBedrooms}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={language === "ar" ? "أي عدد" : "Any"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3, 4, 5].map((num) => (
+                        <SelectItem key={num} value={num.toString()}>
+                          {num}+ {language === "ar" ? "غرف" : "bedrooms"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Furnished */}
+                <div className="flex items-center justify-between">
+                  <Label>{language === "ar" ? "مفروش" : "Furnished"}</Label>
+                  <Switch checked={furnished || false} onCheckedChange={setFurnished} />
+                </div>
+
+                {/* Pets */}
+                <div className="flex items-center justify-between">
+                  <Label>{language === "ar" ? "يسمح بالحيوانات" : "Pets Allowed"}</Label>
+                  <Switch checked={petsAllowed || false} onCheckedChange={setPetsAllowed} />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="space-y-2 pt-4">
+                  <Button onClick={handleSearch} className="w-full bg-[#00BFA6] hover:bg-[#00A890]">
+                    <Search className="w-4 h-4 mr-2" />
+                    {language === "ar" ? "بحث" : "Search"}
+                  </Button>
+                  <Button onClick={handleReset} variant="outline" className="w-full">
+                    {language === "ar" ? "إعادة تعيين" : "Reset Filters"}
+                  </Button>
+                </div>
               </div>
-            ))}
-          </div>
-        ) : properties.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-xl text-gray-600 mb-4">
-              {language === "ar"
-                ? "لم يتم العثور على عقارات تطابق البحث"
-                : "No properties found matching your search"}
-            </p>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setLocation("");
-                setCheckIn(undefined);
-                setCheckOut(undefined);
-                setGuests("");
-                setActiveFilter("all");
-                setCurrentPage(0);
-              }}
-            >
-              {language === "ar" ? "إعادة تعيين الفلاتر" : "Reset Filters"}
-            </Button>
-          </div>
-        ) : (
-          <>
-            {/* Properties Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {properties.map((property) => (
-                <PropertyCard
-                  key={property.propertyId}
-                  {...mapPropertyToCard(property)}
-                  onSelect={(id) => onNavigate("property-details", id)}
-                  isFavourite={
-                    isFavourite
-                      ? isFavourite(property.propertyId.toString())
-                      : false
-                  }
-                  onToggleFavourite={toggleFavourite}
-                />
-              ))}
+            </div>
+          )}
+
+          {/* Properties Grid */}
+          <div className="flex-1">
+            {/* Sort */}
+            <div className="mb-6 flex items-center justify-between">
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="recommended">{language === "ar" ? "موصى به" : "Recommended"}</SelectItem>
+                  <SelectItem value="pricePerNight">{language === "ar" ? "السعر" : "Price"}</SelectItem>
+                  <SelectItem value="averageRating">{language === "ar" ? "التقييم" : "Rating"}</SelectItem>
+                  <SelectItem value="createdAt">{language === "ar" ? "الأحدث" : "Newest"}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            {/* Load More */}
-            {currentPage < totalPages - 1 && (
-              <div className="text-center py-8">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="min-w-[200px]"
-                  onClick={handleLoadMore}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      {language === "ar" ? "جاري التحميل..." : "Loading..."}
-                    </>
-                  ) : language === "ar" ? (
-                    "عرض المزيد من العقارات"
-                  ) : (
-                    "Show More Properties"
-                  )}
+            {/* Loading State */}
+            {loading && (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-10 h-10 text-[#00BFA6] animate-spin" />
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!loading && properties.length === 0 && (
+              <div className="text-center py-20">
+                <p className="text-gray-600 text-lg">
+                  {language === "ar" ? "لا توجد عقارات متاحة" : "No properties found"}
+                </p>
+                <Button onClick={handleReset} variant="outline" className="mt-4">
+                  {language === "ar" ? "مسح الفلاتر" : "Clear Filters"}
                 </Button>
               </div>
             )}
 
-            {/* Pagination Info */}
-            <div className="text-center text-sm text-gray-600 pb-8">
-              {language === "ar"
-                ? `عرض ${properties.length} من ${totalItems} عقار`
-                : `Showing ${properties.length} of ${totalItems} properties`}
-            </div>
-          </>
-        )}
+            {/* Properties Grid - ✅ FIXED */}
+            {!loading && properties.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {properties.map((property) => (
+                  <PropertyCard
+                    key={property.propertyId}
+                    property={property}
+                    onNavigate={onNavigate}
+                    language={language}
+                    showFavorite={isLoggedIn}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
