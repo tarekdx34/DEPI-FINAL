@@ -61,7 +61,6 @@ public class PropertyImageController {
                 userId
             );
             
-            // Create response manually since DTO structure might vary
             Map<String, Object> response = Map.of(
                 "uploadedCount", uploadedImages.size(),
                 "images", uploadedImages

@@ -79,7 +79,7 @@ public class Review {
     
     // Moderation
     @Column(name = "is_approved", nullable = false)
-    private Boolean isApproved = true; // Auto-approve by default
+     private Boolean isApproved = false;// Auto-approve by default
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "approved_by")

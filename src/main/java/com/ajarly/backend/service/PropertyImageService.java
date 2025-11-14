@@ -56,6 +56,8 @@ public class PropertyImageService {
         for (int i = 0; i < files.size(); i++) {
             MultipartFile file = files.get(i);
             try {
+                log.info("📤 Uploading image {} of {} for property {}", i + 1, files.size(), propertyId);
+                
                 // Upload to Cloudinary
                 Map<String, Object> uploadResult = imageStorageService.uploadImage(
                     file, 
@@ -85,10 +87,10 @@ public class PropertyImageService {
                 PropertyImage savedImage = propertyImageRepository.save(propertyImage);
                 uploadedImages.add(mapToResponse(savedImage));
                 
-                log.info("Image uploaded successfully for property {}: {}", propertyId, savedImage.getImageId());
+                log.info("✅ Image {} uploaded successfully: {}", i + 1, savedImage.getImageId());
                 
             } catch (Exception e) {
-                log.error("Error uploading image for property {}: {}", propertyId, e.getMessage());
+                log.error("❌ Error uploading image {} for property {}: {}", i + 1, propertyId, e.getMessage());
                 throw new RuntimeException("Failed to upload image: " + e.getMessage());
             }
         }
@@ -132,7 +134,7 @@ public class PropertyImageService {
             }
         }
         
-        log.info("Image deleted successfully: {}", imageId);
+        log.info("✅ Image deleted successfully: {}", imageId);
     }
     
     /**
@@ -162,7 +164,7 @@ public class PropertyImageService {
         image.setIsCover(true);
         PropertyImage updatedImage = propertyImageRepository.save(image);
         
-        log.info("Cover image set for property {}: {}", propertyId, imageId);
+        log.info("✅ Cover image set for property {}: {}", propertyId, imageId);
         return mapToResponse(updatedImage);
     }
     

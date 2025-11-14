@@ -40,16 +40,58 @@ public class AnalyticsService {
             .build();
     }
     
+    /**
+     * ✅ IMPROVED: إضافة logging تفصيلي للـ debugging
+     */
     @Transactional(readOnly = true)
     public OwnerDashboardResponse getOwnerDashboard(Long ownerId) {
-        User owner = userRepository.findById(ownerId).orElseThrow(() -> new ResourceNotFoundException("Owner not found"));
-        List<Property> properties = propertyRepository.findByOwner_UserId(ownerId, Pageable.unpaged()).getContent();
-        return OwnerDashboardResponse.builder()
-            .ownerId(ownerId).ownerName(owner.getFirstName() + " " + owner.getLastName())
-            .overview(buildOwnerOverview(ownerId, properties)).bestPerformingProperty(findBestPerformingProperty(properties))
-            .upcomingBookings(getUpcomingBookingsForOwner(ownerId)).recentReviews(getRecentReviewsForOwner(properties))
-            .revenueChart(getOwnerRevenueChart(ownerId)).propertiesPerformance(getPropertiesPerformance(properties))
+        log.info("🔍 Fetching dashboard for owner: {}", ownerId);
+        
+        // ✅ التحقق من وجود المالك
+        User owner = userRepository.findById(ownerId)
+            .orElseThrow(() -> new ResourceNotFoundException("Owner not found"));
+        
+        log.debug("Owner found: {} {}", owner.getFirstName(), owner.getLastName());
+        
+        // ✅ جلب العقارات وفلترة المحذوفة
+        List<Property> properties = propertyRepository
+            .findByOwner_UserId(ownerId, Pageable.unpaged())
+            .getContent()
+            .stream()
+            .filter(p -> p.getStatus() != Property.PropertyStatus.deleted)
+            .collect(Collectors.toList());
+        
+        log.info("📊 Found {} properties for owner {} (excluding deleted)", 
+                 properties.size(), ownerId);
+        
+        // ✅ اطبع تفاصيل الـ properties للـ debugging
+        if (log.isDebugEnabled()) {
+            properties.forEach(p -> 
+                log.debug("  ➤ Property: {} | Status: {} | Views: {} | Rating: {}", 
+                         p.getPropertyId(), 
+                         p.getStatus(), 
+                         p.getViewCount(),
+                         p.getAverageRating())
+            );
+        }
+        
+        // ✅ بناء الـ response
+        log.debug("Building dashboard components...");
+        
+        OwnerDashboardResponse response = OwnerDashboardResponse.builder()
+            .ownerId(ownerId)
+            .ownerName(owner.getFirstName() + " " + owner.getLastName())
+            .overview(buildOwnerOverview(ownerId, properties))
+            .bestPerformingProperty(findBestPerformingProperty(properties))
+            .upcomingBookings(getUpcomingBookingsForOwner(ownerId))
+            .recentReviews(getRecentReviewsForOwner(properties))
+            .revenueChart(getOwnerRevenueChart(ownerId))
+            .propertiesPerformance(getPropertiesPerformance(properties))
             .build();
+        
+        log.info("✅ Dashboard built successfully for owner {}", ownerId);
+        
+        return response;
     }
     
     @Transactional(readOnly = true)
@@ -148,28 +190,85 @@ public class AnalyticsService {
             .averageRating(BigDecimal.ZERO).totalReviews(totalReviews).build();
     }
     
+    /**
+     * إيجاد أفضل عقار من حيث الأداء (Revenue)
+     * ✅ FIXED: تحسين المقارنة والـ filtering والـ logging
+     */
     private OwnerDashboardResponse.BestProperty findBestPerformingProperty(List<Property> properties) {
-        if (properties.isEmpty()) return null;
-        Property bestProperty = properties.get(0);
+        // ✅ تحقق من وجود properties
+        if (properties == null || properties.isEmpty()) {
+            log.warn("No properties found for owner");
+            return null;
+        }
+        
+        // ✅ فلتر العقارات الـ active فقط
+        List<Property> activeProperties = properties.stream()
+            .filter(p -> p.getStatus() == Property.PropertyStatus.active)
+            .collect(Collectors.toList());
+        
+        if (activeProperties.isEmpty()) {
+            log.warn("No active properties found");
+            return null;
+        }
+        
+        Property bestProperty = null;
         BigDecimal maxRevenue = BigDecimal.ZERO;
-        for (Property property : properties) {
-            BigDecimal propertyRevenue = bookingRepository.findByPropertyPropertyIdOrderByRequestedAtDesc(property.getPropertyId())
-                .stream().filter(b -> b.getStatus() == Booking.BookingStatus.confirmed || 
-                b.getStatus() == Booking.BookingStatus.completed).map(Booking::getTotalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        // ✅ احسب revenue لكل property بشكل صحيح
+        for (Property property : activeProperties) {
+            List<Booking> propertyBookings = bookingRepository
+                .findByPropertyPropertyIdOrderByRequestedAtDesc(property.getPropertyId());
+            
+            BigDecimal propertyRevenue = propertyBookings.stream()
+                .filter(b -> b.getStatus() == Booking.BookingStatus.confirmed || 
+                            b.getStatus() == Booking.BookingStatus.completed)
+                .map(Booking::getTotalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            
+            log.debug("Property {} (Status: {}) - Revenue: {}", 
+                     property.getPropertyId(), 
+                     property.getStatus(), 
+                     propertyRevenue);
+            
+            // ✅ قارن بالـ max revenue بشكل صحيح
             if (propertyRevenue.compareTo(maxRevenue) > 0) {
                 maxRevenue = propertyRevenue;
                 bestProperty = property;
             }
         }
-        List<Booking> bestBookings = bookingRepository.findByPropertyPropertyIdOrderByRequestedAtDesc(bestProperty.getPropertyId());
+        
+        // ✅ لو مفيش property عنده bookings، خد أول واحد active
+        if (bestProperty == null) {
+            log.info("No property has bookings, returning first active property");
+            bestProperty = activeProperties.get(0);
+            maxRevenue = BigDecimal.ZERO;
+        }
+        
+        // ✅ احسب عدد الـ bookings للـ best property
+        List<Booking> bestBookings = bookingRepository
+            .findByPropertyPropertyIdOrderByRequestedAtDesc(bestProperty.getPropertyId());
+        
+        int confirmedBookings = (int) bestBookings.stream()
+            .filter(b -> b.getStatus() == Booking.BookingStatus.confirmed || 
+                        b.getStatus() == Booking.BookingStatus.completed)
+            .count();
+        
+        log.info("Best property selected: {} with revenue: {}", 
+                 bestProperty.getPropertyId(), 
+                 maxRevenue);
+        
         return OwnerDashboardResponse.BestProperty.builder()
-            .propertyId(bestProperty.getPropertyId()).propertyTitle(bestProperty.getTitleAr())
-            .propertyImage(bestProperty.getImages().isEmpty() ? null : bestProperty.getImages().get(0).getImageUrl())
+            .propertyId(bestProperty.getPropertyId())
+            .propertyTitle(bestProperty.getTitleAr())
+            .propertyImage(bestProperty.getImages().isEmpty() ? null : 
+                          bestProperty.getImages().get(0).getImageUrl())
             .totalRevenue(maxRevenue)
-            .totalBookings((int) bestBookings.stream().filter(b -> b.getStatus() == Booking.BookingStatus.confirmed || 
-                b.getStatus() == Booking.BookingStatus.completed).count())
-            .averageRating(bestProperty.getAverageRating()).totalViews(bestProperty.getViewCount())
-            .performanceReason("Highest Revenue").build();
+            .totalBookings(confirmedBookings)
+            .averageRating(bestProperty.getAverageRating())
+            .totalViews(bestProperty.getViewCount())
+            .performanceReason(maxRevenue.compareTo(BigDecimal.ZERO) > 0 ? 
+                              "Highest Revenue" : "Most Recent Active Property")
+            .build();
     }
     
     private List<OwnerDashboardResponse.UpcomingBooking> getUpcomingBookingsForOwner(Long ownerId) {

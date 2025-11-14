@@ -14,6 +14,8 @@ import java.util.Optional;
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, Long> {
     
+    // ==================== EXISTING METHODS ====================
+    
     // Find by property (approved only) with pagination
     @Query("SELECT r FROM Review r WHERE r.property.propertyId = :propertyId AND r.isApproved = true ORDER BY r.createdAt DESC")
     Page<Review> findByPropertyIdAndApproved(@Param("propertyId") Long propertyId, Pageable pageable);
@@ -49,4 +51,32 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     
     // Get reviewer's total review count
     Long countByReviewerUserId(Long reviewerId);
+    
+    // ==================== 🆕 NEW ADMIN METHODS ====================
+    
+    /**
+     * ✅ Find all reviews by approval status
+     */
+    Page<Review> findByIsApproved(Boolean isApproved, Pageable pageable);
+    
+    /**
+     * ✅ Count reviews by approval status
+     */
+    long countByIsApproved(Boolean isApproved);
+    
+    /**
+     * ✅ Calculate average rating for ALL approved reviews (platform-wide)
+     */
+    @Query("SELECT AVG(r.overallRating) FROM Review r WHERE r.isApproved = true")
+    Double getAverageRatingForApprovedReviews();
+    
+    /**
+     * ✅ Find reviews by property and approval status
+     */
+    Page<Review> findByPropertyPropertyIdAndIsApproved(Long propertyId, Boolean isApproved, Pageable pageable);
+    
+    /**
+     * ✅ Count approved reviews for a property
+     */
+    long countByPropertyPropertyIdAndIsApprovedTrue(Long propertyId);
 }
