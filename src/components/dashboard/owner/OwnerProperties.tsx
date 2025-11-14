@@ -1,4 +1,4 @@
-// src/components/dashboard/owner/OwnerProperties.tsx - Normalized with PropertyCard
+// src/components/dashboard/owner/OwnerProperties.tsx - FINAL FIX
 import { useState } from "react";
 import {
   Home,
@@ -35,12 +35,14 @@ interface OwnerPropertiesProps {
   properties: PropertyResponse[];
   onPropertyDeleted: () => void;
   onEditProperty?: (property: PropertyResponse) => void;
+  onNavigate?: (page: string, propertyId?: string) => void;
 }
 
 export function OwnerProperties({
   properties,
   onPropertyDeleted,
   onEditProperty,
+  onNavigate,
 }: OwnerPropertiesProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [propertyToDelete, setPropertyToDelete] =
@@ -98,9 +100,22 @@ export function OwnerProperties({
     }
   };
 
-  const handleNavigate = (page: string, id?: string) => {
-    if (page === "property-details" && id) {
-      window.open(`/property/${id}`, "_blank");
+  // ✅ CRITICAL FIX: Navigate internally, don't open new tab
+  const handleViewProperty = (propertyId: number) => {
+    if (onNavigate) {
+      console.log("✅ Navigating to property details:", propertyId);
+      onNavigate("property-details", String(propertyId));
+    } else {
+      console.error("❌ onNavigate not provided!");
+      toast.error("Navigation not available");
+    }
+  };
+
+  // ✅ PropertyCard click handler
+  const handleCardNavigate = (page: string, id?: string) => {
+    if (page === "property-details" && id && onNavigate) {
+      console.log("✅ Card clicked, navigating to:", id);
+      onNavigate("property-details", id);
     }
   };
 
@@ -131,18 +146,14 @@ export function OwnerProperties({
     return [];
   };
 
-  // ✅ Normalize property data for PropertyCard
   const normalizeProperty = (property: PropertyResponse): PropertyResponse => {
     return {
       ...property,
-      // Ensure title fields exist
       titleEn: property.titleEn || property.title || "Untitled Property",
       titleAr: property.titleAr || property.title || "عقار بدون عنوان",
-      // Ensure other required fields
       averageRating: property.averageRating || 0,
       totalReviews: property.totalReviews || 0,
       pricePerNight: property.pricePerNight || 0,
-      // Ensure location fields
       city: property.city || "Unknown",
       governorate: property.governorate || "Unknown",
     };
@@ -194,7 +205,7 @@ export function OwnerProperties({
 
           return (
             <div key={property.propertyId} className="relative">
-              {/* Status Badge Overlay */}
+              {/* Status Badge */}
               <div className="absolute top-3 left-3 z-10 flex gap-2">
                 {getStatusBadge(property)}
                 {images.length > 1 && (
@@ -208,7 +219,7 @@ export function OwnerProperties({
                 )}
               </div>
 
-              {/* Actions Dropdown */}
+              {/* Actions Menu */}
               <div className="absolute top-3 right-3 z-10">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -222,15 +233,10 @@ export function OwnerProperties({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem
-                      onClick={() =>
-                        window.open(
-                          `/property/${property.propertyId}`,
-                          "_blank"
-                        )
-                      }
+                      onClick={() => handleViewProperty(property.propertyId)}
                     >
                       <Eye className="w-4 h-4 mr-2" />
-                      View
+                      View Details
                     </DropdownMenuItem>
                     {images.length > 0 && (
                       <DropdownMenuItem
@@ -255,10 +261,10 @@ export function OwnerProperties({
                 </DropdownMenu>
               </div>
 
-              {/* PropertyCard Component */}
+              {/* Property Card */}
               <PropertyCard
                 property={normalizedProperty}
-                onNavigate={handleNavigate}
+                onNavigate={handleCardNavigate}
                 language="en"
                 showFavorite={false}
               />
@@ -267,7 +273,7 @@ export function OwnerProperties({
         })}
       </div>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -291,7 +297,7 @@ export function OwnerProperties({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Images Gallery Dialog */}
+      {/* Images Dialog */}
       <AlertDialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
         <AlertDialogContent className="max-w-4xl">
           <AlertDialogHeader>

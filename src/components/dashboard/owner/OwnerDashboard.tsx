@@ -1,4 +1,4 @@
-// src/components/dashboard/owner/OwnerDashboard.tsx - ULTIMATE FINAL FIX
+// src/components/dashboard/owner/OwnerDashboard.tsx - COMPLETE FIX
 import { useState, useEffect, useCallback } from "react";
 import { AddPropertyForm } from "./AddPropertyForm";
 import {
@@ -22,7 +22,7 @@ import { OwnerAnalytics } from "./OwnerAnalytics";
 import { OwnerSettings } from "./OwnerSettings";
 
 interface OwnerDashboardProps {
-  onNavigate?: (page: string) => void;
+  onNavigate?: (page: string, propertyId?: string) => void;
   showAddPropertyOnMount?: boolean;
 }
 
@@ -40,9 +40,8 @@ export function OwnerDashboard({
   const [properties, setProperties] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadKey, setLoadKey] = useState(0); // ✅ Force reload key
+  const [loadKey, setLoadKey] = useState(0);
 
-  // ✅ ULTIMATE FIX: Force reload with cache bypass
   const loadDashboardData = useCallback(async (forceReload = false) => {
     try {
       setLoading(true);
@@ -51,7 +50,6 @@ export function OwnerDashboard({
       const timestamp = Date.now();
       const token = localStorage.getItem("authToken");
 
-      // ✅ CRITICAL: Direct fetch with cache bypass
       const propertiesResponse = await fetch(
         `http://localhost:8081/api/v1/properties/my-properties?page=0&size=100&_t=${timestamp}`,
         {
@@ -73,7 +71,6 @@ export function OwnerDashboard({
       const propertiesData = await propertiesResponse.json();
       console.log("📦 Raw API Response:", propertiesData);
 
-      // ✅ Parse properties array
       let propertiesList: any[] = [];
       if (propertiesData.data) {
         if (Array.isArray(propertiesData.data)) {
@@ -88,7 +85,6 @@ export function OwnerDashboard({
         propertiesList = propertiesData;
       }
 
-      // ✅ CRITICAL: Filter out deleted properties
       const activeProperties = propertiesList.filter((p) => {
         const status = (p.status || "").toLowerCase();
         const isDeleted = status === "deleted";
@@ -102,7 +98,6 @@ export function OwnerDashboard({
         `✅ Total: ${propertiesList.length}, Active: ${activeProperties.length}`
       );
 
-      // Load other data
       const [dashboardData, bookingsData] = await Promise.all([
         api.getOwnerDashboard().catch(() => null),
         api.getOwnerBookings().catch(() => []),
@@ -121,40 +116,27 @@ export function OwnerDashboard({
     }
   }, []);
 
-  // Initial load
   useEffect(() => {
     if (profile?.userType === "landlord") {
       loadDashboardData();
     }
-  }, [profile, loadKey]); // ✅ Reload when loadKey changes
+  }, [profile, loadKey]);
 
-  // ✅ Property created handler
   const handlePropertyCreated = useCallback(() => {
     console.log("🎉 Property created! Switching to properties tab...");
-
-    // ✅ FIX: Close form first
     setShowAddProperty(false);
-
-    // ✅ FIX: Switch to properties tab immediately
     setActiveTab("properties");
-
-    // ✅ FIX: Force reload properties
     setTimeout(() => {
       setLoadKey((prev) => prev + 1);
     }, 500);
   }, []);
 
-  // ✅ CRITICAL: Property deleted handler with force reload
   const handlePropertyDeleted = useCallback(() => {
     console.log("🗑️ Property deleted! Force reloading...");
-
-    // ✅ ULTIMATE FIX: Increment loadKey to trigger useEffect
     setLoadKey((prev) => prev + 1);
-
     toast.success("Reloading properties...");
   }, []);
 
-  // ✅ Booking updated handler
   const handleBookingUpdated = useCallback(() => {
     console.log("📅 Booking updated!");
     setLoadKey((prev) => prev + 1);
@@ -242,6 +224,7 @@ export function OwnerDashboard({
               <OwnerProperties
                 properties={properties}
                 onPropertyDeleted={handlePropertyDeleted}
+                onNavigate={onNavigate}
               />
             </TabsContent>
 

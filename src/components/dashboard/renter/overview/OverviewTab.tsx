@@ -1,18 +1,19 @@
-// src/components/dashboard/renter/DashboardOverview.tsx - FINAL FIXED
+// FILE 1: src/components/dashboard/renter/overview/OverviewTab.tsx
+// ========================================
 import { useState, useEffect } from "react";
-import { StatsCards } from "./dashboard/StatsCards";
-import { UpcomingBookingsSummary } from "./dashboard/UpcomingBookingsSummary";
-import { RecentActivity } from "./dashboard/RecentActivity";
-import { EmptyState } from "../shared/components/EmptyState";
-import { useFavorites } from "../../../contexts/FavoritesContext";
-import { Calendar, Loader2 } from "lucide-react";
-import api from "../../../../api";
+import { Loader2, Calendar } from "lucide-react";
+import { StatsCard } from "../../shared/components/StatsCard";
+import { StatsCards } from "./StatsCards";
+import { UpcomingBookings } from "./UpcomingBookings";
+import { RecentActivity } from "./RecentActivity";
+import { EmptyState } from "../../shared/components/EmptyState";
+import { useFavorites } from "../../../../contexts/FavoritesContext";
+import api from "../../../../../api";
 
-interface DashboardOverviewProps {
+interface OverviewTabProps {
   onNavigate: (page: string, id?: string) => void;
 }
 
-// ✅ Complete DashboardStats type matching StatsCards requirements
 interface DashboardStats {
   totalTrips: number;
   upcomingTrips: number;
@@ -24,7 +25,7 @@ interface DashboardStats {
   pendingReviews: number;
 }
 
-export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
+export function OverviewTab({ onNavigate }: OverviewTabProps) {
   const { favorites, refreshFavorites } = useFavorites();
   
   const [stats, setStats] = useState<DashboardStats>({
@@ -42,35 +43,26 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Initial load
   useEffect(() => {
     loadDashboardData();
   }, []);
 
-  // ✅ Update favorites count when changed
   useEffect(() => {
-    console.log('✅ Favorites count updated:', favorites.length);
-    setStats(prev => ({
-      ...prev,
-      totalFavorites: favorites.length,
-    }));
+    setStats(prev => ({ ...prev, totalFavorites: favorites.length }));
     updateRecentActivity();
   }, [favorites.length]);
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      
       await refreshFavorites();
 
       const allBookings = await api.getBookings().catch(() => []);
       const upcomingData = await api.getUpcomingBookings().catch(() => []);
 
-      // ✅ Calculate all required stats
       const completedCount = allBookings?.filter((b: any) => b.status === 'completed').length || 0;
       const cancelledCount = allBookings?.filter((b: any) => b.status === 'cancelled').length || 0;
-      const totalSpentAmount = allBookings?.reduce((sum: number, b: any) => 
-        sum + (b.totalPrice || 0), 0) || 0;
+      const totalSpentAmount = allBookings?.reduce((sum: number, b: any) => sum + (b.totalPrice || 0), 0) || 0;
 
       setStats({
         totalTrips: allBookings?.length || 0,
@@ -85,7 +77,6 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
 
       setUpcomingBookings(upcomingData || []);
       updateRecentActivity(allBookings);
-      
     } catch (error) {
       console.error('❌ Dashboard error:', error);
     } finally {
@@ -102,8 +93,8 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
           id: booking.bookingId,
           type: 'booking',
           title: booking.property?.titleEn || 'Property',
-          subtitle: `Booked for ${booking.numberOfNights || 0} nights`,
-          timestamp: '1h ago',
+          description: `Booked for ${booking.numberOfNights || 0} nights`,
+          date: booking.createdAt || new Date().toISOString(),
         });
       });
     }
@@ -114,8 +105,8 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
           id: fav.favoriteId,
           type: 'favorite',
           title: fav.property?.titleEn || 'Property',
-          subtitle: 'Added to favorites',
-          timestamp: '2h ago',
+          description: 'Added to favorites',
+          date: fav.createdAt || new Date().toISOString(),
         });
       });
     }
@@ -145,15 +136,12 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
 
   return (
     <div className="space-y-6">
-      {/* Stats Overview */}
       <StatsCards stats={stats} />
 
-      {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Upcoming Bookings - 2/3 width */}
         <div className="lg:col-span-2">
           {upcomingBookings.length > 0 ? (
-            <UpcomingBookingsSummary
+            <UpcomingBookings
               bookings={upcomingBookings}
               onViewAll={() => onNavigate("user-dashboard?tab=trips")}
               onViewDetails={(id) => onNavigate("trip-details", String(id))}
@@ -169,7 +157,6 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
           )}
         </div>
 
-        {/* Recent Activity - 1/3 width */}
         <div className="lg:col-span-1">
           <RecentActivity activities={recentActivity} />
         </div>

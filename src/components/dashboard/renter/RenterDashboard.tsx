@@ -1,7 +1,7 @@
 // src/components/dashboard/renter/RenterDashboard.tsx
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../ui/tabs";
-import { DashboardOverview } from "./DashboardOverview";
+import { OverviewTab } from "./overview/OverviewTab";
 import { ProfileTab } from "../../profile/ProfileTab";
 import { TripsTab } from "./trips/TripsTab";
 import { FavoritesTab } from "./favorites/FavoritesTab";
@@ -84,7 +84,7 @@ export function RenterDashboard({
 
           {/* Overview Tab */}
           <TabsContent value="overview">
-            <DashboardOverview onNavigate={onNavigate} />
+             <OverviewTab onNavigate={onNavigate} />
           </TabsContent>
 
           {/* Trips Tab */}
