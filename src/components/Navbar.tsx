@@ -1,14 +1,35 @@
 // src/components/Navbar.tsx - Updated with Favorites Context
 import { useState } from "react";
-import { Menu, Globe, Heart, Star, User, LogOut, LayoutDashboard } from "lucide-react";
+import {
+  Menu,
+  Globe,
+  Heart,
+  Star,
+  User,
+  LogOut,
+  LayoutDashboard,
+} from "lucide-react";
 import { Button } from "./ui/button";
-import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "./ui/sheet";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "./ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle,
+  SheetDescription,
+} from "./ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "./ui/dropdown-menu";
 import { Badge } from "./ui/badge";
 import { User as UserType } from "../App";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { useFavorites } from "../contexts/FavoritesContext";
 import { FavoriteButton } from "./dashboard/shared/components/FavoriteButton";
+import logo from "../assets/Logo.svg";
 
 interface NavbarProps {
   onNavigate?: (page: string, propertyId?: string) => void;
@@ -40,21 +61,25 @@ export function Navbar({
 
   const handleNavigation = (page: string, propertyId?: string) => {
     if (onNavigate) {
-      console.log('🔄 Navbar navigation to:', page, propertyId ? `Property: ${propertyId}` : '');
+      console.log(
+        "🔄 Navbar navigation to:",
+        page,
+        propertyId ? `Property: ${propertyId}` : ""
+      );
       onNavigate(page, propertyId);
     }
   };
 
   const getDashboardPage = () => {
     if (!user) return "user-dashboard";
-    
-    console.log('🎯 Getting dashboard for user:', user.userType, user.role);
-    
+
+    console.log("🎯 Getting dashboard for user:", user.userType, user.role);
+
     if (user.userType === "landlord") return "owner-dashboard";
     if (user.userType === "admin") return "admin-dashboard";
     if (user.role === "owner") return "owner-dashboard";
     if (user.role === "admin") return "admin-dashboard";
-    
+
     return "user-dashboard";
   };
 
@@ -69,10 +94,9 @@ export function Navbar({
             onClick={() => handleNavigation("home")}
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
-            <div className="w-10 h-10 bg-[#00BFA6] rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-xl">A</span>
+            <div>
+              <img src={logo} alt="Logo" className="w-32 h-32 " />
             </div>
-            <span className="font-bold text-2xl text-[#2B2B2B]">Ajarly</span>
           </button>
 
           {/* Desktop Navigation */}
@@ -108,14 +132,18 @@ export function Navbar({
                     {isArabic ? "المفضلة" : "Favourites"}
                   </SheetTitle>
                   <SheetDescription className="sr-only">
-                    {isArabic ? "قائمة العقارات المفضلة لديك" : "Your saved favourite properties"}
+                    {isArabic
+                      ? "قائمة العقارات المفضلة لديك"
+                      : "Your saved favourite properties"}
                   </SheetDescription>
                   <div className="flex flex-col h-full">
                     {favorites.length === 0 ? (
                       <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
                         <Heart className="w-16 h-16 text-gray-300 mb-4" />
                         <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">
-                          {isArabic ? "لا توجد مفضلات بعد" : "No favourites yet"}
+                          {isArabic
+                            ? "لا توجد مفضلات بعد"
+                            : "No favourites yet"}
                         </h3>
                         <p className="text-gray-600 mb-6">
                           {isArabic
@@ -140,17 +168,24 @@ export function Navbar({
                               className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer bg-gray-200"
                               onClick={() => {
                                 if (onNavigate) {
-                                  onNavigate("property-details", String(favorite.property.propertyId));
+                                  onNavigate(
+                                    "property-details",
+                                    String(favorite.property.propertyId)
+                                  );
                                 }
                               }}
                             >
                               {favorite.property.coverImage ? (
                                 <img
                                   src={favorite.property.coverImage}
-                                  alt={favorite.property.titleEn || favorite.property.titleAr || 'Property'}
+                                  alt={
+                                    favorite.property.titleEn ||
+                                    favorite.property.titleAr ||
+                                    "Property"
+                                  }
                                   className="w-full h-full object-cover"
                                   onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
+                                    e.currentTarget.style.display = "none";
                                   }}
                                 />
                               ) : (
@@ -164,23 +199,32 @@ export function Navbar({
                                 className="font-semibold text-[#2B2B2B] line-clamp-1 cursor-pointer hover:text-[#00BFA6]"
                                 onClick={() => {
                                   if (onNavigate) {
-                                    onNavigate("property-details", String(favorite.property.propertyId));
+                                    onNavigate(
+                                      "property-details",
+                                      String(favorite.property.propertyId)
+                                    );
                                   }
                                 }}
                               >
-                                {favorite.property.titleEn || favorite.property.titleAr}
+                                {favorite.property.titleEn ||
+                                  favorite.property.titleAr}
                               </h3>
                               <p className="text-sm text-gray-600 line-clamp-1">
-                                {favorite.property.city}, {favorite.property.governorate}
+                                {favorite.property.city},{" "}
+                                {favorite.property.governorate}
                               </p>
                               {favorite.property.averageRating > 0 && (
                                 <div className="flex items-center gap-1 mt-1">
                                   <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                                  <span className="text-sm">{favorite.property.averageRating.toFixed(1)}</span>
+                                  <span className="text-sm">
+                                    {favorite.property.averageRating.toFixed(1)}
+                                  </span>
                                 </div>
                               )}
                               <p className="text-sm font-semibold text-[#2B2B2B] mt-1">
-                                {favorite.property.pricePerNight?.toLocaleString() || 0} EGP / {isArabic ? "ليلة" : "night"}
+                                {favorite.property.pricePerNight?.toLocaleString() ||
+                                  0}{" "}
+                                EGP / {isArabic ? "ليلة" : "night"}
                               </p>
                             </div>
                             <div className="flex-shrink-0">
@@ -207,16 +251,20 @@ export function Navbar({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => {
-                  setLocalLanguage("en");
-                  if (onLanguageChange) onLanguageChange("en");
-                }}>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setLocalLanguage("en");
+                    if (onLanguageChange) onLanguageChange("en");
+                  }}
+                >
                   English
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
-                  setLocalLanguage("ar");
-                  if (onLanguageChange) onLanguageChange("ar");
-                }}>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setLocalLanguage("ar");
+                    if (onLanguageChange) onLanguageChange("ar");
+                  }}
+                >
                   العربية
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -237,7 +285,9 @@ export function Navbar({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <div className="px-2 py-1.5">
-                    <p className="text-sm font-semibold text-[#2B2B2B]">{user.name}</p>
+                    <p className="text-sm font-semibold text-[#2B2B2B]">
+                      {user.name}
+                    </p>
                     <p className="text-xs text-gray-600">{user.email}</p>
                   </div>
                   <DropdownMenuSeparator />
@@ -249,7 +299,10 @@ export function Navbar({
                     {isArabic ? "لوحة التحكم" : "Dashboard"}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={onLogout} className="text-red-600 cursor-pointer">
+                  <DropdownMenuItem
+                    onClick={onLogout}
+                    className="text-red-600 cursor-pointer"
+                  >
                     <LogOut className="w-4 h-4 mr-2" />
                     {isArabic ? "تسجيل الخروج" : "Log out"}
                   </DropdownMenuItem>
@@ -292,7 +345,9 @@ export function Navbar({
                 {user ? (
                   <>
                     <div className="pb-4 border-b">
-                      <p className="text-sm font-semibold text-[#2B2B2B]">{user.name}</p>
+                      <p className="text-sm font-semibold text-[#2B2B2B]">
+                        {user.name}
+                      </p>
                       <p className="text-xs text-gray-600">{user.email}</p>
                     </div>
                     <Button
@@ -347,7 +402,11 @@ export function Navbar({
                     </Button>
                   </>
                 )}
-                <Button variant="ghost" onClick={toggleLanguage} className="justify-start gap-2">
+                <Button
+                  variant="ghost"
+                  onClick={toggleLanguage}
+                  className="justify-start gap-2"
+                >
                   <Globe className="w-4 h-4" />
                   <span>{localLanguage === "en" ? "العربية" : "English"}</span>
                 </Button>
