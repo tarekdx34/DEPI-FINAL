@@ -103,7 +103,7 @@ public class AnalyticsController {
      * الحصول على لوحة تحكم المالك (Owner Dashboard)
      */
     @GetMapping("/owner/dashboard")
-    @PreAuthorize("hasAnyAuthority('landlord', 'admin')")
+    @PreAuthorize("hasAnyRole('LANDLORD', 'ADMIN')")  // ✅ FIXED: Use hasAnyRole with uppercase
     public ResponseEntity<ApiResponse<OwnerDashboardResponse>> getOwnerDashboard() {
         log.info("GET /api/v1/analytics/owner/dashboard");
         
@@ -132,7 +132,7 @@ public class AnalyticsController {
      * الحصول على تحليلات المنصة بالكامل (Admin Only)
      */
     @GetMapping("/admin/platform")
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasRole('ADMIN')")  // ✅ FIXED: Use hasRole with uppercase
     public ResponseEntity<ApiResponse<PlatformAnalyticsResponse>> getPlatformAnalytics(
             @RequestParam(required = false) 
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
@@ -214,6 +214,6 @@ public class AnalyticsController {
             return false;
         }
         return authentication.getAuthorities().stream()
-            .anyMatch(auth -> auth.getAuthority().equals("admin"));
+            .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));  // ✅ FIXED: Check for ROLE_ADMIN
     }
 }

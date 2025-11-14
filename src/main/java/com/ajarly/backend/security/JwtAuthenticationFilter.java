@@ -34,20 +34,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Long userId = jwtUtil.getUserIdFromToken(jwt);
                 String role = jwtUtil.getRoleFromToken(jwt);
                 
-                // ✅ CRITICAL FIX: Set userId as request attribute
+                // Set userId as request attribute
                 request.setAttribute("userId", userId);
                 
                 // Set up authentication with role
                 List<SimpleGrantedAuthority> authorities = new ArrayList<>();
                 if (role != null) {
-                    // ✅ FIX: Convert role to lowercase for consistency
-                    String normalizedRole = role.toLowerCase();
+                    // ✅ FIX: Convert role to UPPERCASE for consistency
+                    String normalizedRole = role.toUpperCase();
                     
-                    // Add both formats to support different @PreAuthorize styles
-                    authorities.add(new SimpleGrantedAuthority(normalizedRole));           // "renter"
-                    authorities.add(new SimpleGrantedAuthority("ROLE_" + normalizedRole)); // "ROLE_renter"
+                    // Add the ROLE_ prefix format that Spring Security expects
+                    authorities.add(new SimpleGrantedAuthority("ROLE_" + normalizedRole)); // "ROLE_ADMIN"
                     
-                    logger.debug("Added authorities: " + normalizedRole + " and ROLE_" + normalizedRole);
+                    logger.debug("Added authority: ROLE_" + normalizedRole);
                 }
                 
                 UsernamePasswordAuthenticationToken authentication =
