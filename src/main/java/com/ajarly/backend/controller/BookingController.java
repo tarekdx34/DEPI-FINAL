@@ -45,7 +45,7 @@ public class BookingController {
      * FIXED: Changed from hasAnyRole to hasAnyAuthority
      */
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('renter', 'landlord', 'broker', 'ROLE_renter', 'ROLE_landlord', 'ROLE_broker')")
+    @PreAuthorize("hasAnyRole('RENTER', 'LANDLORD', 'BROKER')")
     public ResponseEntity<ApiResponse<BookingResponse>> createBooking(
             @Valid @RequestBody BookingCreateRequest request,
             HttpServletRequest httpRequest) {
@@ -85,7 +85,7 @@ public class BookingController {
      * GET /api/v1/bookings/owner
      */
     @GetMapping("/owner")
-    @PreAuthorize("hasAnyAuthority('landlord', 'broker', 'ROLE_landlord', 'ROLE_broker')")
+    @PreAuthorize("hasAnyRole('LANDLORD', 'BROKER')")
     public ResponseEntity<ApiResponse<List<BookingListResponse>>> getOwnerBookings(
             @RequestParam(required = false) String status,
             HttpServletRequest httpRequest) {
@@ -124,7 +124,7 @@ public class BookingController {
      * GET /api/v1/bookings/owner/upcoming
      */
     @GetMapping("/owner/upcoming")
-    @PreAuthorize("hasAnyAuthority('landlord', 'broker', 'ROLE_landlord', 'ROLE_broker')")
+    @PreAuthorize("hasAnyRole('LANDLORD', 'BROKER')")
     public ResponseEntity<ApiResponse<List<BookingListResponse>>> getOwnerUpcomingBookings(
             HttpServletRequest httpRequest) {
         
@@ -162,7 +162,7 @@ public class BookingController {
      * PUT /api/v1/bookings/{id}/confirm
      */
     @PutMapping("/{id}/confirm")
-    @PreAuthorize("hasAnyAuthority('landlord', 'broker', 'ROLE_landlord', 'ROLE_broker')")
+    @PreAuthorize("hasAnyRole('LANDLORD', 'BROKER')")
     public ResponseEntity<ApiResponse<BookingResponse>> confirmBooking(
             @PathVariable Integer id,
             @RequestBody(required = false) BookingConfirmRequest request,
@@ -182,7 +182,7 @@ public class BookingController {
      * PUT /api/v1/bookings/{id}/reject
      */
     @PutMapping("/{id}/reject")
-    @PreAuthorize("hasAnyAuthority('landlord', 'broker', 'ROLE_landlord', 'ROLE_broker')")
+    @PreAuthorize("hasAnyRole('LANDLORD', 'BROKER')")
     public ResponseEntity<ApiResponse<BookingResponse>> rejectBooking(
             @PathVariable Integer id,
             @Valid @RequestBody BookingRejectRequest request,
