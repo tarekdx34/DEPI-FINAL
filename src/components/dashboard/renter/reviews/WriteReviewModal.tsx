@@ -7,7 +7,11 @@ import { Input } from "../../../ui/input";
 import { Textarea } from "../../../ui/textarea";
 import { StarRating } from "./StarRating";
 import api from "../../../../../api";
-import type { BookingResponse, ReviewResponse, ReviewCreateRequest } from "../../../../../api";
+import type {
+  BookingResponse,
+  ReviewResponse,
+  ReviewCreateRequest,
+} from "../../../../../api";
 
 interface WriteReviewModalProps {
   booking: BookingResponse;
@@ -38,6 +42,43 @@ export function WriteReviewModal({
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [thumbnail, setThumbnail] = useState<string>("");
+  const [loadingImage, setLoadingImage] = useState(true);
+
+  // Fetch the first image from the property
+  useEffect(() => {
+    const fetchThumbnail = async () => {
+      try {
+        setLoadingImage(true);
+        const imagesData = await api.getPropertyImages(
+          booking.property.propertyId
+        );
+
+        if (imagesData && imagesData.length > 0) {
+          // Sort by imageOrder and get the first image
+          const sortedImages = imagesData.sort(
+            (a, b) => a.imageOrder - b.imageOrder
+          );
+          setThumbnail(sortedImages[0].imageUrl);
+        } else {
+          // Fallback to default image if no photos
+          setThumbnail(
+            `https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f?w=400`
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching thumbnail:", error);
+        // Use fallback image on error
+        setThumbnail(
+          `https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f?w=400`
+        );
+      } finally {
+        setLoadingImage(false);
+      }
+    };
+
+    fetchThumbnail();
+  }, [booking.property.propertyId]);
 
   // Pre-fill form if editing existing review
   useEffect(() => {
@@ -65,11 +106,13 @@ export function WriteReviewModal({
       return;
     }
 
-    if (formData.cleanlinessRating === 0 || 
-        formData.accuracyRating === 0 ||
-        formData.communicationRating === 0 ||
-        formData.locationRating === 0 ||
-        formData.valueRating === 0) {
+    if (
+      formData.cleanlinessRating === 0 ||
+      formData.accuracyRating === 0 ||
+      formData.communicationRating === 0 ||
+      formData.locationRating === 0 ||
+      formData.valueRating === 0
+    ) {
       setError("Please rate all categories");
       return;
     }
@@ -109,22 +152,20 @@ export function WriteReviewModal({
       formData.accuracyRating +
       formData.communicationRating +
       formData.locationRating +
-      formData.valueRating) / 5
+      formData.valueRating) /
+    5
   ).toFixed(1);
 
   const propertyTitle = booking.property.titleEn || booking.property.titleAr;
   const propertyLocation = `${booking.property.city}, ${booking.property.governorate}`;
-  const propertyImage = booking.property.coverImage || 
-    "https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f";
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
       {/* Modal Container with Flex Column - Smaller max height for better scrolling */}
-      <div 
+      <div
         className="bg-white rounded-xl w-full max-w-2xl flex flex-col my-8"
-        style={{ maxHeight: 'calc(100vh - 4rem)' }}
+        style={{ maxHeight: "calc(100vh - 4rem)" }}
       >
-        
         {/* Fixed Header */}
         <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-xl sticky top-0 z-10">
           <div>
@@ -149,13 +190,23 @@ export function WriteReviewModal({
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
           {/* Property Info */}
           <div className="flex gap-4 p-4 bg-gray-50 rounded-lg">
-            <img
-              src={propertyImage}
-              alt={propertyTitle}
-              className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
-            />
+            <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-200">
+              {loadingImage ? (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+                </div>
+              ) : (
+                <img
+                  src={thumbnail}
+                  alt={propertyTitle}
+                  className="w-full h-full object-cover"
+                />
+              )}
+            </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-[#2B2B2B] truncate">{propertyTitle}</h3>
+              <h3 className="font-semibold text-[#2B2B2B] truncate">
+                {propertyTitle}
+              </h3>
               <p className="text-sm text-gray-600 flex items-center gap-1">
                 <MapPin className="w-3 h-3 flex-shrink-0" />
                 <span className="truncate">{propertyLocation}</span>
@@ -187,7 +238,9 @@ export function WriteReviewModal({
           {/* Overall Rating */}
           <div>
             <Label className="text-base">Overall Rating *</Label>
-            <p className="text-sm text-gray-600 mb-2">How was your overall experience?</p>
+            <p className="text-sm text-gray-600 mb-2">
+              How was your overall experience?
+            </p>
             <div className="flex items-center gap-3">
               <StarRating
                 rating={formData.overallRating}
@@ -197,7 +250,9 @@ export function WriteReviewModal({
                 size="lg"
               />
               <span className="text-2xl font-semibold text-gray-700">
-                {formData.overallRating > 0 ? formData.overallRating.toFixed(1) : "-"}
+                {formData.overallRating > 0
+                  ? formData.overallRating.toFixed(1)
+                  : "-"}
               </span>
             </div>
           </div>
@@ -210,13 +265,36 @@ export function WriteReviewModal({
             </p>
 
             {[
-              { key: "cleanlinessRating" as const, label: "Cleanliness", description: "Was the property clean and well-maintained?" },
-              { key: "accuracyRating" as const, label: "Accuracy", description: "Did the listing match the description?" },
-              { key: "communicationRating" as const, label: "Communication", description: "How responsive was the host?" },
-              { key: "locationRating" as const, label: "Location", description: "Was the location convenient?" },
-              { key: "valueRating" as const, label: "Value for Money", description: "Was it worth the price?" },
+              {
+                key: "cleanlinessRating" as const,
+                label: "Cleanliness",
+                description: "Was the property clean and well-maintained?",
+              },
+              {
+                key: "accuracyRating" as const,
+                label: "Accuracy",
+                description: "Did the listing match the description?",
+              },
+              {
+                key: "communicationRating" as const,
+                label: "Communication",
+                description: "How responsive was the host?",
+              },
+              {
+                key: "locationRating" as const,
+                label: "Location",
+                description: "Was the location convenient?",
+              },
+              {
+                key: "valueRating" as const,
+                label: "Value for Money",
+                description: "Was it worth the price?",
+              },
             ].map(({ key, label, description }) => (
-              <div key={key} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+              <div
+                key={key}
+                className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
+              >
                 <div className="flex-1 pr-4">
                   <p className="text-sm font-medium text-gray-900">{label}</p>
                   <p className="text-xs text-gray-500">{description}</p>
@@ -234,14 +312,18 @@ export function WriteReviewModal({
 
             <div className="flex justify-between items-center pt-3 border-t border-gray-200">
               <span className="text-sm text-gray-600">Average Rating:</span>
-              <span className="text-lg font-semibold text-[#00BFA6]">{detailedRatingsAvg}</span>
+              <span className="text-lg font-semibold text-[#00BFA6]">
+                {detailedRatingsAvg}
+              </span>
             </div>
           </div>
 
           {/* Review Title */}
           <div>
             <Label htmlFor="reviewTitle">Review Title *</Label>
-            <p className="text-sm text-gray-600 mb-2">Summarize your experience in a few words</p>
+            <p className="text-sm text-gray-600 mb-2">
+              Summarize your experience in a few words
+            </p>
             <Input
               id="reviewTitle"
               value={formData.reviewTitle}
@@ -283,11 +365,15 @@ export function WriteReviewModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="pros">What You Liked (Optional)</Label>
-              <p className="text-sm text-gray-600 mb-2">Highlight the positives</p>
+              <p className="text-sm text-gray-600 mb-2">
+                Highlight the positives
+              </p>
               <Textarea
                 id="pros"
                 value={formData.pros}
-                onChange={(e) => setFormData({ ...formData, pros: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, pros: e.target.value })
+                }
                 placeholder="e.g., Great location, Clean, Friendly host..."
                 rows={3}
                 disabled={submitting}
@@ -296,11 +382,15 @@ export function WriteReviewModal({
             </div>
             <div>
               <Label htmlFor="cons">Areas for Improvement (Optional)</Label>
-              <p className="text-sm text-gray-600 mb-2">Constructive feedback</p>
+              <p className="text-sm text-gray-600 mb-2">
+                Constructive feedback
+              </p>
               <Textarea
                 id="cons"
                 value={formData.cons}
-                onChange={(e) => setFormData({ ...formData, cons: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, cons: e.target.value })
+                }
                 placeholder="e.g., WiFi could be faster, Check-in process..."
                 rows={3}
                 disabled={submitting}
@@ -312,8 +402,10 @@ export function WriteReviewModal({
           {/* Terms Note */}
           <p className="text-xs text-gray-500 text-center pt-2">
             By submitting a review, you agree to our{" "}
-            <button type="button" className="text-[#00BFA6] hover:underline">Review Guidelines</button>.
-            Reviews are subject to moderation.
+            <button type="button" className="text-[#00BFA6] hover:underline">
+              Review Guidelines
+            </button>
+            . Reviews are subject to moderation.
           </p>
         </div>
 
@@ -340,8 +432,10 @@ export function WriteReviewModal({
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   {existingReview ? "Updating..." : "Submitting..."}
                 </>
+              ) : existingReview ? (
+                "Update Review"
               ) : (
-                existingReview ? "Update Review" : "Submit Review"
+                "Submit Review"
               )}
             </Button>
           </div>

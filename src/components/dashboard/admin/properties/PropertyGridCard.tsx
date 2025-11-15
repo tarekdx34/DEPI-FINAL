@@ -1,5 +1,5 @@
 // src/components/dashboard/admin/properties/PropertyGridCard.tsx
-import { MapPin, Star, Eye, MoreVertical, Trash2 } from "lucide-react";
+import { MapPin, Star, Eye, MoreVertical, Trash2, Loader2 } from "lucide-react";
 import { Card } from "../../../ui/card";
 import { Badge } from "../../../ui/badge";
 import { Button } from "../../../ui/button";
@@ -10,7 +10,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../../../ui/dropdown-menu";
-import type { PropertyResponse } from "../../../../api";
+import type { PropertyResponse } from "../../../../../api";
+import { useState, useEffect } from "react";
+import api from "../../../../../api";
 
 interface PropertyGridCardProps {
   property: PropertyResponse;
@@ -25,14 +27,56 @@ export function PropertyGridCard({
   getStatusColor,
   onDelete,
 }: PropertyGridCardProps) {
+  const [thumbnail, setThumbnail] = useState<string>("");
+  const [loadingImage, setLoadingImage] = useState(true);
+
+  // Fetch the first image from the property
+  useEffect(() => {
+    const fetchThumbnail = async () => {
+      try {
+        setLoadingImage(true);
+        const imagesData = await api.getPropertyImages(property.propertyId);
+
+        if (imagesData && imagesData.length > 0) {
+          // Sort by imageOrder and get the first image
+          const sortedImages = imagesData.sort(
+            (a, b) => a.imageOrder - b.imageOrder
+          );
+          setThumbnail(sortedImages[0].imageUrl);
+        } else {
+          // Fallback to default image if no photos
+          setThumbnail(
+            `https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f?w=400`
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching thumbnail:", error);
+        // Use fallback image on error
+        setThumbnail(
+          `https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f?w=400`
+        );
+      } finally {
+        setLoadingImage(false);
+      }
+    };
+
+    fetchThumbnail();
+  }, [property.propertyId]);
+
   return (
     <Card className="overflow-hidden">
-      <div className="relative h-48">
-        <ImageWithFallback
-          src={property.coverImage || ""}
-          alt={property.titleEn || property.titleAr || "Property"}
-          className="w-full h-full object-cover"
-        />
+      <div className="relative h-48 bg-gray-200">
+        {loadingImage ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
+          </div>
+        ) : (
+          <ImageWithFallback
+            src={thumbnail}
+            alt={property.titleEn || property.titleAr || "Property"}
+            className="w-full h-full object-cover"
+          />
+        )}
         <Badge
           className={`absolute top-3 right-3 ${getStatusColor(
             property.status || "active"

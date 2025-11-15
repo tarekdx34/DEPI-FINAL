@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom"; // ✅ ADD THIS IMPORT
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { Button } from "../ui/button";
 import { Calendar } from "../ui/calendar";
@@ -40,17 +41,19 @@ import type {
   ReviewResponse,
 } from "../../../api";
 
+// ✅ REMOVE propertyId from props
 interface PropertyDetailsPageProps {
-  propertyId?: string;
   onNavigate: (page: string, propertyId?: string) => void;
   language?: Language;
 }
 
 export function PropertyDetailsPage({
-  propertyId,
   onNavigate,
   language = "en",
 }: PropertyDetailsPageProps) {
+  // ✅ GET propertyId FROM URL PARAMS
+  const { id: propertyId } = useParams<{ id: string }>();
+
   console.log("PropertyDetailsPage mounted with propertyId:", propertyId);
 
   const t = translations[language]?.propertyDetails ||
@@ -779,13 +782,6 @@ export function PropertyDetailsPage({
                 }
               >
                 {creatingBooking ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {language === "ar"
-                      ? "جاري الحجز..."
-                      : "Creating booking..."}
-                  </>
-                ) : checkingAvailability ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     {language === "ar" ? "جاري التحقق..." : "Checking..."}

@@ -1,10 +1,20 @@
-// FILE 2: src/components/dashboard/renter/trips/TripCard.tsx (~120 lines)
+// FILE 2: src/components/dashboard/renter/trips/TripCard.tsx
+import { useState, useEffect } from "react";
 import { Card } from "../../../ui/card";
 import { Button } from "../../../ui/button";
 import { Badge } from "../../../ui/badge";
 import { ImageWithFallback } from "../../../figma/ImageWithFallback";
-import { Calendar, MapPin, Clock, Users, Star, Loader2, AlertCircle } from "lucide-react";
+import {
+  Calendar,
+  MapPin,
+  Clock,
+  Users,
+  Star,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 import { BookingResponse } from "../../../../../api";
+import api from "../../../../../api";
 
 interface TripCardProps {
   booking: BookingResponse;
@@ -23,14 +33,50 @@ export function TripCard({
   hasReview,
   reviewsLoading,
 }: TripCardProps) {
+  const [thumbnail, setThumbnail] = useState<string>("");
+  const [loadingImage, setLoadingImage] = useState(true);
+
   const property = booking.property;
-  
+
   if (!property || !property.propertyId) return null;
 
   const propertyTitle = property.titleEn || property.titleAr || "Property";
-  const propertyLocation = `${property.city || ""}, ${property.governorate || ""}`.trim();
-  const propertyImage = property.coverImage || 
-    "https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f";
+  const propertyLocation = `${property.city || ""}, ${
+    property.governorate || ""
+  }`.trim();
+
+  // Fetch the first image from the property
+  useEffect(() => {
+    const fetchThumbnail = async () => {
+      try {
+        setLoadingImage(true);
+        const imagesData = await api.getPropertyImages(property.propertyId);
+
+        if (imagesData && imagesData.length > 0) {
+          // Sort by imageOrder and get the first image
+          const sortedImages = imagesData.sort(
+            (a, b) => a.imageOrder - b.imageOrder
+          );
+          setThumbnail(sortedImages[0].imageUrl);
+        } else {
+          // Fallback to default image if no photos
+          setThumbnail(
+            `https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f?w=400`
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching thumbnail:", error);
+        // Use fallback image on error
+        setThumbnail(
+          `https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f?w=400`
+        );
+      } finally {
+        setLoadingImage(false);
+      }
+    };
+
+    fetchThumbnail();
+  }, [property.propertyId]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -57,7 +103,7 @@ export function TripCard({
         </Badge>
       );
     }
-    
+
     if (type === "cancelled") {
       const statusText =
         booking.status === "cancelled_by_renter"
@@ -66,7 +112,10 @@ export function TripCard({
           ? "Cancelled by Host"
           : "Cancelled";
       return (
-        <Badge variant="outline" className="gap-1 bg-red-50 text-red-700 border-red-200">
+        <Badge
+          variant="outline"
+          className="gap-1 bg-red-50 text-red-700 border-red-200"
+        >
           <AlertCircle className="w-3 h-3" />
           {statusText}
         </Badge>
@@ -82,16 +131,26 @@ export function TripCard({
   };
 
   return (
-    <Card className={`overflow-hidden ${type === "cancelled" ? "opacity-75" : ""}`}>
+    <Card
+      className={`overflow-hidden ${type === "cancelled" ? "opacity-75" : ""}`}
+    >
       <div className="flex flex-col md:flex-row gap-4 p-6">
-        <div className={`w-full md:w-48 h-48 flex-shrink-0 rounded-lg overflow-hidden ${
-          type === "cancelled" ? "grayscale" : ""
-        }`}>
-          <ImageWithFallback
-            src={propertyImage}
-            alt={propertyTitle}
-            className="w-full h-full object-cover"
-          />
+        <div
+          className={`w-full md:w-48 h-48 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200 ${
+            type === "cancelled" ? "grayscale" : ""
+          }`}
+        >
+          {loadingImage ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
+            </div>
+          ) : (
+            <ImageWithFallback
+              src={thumbnail}
+              alt={propertyTitle}
+              className="w-full h-full object-cover"
+            />
+          )}
         </div>
 
         <div className="flex-1 space-y-3">
@@ -109,7 +168,8 @@ export function TripCard({
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-gray-600" />
               <span>
-                {formatDate(booking.checkInDate)} - {formatDate(booking.checkOutDate)}
+                {formatDate(booking.checkInDate)} -{" "}
+                {formatDate(booking.checkOutDate)}
               </span>
             </div>
             {type === "upcoming" && (
@@ -125,13 +185,20 @@ export function TripCard({
             {type === "upcoming" && <p>{booking.numberOfNights} nights</p>}
             <p className="mt-1">
               {type === "cancelled" ? "Original Price: " : "Total: "}
-              <span className={`font-semibold ${type === "cancelled" ? "line-through" : "text-[#00BFA6]"}`}>
+              <span
+                className={`font-semibold ${
+                  type === "cancelled" ? "line-through" : "text-[#00BFA6]"
+                }`}
+              >
                 {booking.totalPrice.toLocaleString()} EGP
               </span>
             </p>
             {type === "cancelled" && booking.refundAmount > 0 && (
               <p className="mt-1 text-green-600">
-                Refunded: <span className="font-semibold">{booking.refundAmount.toLocaleString()} EGP</span>
+                Refunded:{" "}
+                <span className="font-semibold">
+                  {booking.refundAmount.toLocaleString()} EGP
+                </span>
               </p>
             )}
             <p className="mt-1">Confirmation: {booking.bookingReference}</p>
@@ -141,7 +208,9 @@ export function TripCard({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onNavigate("trip-details", String(booking.bookingId))}
+              onClick={() =>
+                onNavigate("property-details", String(property.propertyId))
+              }
             >
               View Details
             </Button>
@@ -151,7 +220,12 @@ export function TripCard({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onNavigate("contact-host", String(booking.owner?.userId || ""))}
+                  onClick={() =>
+                    onNavigate(
+                      "contact-host",
+                      String(booking.owner?.userId || "")
+                    )
+                  }
                 >
                   Contact Host
                 </Button>
@@ -168,8 +242,8 @@ export function TripCard({
               </>
             )}
 
-            {type === "past" && (
-              reviewsLoading ? (
+            {type === "past" &&
+              (reviewsLoading ? (
                 <Button size="sm" variant="outline" disabled className="gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Checking...
@@ -178,7 +252,9 @@ export function TripCard({
                 <Button
                   size="sm"
                   className="bg-[#00BFA6] hover:bg-[#00A890] gap-2"
-                  onClick={() => onNavigate("write-review", String(booking.bookingId))}
+                  onClick={() =>
+                    onNavigate("write-review", String(booking.bookingId))
+                  }
                 >
                   <Star className="w-4 h-4" />
                   Write Review
@@ -193,11 +269,14 @@ export function TripCard({
                   <Star className="w-4 h-4 fill-[#00BFA6]" />
                   View Your Review
                 </Button>
-              )
-            )}
+              ))}
 
             {type === "cancelled" && (
-              <Button variant="outline" size="sm" onClick={() => onNavigate("properties")}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onNavigate("properties")}
+              >
                 Book Again
               </Button>
             )}

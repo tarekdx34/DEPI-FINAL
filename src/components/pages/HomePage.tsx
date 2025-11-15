@@ -25,7 +25,6 @@ import { Language, translations } from "../../lib/translations";
 import api, { PropertyResponse, PopularLocation } from "../../../api";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import logo from "../../../assets/Logo.svg";
 interface HomePageProps {
   onNavigate: (page: string, propertyId?: string) => void;
   language?: Language;
@@ -69,10 +68,10 @@ function OceanWaves() {
         const x = originalPositions[i].x;
         const y = originalPositions[i].y;
 
-        // Create wave effect
-        const waveX = Math.sin(x * 0.5 + time * 0.8) * 0.3;
-        const waveY = Math.sin(y * 0.5 + time * 0.6) * 0.3;
-        const waveXY = Math.sin((x + y) * 0.3 + time) * 0.2;
+        // Create smooth wave effect moving towards the island
+        const waveX = Math.sin(x * 0.4 + time * 0.5) * 0.25;
+        const waveY = Math.sin(y * 0.4 + time * 0.4) * 0.25;
+        const waveXY = Math.sin((x + y) * 0.25 + time * 0.6) * 0.15;
 
         positionAttribute.setZ(i, waveX + waveY + waveXY);
       }
@@ -85,61 +84,138 @@ function OceanWaves() {
   return (
     <mesh
       ref={meshRef}
-      rotation={[-Math.PI / 2.5, 0, 0]}
-      position={[0, -2, -5]}
+      rotation={[-Math.PI / 2.2, 0, 0]}
+      position={[0, -3, -2]}
     >
-      <planeGeometry args={[20, 20, 64, 64]} />
+      <planeGeometry args={[30, 30, 80, 80]} />
       <meshStandardMaterial
         color="#06b6d4"
         transparent
-        opacity={0.6}
+        opacity={0.7}
         side={THREE.DoubleSide}
         wireframe={false}
-        metalness={0.3}
-        roughness={0.4}
+        metalness={0.4}
+        roughness={0.3}
       />
     </mesh>
   );
 }
 
 // Island Component
-function Island() {
+
+function IslandWithHome() {
   const meshRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
     if (meshRef.current) {
-      meshRef.current.rotation.y =
-        Math.sin(state.clock.getElapsedTime() * 0.3) * 0.1;
+      // Gentle bobbing motion from waves
+      meshRef.current.position.y =
+        -1.2 + Math.sin(state.clock.getElapsedTime() * 0.8) * 0.1;
+      meshRef.current.rotation.z =
+        Math.sin(state.clock.getElapsedTime() * 0.6) * 0.03;
     }
   });
 
   return (
     <group ref={meshRef} position={[3, -1, -3]}>
-      {/* Island base */}
-      <mesh position={[0, 0, 0]}>
-        <coneGeometry args={[1.5, 2, 8]} />
-        <meshStandardMaterial color="#8b7355" />
+      {/* Sandy island base - flatter and wider */}
+      <mesh position={[0, -0.3, 0]}>
+        <cylinderGeometry args={[2, 2.2, 0.8, 16]} />
+        <meshStandardMaterial color="#f4d03f" roughness={0.9} />
       </mesh>
-      {/* Palm tree trunk */}
-      <mesh position={[0, 1.5, 0]}>
-        <cylinderGeometry args={[0.1, 0.15, 1.5, 8]} />
+
+      {/* Main house structure */}
+      <mesh position={[0, 0.8, 0]}>
+        <boxGeometry args={[1.6, 1.2, 1.6]} />
+        <meshStandardMaterial color="#e8d4a0" />
+      </mesh>
+      {/* Roof */}
+      <mesh position={[0, 1.7, 0]} rotation={[0, Math.PI / 4, 0]}>
+        <coneGeometry args={[1.3, 0.8, 4]} />
+        <meshStandardMaterial color="#c44536" />
+      </mesh>
+      {/* Door */}
+      <mesh position={[0, 0.5, 0.81]}>
+        <boxGeometry args={[0.4, 0.7, 0.05]} />
         <meshStandardMaterial color="#6b4423" />
       </mesh>
-      {/* Palm leaves */}
-      {[0, 1, 2, 3].map((i) => (
+      {/* Windows */}
+      <mesh position={[-0.5, 0.9, 0.81]}>
+        <boxGeometry args={[0.3, 0.3, 0.05]} />
+        <meshStandardMaterial color="#87ceeb" />
+      </mesh>
+      <mesh position={[0.5, 0.9, 0.81]}>
+        <boxGeometry args={[0.3, 0.3, 0.05]} />
+        <meshStandardMaterial color="#87ceeb" />
+      </mesh>
+
+      {/* Palm tree on island */}
+      <mesh position={[1.2, 0.8, 0.8]}>
+        <cylinderGeometry args={[0.08, 0.12, 1.5, 8]} />
+        <meshStandardMaterial color="#6b4423" />
+      </mesh>
+      {[0, 1, 2, 3, 4].map((j) => (
         <mesh
-          key={i}
+          key={j}
           position={[
-            Math.cos((i * Math.PI) / 2) * 0.3,
-            2.3,
-            Math.sin((i * Math.PI) / 2) * 0.3,
+            1.2 + Math.cos((j * Math.PI) / 2.5) * 0.25,
+            1.8,
+            0.8 + Math.sin((j * Math.PI) / 2.5) * 0.25,
           ]}
-          rotation={[0, (i * Math.PI) / 2, Math.PI / 4]}
+          rotation={[0, (j * Math.PI) / 2.5, Math.PI / 3.5]}
         >
-          <boxGeometry args={[0.8, 0.1, 0.2]} />
+          <boxGeometry args={[0.7, 0.08, 0.15]} />
           <meshStandardMaterial color="#2d5016" />
         </mesh>
       ))}
+    </group>
+  );
+}
+// Home Component (on water where island was)
+function Home() {
+  const meshRef = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    if (meshRef.current) {
+      // Gentle bobbing motion from waves
+      meshRef.current.position.y =
+        -1.2 + Math.sin(state.clock.getElapsedTime() * 0.8) * 0.15;
+      meshRef.current.rotation.z =
+        Math.sin(state.clock.getElapsedTime() * 0.6) * 0.05;
+    }
+  });
+
+  return (
+    <group ref={meshRef} position={[3, -1, -3]}>
+      {/* House base/foundation */}
+      <mesh position={[0, 0.3, 0]}>
+        <boxGeometry args={[1.8, 0.3, 1.8]} />
+        <meshStandardMaterial color="#8b7355" />
+      </mesh>
+      {/* Main house structure */}
+      <mesh position={[0, 1, 0]}>
+        <boxGeometry args={[1.6, 1.2, 1.6]} />
+        <meshStandardMaterial color="#e8d4a0" />
+      </mesh>
+      {/* Roof */}
+      <mesh position={[0, 1.9, 0]} rotation={[0, Math.PI / 4, 0]}>
+        <coneGeometry args={[1.3, 0.8, 4]} />
+        <meshStandardMaterial color="#c44536" />
+      </mesh>
+      {/* Door */}
+      <mesh position={[0, 0.7, 0.81]}>
+        <boxGeometry args={[0.4, 0.7, 0.05]} />
+        <meshStandardMaterial color="#6b4423" />
+      </mesh>
+      {/* Windows */}
+      <mesh position={[-0.5, 1.1, 0.81]}>
+        <boxGeometry args={[0.3, 0.3, 0.05]} />
+        <meshStandardMaterial color="#87ceeb" />
+      </mesh>
+      <mesh position={[0.5, 1.1, 0.81]}>
+        <boxGeometry args={[0.3, 0.3, 0.05]} />
+        <meshStandardMaterial color="#87ceeb" />
+      </mesh>
     </group>
   );
 }
@@ -162,8 +238,8 @@ function Scene3D() {
       <pointLight position={[-5, 5, 5]} intensity={0.5} color="#ffd700" />
 
       <OceanWaves />
-      <Island />
-
+      <Home />
+      <IslandWithHome />
       {/* Sky gradient background */}
       <mesh position={[0, 0, -10]}>
         <planeGeometry args={[50, 50]} />
@@ -456,9 +532,7 @@ export function HomePage({ onNavigate, language = "en", user }: HomePageProps) {
                 size="lg"
                 className="bg-[#FF6B6B] hover:bg-[#FF5252] text-white rounded-full px-8 transition-all duration-300 hover:scale-110 active:scale-95"
               >
-                <Search
-                  className={`w-5 h-5 ${language === "ar" ? "ml-2" : "mr-2"}`}
-                />
+                <Search />
               </Button>
             </div>
           </div>
