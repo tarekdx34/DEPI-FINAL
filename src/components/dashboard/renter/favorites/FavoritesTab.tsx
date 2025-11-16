@@ -1,6 +1,7 @@
 // src/components/dashboard/renter/favorites/FavoritesTab.tsx - النسخة النهائية
 import { useState, useEffect } from "react";
 import { Card } from "../../../ui/card";
+import { Language, translations } from "../../../../lib/translations";
 import { Button } from "../../../ui/button";
 import { Badge } from "../../../ui/badge";
 import { ImageWithFallback } from "../../../figma/ImageWithFallback";
@@ -11,6 +12,7 @@ import api from "../../../../../api";
 
 interface FavoritesTabProps {
   onNavigate: (page: string, id?: string) => void;
+  language: Language;
 }
 
 interface PropertyImage {
@@ -18,7 +20,8 @@ interface PropertyImage {
   imageUrl: string;
 }
 
-export function FavoritesTab({ onNavigate }: FavoritesTabProps) {
+export function FavoritesTab({ onNavigate, language }: FavoritesTabProps) {
+  const t = translations[language];
   const { favorites, loading, removeFromFavorites } = useFavorites();
   const [removingId, setRemovingId] = useState<number | null>(null);
   const [propertyImages, setPropertyImages] = useState<Map<number, string>>(
@@ -100,18 +103,22 @@ export function FavoritesTab({ onNavigate }: FavoritesTabProps) {
     return (
       <EmptyState
         icon={Heart}
-        title="No favorites yet"
-        description="Save properties you love to easily find them later"
-        actionLabel="Browse Properties"
+        title={t.userDashboard.noFavorites}
+        description={t.userDashboard.saveFavorites}
+        actionLabel={t.userDashboard.browseProperties}
         onAction={() => onNavigate("properties")}
       />
     );
   }
 
   return (
-    <div>
-      <h2 className="text-2xl font-semibold text-[#2B2B2B] mb-4">
-        My Favorites ({favorites.length})
+    <div dir={language === "ar" ? "rtl" : "ltr"}>
+      <h2
+        className={`text-2xl font-semibold text-[#2B2B2B] mb-4 ${
+          language === "ar" ? "text-right" : "text-left"
+        }`}
+      >
+        {t.userDashboard.myFavorites} ({favorites.length})
       </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -168,8 +175,12 @@ export function FavoritesTab({ onNavigate }: FavoritesTabProps) {
                 </Button>
 
                 {favorite.property.isFeatured && (
-                  <Badge className="absolute top-2 left-2 bg-[#FFB74D] text-white">
-                    Featured
+                  <Badge
+                    className={`absolute top-2 ${
+                      language === "ar" ? "right-2" : "left-2"
+                    } bg-[#FFB74D] text-white`}
+                  >
+                    {t.userDashboard.featured}
                   </Badge>
                 )}
               </div>
@@ -195,7 +206,10 @@ export function FavoritesTab({ onNavigate }: FavoritesTabProps) {
                       {favorite.property.pricePerNight?.toLocaleString() || "0"}{" "}
                       EGP
                     </span>
-                    <span className="text-sm text-gray-600"> / night</span>
+                    <span className="text-sm text-gray-600">
+                      {" "}
+                      / {t.userDashboard.perNight}
+                    </span>{" "}
                   </div>
 
                   {favorite.property.averageRating > 0 && (

@@ -1,6 +1,7 @@
-// src/components/dashboard/OwnerBookings.tsx - FIXED
+// src/components/dashboard/OwnerBookings.tsx - RESOLVED
 import { useState } from "react";
 import { Calendar, Check, X, Eye, XCircle } from "lucide-react";
+import { Language, translations } from "../../../lib/translations";
 import { toast } from "sonner";
 import api, { BookingResponse } from "../../../../api";
 import { Card } from "../../ui/card";
@@ -30,12 +31,15 @@ import { Label } from "../../ui/label";
 interface OwnerBookingsProps {
   bookings: BookingResponse[];
   onBookingUpdated: () => void;
+  language: Language;
 }
 
 export function OwnerBookings({
   bookings,
   onBookingUpdated,
+  language,
 }: OwnerBookingsProps) {
+  const t = translations[language];
   const [actionBookingId, setActionBookingId] = useState<number | null>(null);
   const [actionType, setActionType] = useState<
     "confirm" | "reject" | "details" | null
@@ -165,35 +169,47 @@ export function OwnerBookings({
 
   if (!bookings || bookings.length === 0) {
     return (
-      <div>
-        <h2 className="text-2xl font-semibold text-[#2B2B2B] mb-4">
-          Bookings Management
+      <div dir={language === "ar" ? "rtl" : "ltr"}>
+        <h2
+          className={`text-2xl font-semibold text-[#2B2B2B] mb-4 ${
+            language === "ar" ? "text-right" : "text-left"
+          }`}
+        >
+          {t.hostDashboard.bookingsManagement}
         </h2>
         <Card className="p-12 text-center">
           <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">
-            No bookings yet
+            {t.hostDashboard.noBookings}
           </h3>
-          <p className="text-gray-600">
-            Your property bookings will appear here
-          </p>
+          <p className="text-gray-600">{t.hostDashboard.bookingsAppear}</p>
         </Card>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
+    <div dir={language === "ar" ? "rtl" : "ltr"}>
+      <div
+        className={`flex items-center justify-between mb-4 ${
+          language === "ar" ? "flex-row-reverse" : ""
+        }`}
+      >
         <h2 className="text-2xl font-semibold text-[#2B2B2B]">
-          Bookings Management
+          {t.hostDashboard.bookingsManagement}
         </h2>
-        <div className="flex gap-2 text-sm">
+        <div
+          className={`flex gap-2 text-sm ${
+            language === "ar" ? "flex-row-reverse" : ""
+          }`}
+        >
           <Badge variant="outline" className="bg-yellow-50">
-            {bookings.filter((b) => b.status === "pending").length} Pending
+            {bookings.filter((b) => b.status === "pending").length}{" "}
+            {t.hostDashboard.pending}
           </Badge>
           <Badge variant="outline" className="bg-green-50">
-            {bookings.filter((b) => b.status === "confirmed").length} Confirmed
+            {bookings.filter((b) => b.status === "confirmed").length}{" "}
+            {t.admin.active}
           </Badge>
         </div>
       </div>
@@ -203,15 +219,51 @@ export function OwnerBookings({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Booking Ref</TableHead>
-                <TableHead>Property</TableHead>
-                <TableHead>Guest</TableHead>
-                <TableHead>Check-in</TableHead>
-                <TableHead>Check-out</TableHead>
-                <TableHead>Nights</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead
+                  className={language === "ar" ? "text-right" : "text-left"}
+                >
+                  {t.hostDashboard.bookingRef}
+                </TableHead>
+                <TableHead
+                  className={language === "ar" ? "text-right" : "text-left"}
+                >
+                  {t.hostDashboard.property}
+                </TableHead>
+                <TableHead
+                  className={language === "ar" ? "text-right" : "text-left"}
+                >
+                  {t.hostDashboard.guest}
+                </TableHead>
+                <TableHead
+                  className={language === "ar" ? "text-right" : "text-left"}
+                >
+                  {t.hostDashboard.checkIn}
+                </TableHead>
+                <TableHead
+                  className={language === "ar" ? "text-right" : "text-left"}
+                >
+                  {t.hostDashboard.checkOut}
+                </TableHead>
+                <TableHead
+                  className={language === "ar" ? "text-right" : "text-left"}
+                >
+                  {t.hostDashboard.nights}
+                </TableHead>
+                <TableHead
+                  className={language === "ar" ? "text-right" : "text-left"}
+                >
+                  {t.userDashboard.amount}
+                </TableHead>
+                <TableHead
+                  className={language === "ar" ? "text-right" : "text-left"}
+                >
+                  {t.userDashboard.status}
+                </TableHead>
+                <TableHead
+                  className={language === "ar" ? "text-right" : "text-left"}
+                >
+                  {t.admin.actions}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -307,31 +359,40 @@ export function OwnerBookings({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Booking</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t.hostDashboard.confirmBooking}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to confirm this booking? The guest will be
-              notified.
+              {t.hostDashboard.areYouSureConfirm}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="my-4">
-            <Label htmlFor="confirmResponse">Message to Guest (Optional)</Label>
+            <Label htmlFor="confirmResponse">
+              {t.hostDashboard.messageToGuest}
+            </Label>
             <Textarea
               id="confirmResponse"
               value={confirmResponse}
               onChange={(e) => setConfirmResponse(e.target.value)}
-              placeholder="Thank you for booking! Looking forward to hosting you."
+              placeholder={t.hostDashboard.thankYouMessage}
               rows={3}
               className="mt-1"
             />
           </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={processing}>Cancel</AlertDialogCancel>
+          <AlertDialogFooter
+            className={language === "ar" ? "flex-row-reverse" : ""}
+          >
+            <AlertDialogCancel disabled={processing}>
+              {t.hostDashboard.cancel}
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmBooking}
               disabled={processing}
               className="bg-green-600 hover:bg-green-700"
             >
-              {processing ? "Confirming..." : "Confirm Booking"}
+              {processing
+                ? t.hostDashboard.confirming
+                : t.hostDashboard.confirmBooking}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -348,32 +409,39 @@ export function OwnerBookings({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Reject Booking</AlertDialogTitle>
+            <AlertDialogTitle>{t.hostDashboard.rejectBooking}</AlertDialogTitle>
             <AlertDialogDescription>
-              Please provide a reason for rejecting this booking. The guest will
-              be notified.
+              {t.hostDashboard.provideReason}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="my-4">
-            <Label htmlFor="rejectionReason">Rejection Reason *</Label>
+            <Label htmlFor="rejectionReason">
+              {t.hostDashboard.rejectionReason} *
+            </Label>
             <Textarea
               id="rejectionReason"
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
-              placeholder="e.g., Property not available on these dates"
+              placeholder={t.hostDashboard.rejectionPlaceholder}
               rows={3}
               className="mt-1"
               required
             />
           </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={processing}>Cancel</AlertDialogCancel>
+          <AlertDialogFooter
+            className={language === "ar" ? "flex-row-reverse" : ""}
+          >
+            <AlertDialogCancel disabled={processing}>
+              {t.hostDashboard.cancel}
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleRejectBooking}
               disabled={processing || !rejectionReason.trim()}
               className="bg-red-600 hover:bg-red-700"
             >
-              {processing ? "Rejecting..." : "Reject Booking"}
+              {processing
+                ? t.hostDashboard.rejecting
+                : t.hostDashboard.rejectBooking}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

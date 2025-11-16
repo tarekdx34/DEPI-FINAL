@@ -5,6 +5,23 @@
     sans-serif;
 }
 
+html[dir="rtl"],
+html[dir="rtl"] body,
+[dir="rtl"] {
+  direction: rtl !important;
+}
+
+[dir="rtl"] * {
+  direction: inherit;
+}
+
+/* Force RTL for all tab components */
+[dir="rtl"] [role="tablist"],
+[dir="rtl"] [role="tab"] {
+  direction: rtl !important;
+  flex-direction: row-reverse !important;
+}
+
 /* For RTL support */
 [dir="rtl"] {
   font-family: "Cairo", "Tajawal", sans-serif;
@@ -4487,4 +4504,40 @@ html {
   to {
     height: 0;
   }
+}
+
+/* ========================================
+   RTL Support for Tabs - Ajarly Dashboard
+   ======================================== */
+
+/* Force RTL direction for tabs container */
+[dir="rtl"] [role="tablist"] {
+  direction: rtl !important;
+}
+
+/* Reverse flex direction for tabs in RTL */
+[dir="rtl"] [data-slot="tabs-list"] {
+  flex-direction: row-reverse !important;
+}
+
+/* Reverse flex direction for individual tab triggers in RTL */
+[dir="rtl"] [data-slot="tabs-trigger"] {
+  flex-direction: row-reverse !important;
+}
+
+/* Fix grid-based tabs in RTL */
+[dir="rtl"] .grid[role="tablist"] {
+  direction: rtl !important;
+}
+
+/* Ensure proper spacing for icons in RTL tabs */
+[dir="rtl"] [role="tab"] svg {
+  margin-left: 0.5rem;
+  margin-right: 0;
+}
+
+/* Fix tab content alignment in RTL */
+[dir="rtl"] [data-slot="tabs-content"] {
+  direction: rtl;
+  text-align: right;
 }

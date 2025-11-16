@@ -1,6 +1,8 @@
 // src/components/dashboard/owner/OwnerDashboard.tsx - COMPLETE FIX
 import { useState, useEffect, useCallback } from "react";
 import { AddPropertyForm } from "./AddPropertyForm";
+import { Language, translations } from "../../../lib/translations";
+
 import {
   Plus,
   Home,
@@ -24,12 +26,15 @@ import { OwnerSettings } from "./OwnerSettings";
 interface OwnerDashboardProps {
   onNavigate?: (page: string, propertyId?: string) => void;
   showAddPropertyOnMount?: boolean;
+  language: Language;
 }
 
 export function OwnerDashboard({
   onNavigate,
   showAddPropertyOnMount = false,
+  language,
 }: OwnerDashboardProps) {
+  const t = translations[language];
   const { profile, loading: profileLoading } = useProfile();
   const [activeTab, setActiveTab] = useState("overview");
   const [showAddProperty, setShowAddProperty] = useState(
@@ -167,21 +172,32 @@ export function OwnerDashboard({
   }
 
   return (
-    <div className="min-h-screen bg-[#F9F6F1]">
+    <div
+      className="min-h-screen bg-[#F9F6F1]"
+      dir={language === "ar" ? "rtl" : "ltr"}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
+        <div
+          className={`flex items-center justify-between mb-8 ${
+            language === "ar" ? "flex-row-reverse" : ""
+          }`}
+        >
+          <div className={language === "ar" ? "text-right" : "text-left"}>
             <h1 className="text-3xl font-semibold text-[#2B2B2B]">
-              Owner Dashboard
+              {t.hostDashboard.title}
             </h1>
             <p className="text-gray-600 mt-1">
-              Welcome back, {profile?.firstName}!
+              {t.hostDashboard.welcome.replace("ðŸŽ‰", "")} {profile?.firstName}
+              !
             </p>
           </div>
           {!showAddProperty && (
-            <Button onClick={() => setShowAddProperty(true)} className="gap-2">
+            <Button
+              onClick={() => setShowAddProperty(true)}
+              className={`gap-2 ${language === "ar" ? "flex-row-reverse" : ""}`}
+            >
               <Plus className="w-5 h-5" />
-              Add Property
+              {t.hostDashboard.addProperty}
             </Button>
           )}
         </div>
@@ -193,31 +209,59 @@ export function OwnerDashboard({
           />
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full max-w-3xl grid-cols-5 mb-8">
-              <TabsTrigger value="overview" className="gap-2">
+            <TabsList
+              className={`grid w-full max-w-3xl grid-cols-5 mb-8 ${
+                language === "ar" ? "flex-row-reverse" : ""
+              }`}
+            >
+              <TabsTrigger
+                value="overview"
+                className={`gap-2 ${
+                  language === "ar" ? "flex-row-reverse" : ""
+                }`}
+              >
                 <Home className="w-4 h-4" />
-                <span className="hidden sm:inline">Overview</span>
+                <span className="hidden sm:inline">
+                  {t.hostDashboard.overview}
+                </span>
               </TabsTrigger>
               <TabsTrigger value="properties" className="gap-2">
                 <Home className="w-4 h-4" />
-                <span className="hidden sm:inline">Properties</span>
+                <span className="hidden sm:inline">
+                  {t.hostDashboard.myProperties}
+                </span>
               </TabsTrigger>
               <TabsTrigger value="bookings" className="gap-2">
                 <Calendar className="w-4 h-4" />
-                <span className="hidden sm:inline">Bookings</span>
+                <span className="hidden sm:inline">
+                  {t.hostDashboard.bookings}
+                </span>
               </TabsTrigger>
               <TabsTrigger value="analytics" className="gap-2">
                 <TrendingUp className="w-4 h-4" />
-                <span className="hidden sm:inline">Analytics</span>
+                <span className="hidden sm:inline">
+                  {t.hostDashboard.analytics}
+                </span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="gap-2">
+              <TabsTrigger
+                value="settings"
+                className={`gap-2 ${
+                  language === "ar" ? "flex-row-reverse" : ""
+                }`}
+              >
                 <Settings className="w-4 h-4" />
-                <span className="hidden sm:inline">Settings</span>
+                <span className="hidden sm:inline">
+                  {t.hostDashboard.settings}
+                </span>
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview">
-              <OwnerOverview dashboard={dashboard} properties={properties} />
+              <OwnerOverview
+                dashboard={dashboard}
+                properties={properties}
+                language={language}
+              />
             </TabsContent>
 
             <TabsContent value="properties">
@@ -225,6 +269,7 @@ export function OwnerDashboard({
                 properties={properties}
                 onPropertyDeleted={handlePropertyDeleted}
                 onNavigate={onNavigate}
+                language={language}
               />
             </TabsContent>
 
@@ -232,15 +277,16 @@ export function OwnerDashboard({
               <OwnerBookings
                 bookings={bookings}
                 onBookingUpdated={handleBookingUpdated}
+                language={language}
               />
             </TabsContent>
 
             <TabsContent value="analytics">
-              <OwnerAnalytics dashboard={dashboard} />
+              <OwnerAnalytics dashboard={dashboard} language={language} />
             </TabsContent>
 
             <TabsContent value="settings">
-              <OwnerSettings profile={profile} />
+              <OwnerSettings profile={profile} language={language} />
             </TabsContent>
           </Tabs>
         )}

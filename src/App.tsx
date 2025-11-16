@@ -1,4 +1,4 @@
-// src/App.tsx - Fixed registration state update
+// src/App.tsx - Resolved merge conflicts
 import { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
@@ -59,7 +59,6 @@ function ProtectedRoute({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Role checking would require user state - handled in parent
   return <>{children}</>;
 }
 
@@ -117,7 +116,7 @@ function AppLayout() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [location.pathname]);
 
-  // Navigation handler (converts old string-based navigation to router navigation)
+  // Navigation handler
   const handleNavigate = (
     page: string,
     propertyId?: string,
@@ -128,7 +127,6 @@ function AppLayout() {
     const [pageName, queryString] = page.split("?");
     const params = new URLSearchParams(queryString || "");
 
-    // Map old page names to routes
     const routeMap: Record<string, string> = {
       home: "/",
       login: "/login",
@@ -297,7 +295,7 @@ function AppLayout() {
         "Registration failed. Please try again.";
       toast.error(errorMessage);
 
-      throw error; // Re-throw so the RegisterPage can handle it
+      throw error;
     }
   };
 
@@ -488,6 +486,7 @@ function AppLayout() {
                   onNavigate={handleNavigate}
                   currentUser={user}
                   onUserUpdate={setUser}
+                  language={language}
                 />
               </ProtectedRoute>
             }
@@ -500,6 +499,7 @@ function AppLayout() {
                 <OwnerDashboard
                   onNavigate={handleNavigate}
                   showAddPropertyOnMount={isNewHost}
+                  language={language}
                 />
               </ProtectedRoute>
             }

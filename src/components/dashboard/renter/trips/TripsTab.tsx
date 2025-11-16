@@ -1,6 +1,7 @@
 // FILE 1: src/components/dashboard/renter/trips/TripsTab.tsx (~100 lines)
 import { useState, useEffect } from "react";
 import { Loader2, Calendar } from "lucide-react";
+import { Language, translations } from "../../../../lib/translations";
 import { EmptyState } from "../../shared/components/EmptyState";
 import { TripCard } from "./TripCard";
 import { CancelDialog } from "./CancelDialog";
@@ -9,9 +10,11 @@ import api from "../../../../../api";
 
 interface TripsTabProps {
   onNavigate: (page: string, id?: string) => void;
+  language: Language;
 }
 
-export function TripsTab({ onNavigate }: TripsTabProps) {
+export function TripsTab({ onNavigate, language }: TripsTabProps) {
+  const t = translations[language];
   const {
     upcomingBookings,
     pastBookings,
@@ -20,9 +23,11 @@ export function TripsTab({ onNavigate }: TripsTabProps) {
     cancelBooking,
     fetchBookings,
   } = useBookings();
-  
+
   const [cancelBookingId, setCancelBookingId] = useState<number | null>(null);
-  const [existingReviews, setExistingReviews] = useState<Set<number>>(new Set());
+  const [existingReviews, setExistingReviews] = useState<Set<number>>(
+    new Set()
+  );
   const [reviewsLoading, setReviewsLoading] = useState(false);
 
   useEffect(() => {
@@ -36,8 +41,8 @@ export function TripsTab({ onNavigate }: TripsTabProps) {
 
   useEffect(() => {
     const handleFocus = () => checkExistingReviews();
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
   }, []);
 
   const checkExistingReviews = async () => {
@@ -73,11 +78,16 @@ export function TripsTab({ onNavigate }: TripsTabProps) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" dir={language === "ar" ? "rtl" : "ltr"}>
+      {" "}
       {/* Upcoming Trips */}
       <div>
-        <h2 className="text-2xl font-semibold text-[#2B2B2B] mb-4">
-          Upcoming Trips
+        <h2
+          className={`text-2xl font-semibold text-[#2B2B2B] mb-4 ${
+            language === "ar" ? "text-right" : "text-left"
+          }`}
+        >
+          {t.userDashboard.upcomingTrips}
         </h2>
         {upcomingBookings.length > 0 ? (
           <div className="grid grid-cols-1 gap-4">
@@ -94,17 +104,22 @@ export function TripsTab({ onNavigate }: TripsTabProps) {
         ) : (
           <EmptyState
             icon={Calendar}
-            title="No upcoming trips"
-            description="Time to dust off your bags and start planning your next adventure!"
-            actionLabel="Start Exploring"
+            title={t.userDashboard.noUpcomingTrips}
+            description={t.userDashboard.timeToExplore}
+            actionLabel={t.userDashboard.startExploring}
             onAction={() => onNavigate("properties")}
           />
         )}
       </div>
-
       {/* Past Trips */}
       <div>
-        <h2 className="text-2xl font-semibold text-[#2B2B2B] mb-4">Past Trips</h2>
+        <h2
+          className={`text-2xl font-semibold text-[#2B2B2B] mb-4 ${
+            language === "ar" ? "text-right" : "text-left"
+          }`}
+        >
+          {t.userDashboard.pastTrips}
+        </h2>
         {pastBookings.length > 0 ? (
           <div className="grid grid-cols-1 gap-4">
             {pastBookings.map((booking) => (
@@ -119,14 +134,19 @@ export function TripsTab({ onNavigate }: TripsTabProps) {
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-600">No past trips</div>
+          <div className="text-center py-8 text-gray-600">
+            {t.userDashboard.noPastTrips}
+          </div>
         )}
       </div>
-
       {/* Cancelled Trips */}
       <div>
-        <h2 className="text-2xl font-semibold text-[#2B2B2B] mb-4">
-          Cancelled Trips
+        <h2
+          className={`text-2xl font-semibold text-[#2B2B2B] mb-4 ${
+            language === "ar" ? "text-right" : "text-left"
+          }`}
+        >
+          {t.userDashboard.cancelledTrips}
         </h2>
         {cancelledBookings.length > 0 ? (
           <div className="grid grid-cols-1 gap-4">
@@ -140,10 +160,11 @@ export function TripsTab({ onNavigate }: TripsTabProps) {
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-600">No cancelled trips</div>
+          <div className="text-center py-8 text-gray-600">
+            {t.userDashboard.noCancelledTrips}
+          </div>
         )}
       </div>
-
       <CancelDialog
         open={cancelBookingId !== null}
         onClose={() => setCancelBookingId(null)}

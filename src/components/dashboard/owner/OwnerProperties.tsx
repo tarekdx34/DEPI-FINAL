@@ -1,5 +1,6 @@
-// src/components/dashboard/owner/OwnerProperties.tsx - TITLE FIX
+// src/components/dashboard/owner/OwnerProperties.tsx - FINAL FIX
 import { useState } from "react";
+import { Language, translations } from "../../../lib/translations";
 import {
   Home,
   Edit,
@@ -36,6 +37,7 @@ interface OwnerPropertiesProps {
   onPropertyDeleted: () => void;
   onEditProperty?: (property: PropertyResponse) => void;
   onNavigate?: (page: string, propertyId?: string) => void;
+  language: Language;
 }
 
 export function OwnerProperties({
@@ -43,7 +45,9 @@ export function OwnerProperties({
   onPropertyDeleted,
   onEditProperty,
   onNavigate,
+  language,
 }: OwnerPropertiesProps) {
+  const t = translations[language];
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [propertyToDelete, setPropertyToDelete] =
     useState<PropertyResponse | null>(null);
@@ -100,6 +104,7 @@ export function OwnerProperties({
     }
   };
 
+  // ✅ CRITICAL FIX: Navigate internally, don't open new tab
   const handleViewProperty = (propertyId: number) => {
     if (onNavigate) {
       console.log("✅ Navigating to property details:", propertyId);
@@ -110,6 +115,7 @@ export function OwnerProperties({
     }
   };
 
+  // ✅ PropertyCard click handler
   const handleCardNavigate = (page: string, id?: string) => {
     if (page === "property-details" && id && onNavigate) {
       console.log("✅ Card clicked, navigating to:", id);
@@ -121,13 +127,22 @@ export function OwnerProperties({
     const status = property.status || property.approvalStatus || "inactive";
 
     const statusConfig: Record<string, { label: string; className: string }> = {
-      active: { label: "Active", className: "bg-green-100 text-green-700" },
+      active: {
+        label: t.hostDashboard.active,
+        className: "bg-green-100 text-green-700",
+      },
       pending_approval: {
-        label: "Pending",
+        label: t.hostDashboard.pending,
         className: "bg-yellow-100 text-yellow-700",
       },
-      inactive: { label: "Inactive", className: "bg-gray-100 text-gray-700" },
-      rejected: { label: "Rejected", className: "bg-red-100 text-red-700" },
+      inactive: {
+        label: t.admin.inactive,
+        className: "bg-gray-100 text-gray-700",
+      },
+      rejected: {
+        label: t.admin.rejected,
+        className: "bg-red-100 text-red-700",
+      },
     };
 
     const config = statusConfig[status] || statusConfig.inactive;
@@ -135,7 +150,7 @@ export function OwnerProperties({
   };
 
   const getPropertyImages = (property: PropertyResponse) => {
-    if (property.images && Array.isArray(property.images)) {
+    if (property.coverImage && Array.isArray(property.images)) {
       return property.images.map((img: any) =>
         typeof img === "string" ? img : img.imageUrl || img
       );
@@ -144,72 +159,47 @@ export function OwnerProperties({
     return [];
   };
 
-  // ✅ CRITICAL FIX: Better normalization with debugging
   const normalizeProperty = (property: PropertyResponse): PropertyResponse => {
-    console.log("🔍 Normalizing property:", {
-      propertyId: property.propertyId,
-      raw: property,
-      titleEn: property.titleEn,
-      titleAr: property.titleAr,
-      title: (property as any).title,
-    });
-
-    // Try to extract title from various possible fields
-    const fallbackTitle =
-      (property as any).title ||
-      (property as any).name ||
-      (property as any).titleEn ||
-      (property as any).titleAr ||
-      "Untitled Property";
-
-    const normalized = {
+    return {
       ...property,
-      titleEn: property.titleEn || fallbackTitle,
-      titleAr: property.titleAr || fallbackTitle,
-      averageRating: property.averageRating ?? 0,
-      totalReviews: property.totalReviews ?? 0,
-      pricePerNight: property.pricePerNight ?? 0,
+      titleEn: property.titleEn || property.titleAr || "Untitled Property",
+      titleAr: property.titleAr || property.titleAr || "عقار بدون عنوان",
+      averageRating: property.averageRating || 0,
+      totalReviews: property.totalReviews || 0,
+      pricePerNight: property.pricePerNight || 0,
       city: property.city || "Unknown",
       governorate: property.governorate || "Unknown",
     };
-
-    console.log("✅ Normalized property:", {
-      propertyId: normalized.propertyId,
-      titleEn: normalized.titleEn,
-      titleAr: normalized.titleAr,
-    });
-
-    return normalized;
   };
 
   if (!properties || !Array.isArray(properties)) {
-    console.error("❌ Invalid properties data:", properties);
     return (
       <div className="text-center py-12">
         <p className="text-red-600">Error: Invalid properties data</p>
-        <pre className="text-xs text-left mt-4 p-4 bg-gray-100 rounded">
-          {JSON.stringify(properties, null, 2)}
-        </pre>
       </div>
     );
   }
 
   if (properties.length === 0) {
     return (
-      <div>
-        <div className="flex items-center justify-between mb-6">
+      <div dir={language === "ar" ? "rtl" : "ltr"}>
+        <div
+          className={`flex items-center justify-between mb-6 ${
+            language === "ar" ? "flex-row-reverse" : ""
+          }`}
+        >
           <h2 className="text-2xl font-semibold text-[#2B2B2B]">
-            My Properties
+            {t.hostDashboard.myProperties}
           </h2>
         </div>
         <Card className="p-12 text-center">
           <div className="flex flex-col items-center">
             <Home className="w-16 h-16 text-gray-300 mb-4" />
             <h3 className="text-xl font-semibold text-gray-700 mb-2">
-              No properties yet
+              {t.hostDashboard.noProperties}
             </h3>
             <p className="text-gray-500 mb-6">
-              Click "Add Property" to list your first property
+              {t.hostDashboard.addFirstProperty}
             </p>
           </div>
         </Card>
@@ -217,22 +207,15 @@ export function OwnerProperties({
     );
   }
 
-  // ✅ Debug: Log all properties before rendering
-  console.log(
-    "📊 Rendering properties:",
-    properties.map((p) => ({
-      id: p.propertyId,
-      titleEn: p.titleEn,
-      titleAr: p.titleAr,
-      hasTitle: !!(p.titleEn || p.titleAr),
-    }))
-  );
-
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
+    <div dir={language === "ar" ? "rtl" : "ltr"}>
+      <div
+        className={`flex items-center justify-between mb-6 ${
+          language === "ar" ? "flex-row-reverse" : ""
+        }`}
+      >
         <h2 className="text-2xl font-semibold text-[#2B2B2B]">
-          My Properties ({properties.length})
+          {t.hostDashboard.myProperties} ({properties.length})
         </h2>
       </div>
 
@@ -248,10 +231,16 @@ export function OwnerProperties({
                 {getStatusBadge(property)}
                 {images.length > 1 && (
                   <Badge
-                    className="bg-black/70 text-white cursor-pointer hover:bg-black"
+                    className={`bg-black/70 text-white cursor-pointer hover:bg-black ${
+                      language === "ar" ? "flex-row-reverse" : ""
+                    }`}
                     onClick={() => handleViewImages(property)}
                   >
-                    <ImageIcon className="w-3 h-3 mr-1" />
+                    <ImageIcon
+                      className={`w-3 h-3 ${
+                        language === "ar" ? "ml-1" : "mr-1"
+                      }`}
+                    />
                     {images.length}
                   </Badge>
                 )}
@@ -272,28 +261,51 @@ export function OwnerProperties({
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem
                       onClick={() => handleViewProperty(property.propertyId)}
+                      className={language === "ar" ? "flex-row-reverse" : ""}
                     >
-                      <Eye className="w-4 h-4 mr-2" />
-                      View Details
+                      <Eye
+                        className={`w-4 h-4 ${
+                          language === "ar" ? "ml-2" : "mr-2"
+                        }`}
+                      />
+                      {t.nav.viewDetails}
                     </DropdownMenuItem>
                     {images.length > 0 && (
                       <DropdownMenuItem
                         onClick={() => handleViewImages(property)}
+                        className={language === "ar" ? "flex-row-reverse" : ""}
                       >
-                        <ImageIcon className="w-4 h-4 mr-2" />
-                        View Images ({images.length})
+                        <ImageIcon
+                          className={`w-4 h-4 ${
+                            language === "ar" ? "ml-2" : "mr-2"
+                          }`}
+                        />
+                        {t.hostDashboard.viewImages} ({images.length})
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem onClick={() => handleEditClick(property)}>
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit
+                    <DropdownMenuItem
+                      onClick={() => handleEditClick(property)}
+                      className={language === "ar" ? "flex-row-reverse" : ""}
+                    >
+                      <Edit
+                        className={`w-4 h-4 ${
+                          language === "ar" ? "ml-2" : "mr-2"
+                        }`}
+                      />
+                      {t.hostDashboard.edit}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => handleDeleteClick(property)}
-                      className="text-red-600"
+                      className={`text-red-600 ${
+                        language === "ar" ? "flex-row-reverse" : ""
+                      }`}
                     >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete
+                      <Trash2
+                        className={`w-4 h-4 ${
+                          language === "ar" ? "ml-2" : "mr-2"
+                        }`}
+                      />
+                      {t.hostDashboard.delete}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -315,23 +327,25 @@ export function OwnerProperties({
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Property</AlertDialogTitle>
+            <AlertDialogTitle>{t.hostDashboard.deleteConfirm}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "
-              {propertyToDelete?.titleEn ||
-                propertyToDelete?.titleAr ||
-                "this property"}
-              "? This action cannot be undone.
+              {t.hostDashboard.deleteConfirmDesc}
+              {propertyToDelete?.titleEn || propertyToDelete?.titleAr}"? This
+              action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+          <AlertDialogFooter
+            className={language === "ar" ? "flex-row-reverse" : ""}
+          >
+            <AlertDialogCancel disabled={deleting}>
+              {t.hostDashboard.cancel}
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               disabled={deleting}
               className="bg-red-600 hover:bg-red-700"
             >
-              {deleting ? "Deleting..." : "Delete"}
+              {deleting ? t.hostDashboard.deleting : t.hostDashboard.delete}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -341,7 +355,9 @@ export function OwnerProperties({
       <AlertDialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
         <AlertDialogContent className="max-w-4xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Property Images</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t.hostDashboard.propertyImages}
+            </AlertDialogTitle>
           </AlertDialogHeader>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
             {selectedPropertyImages.map((image, index) => (
@@ -355,15 +371,19 @@ export function OwnerProperties({
                   className="w-full h-full object-cover rounded-lg"
                 />
                 {image.isCover && (
-                  <Badge className="absolute top-2 left-2 bg-[#00BFA6]">
-                    Cover
+                  <Badge
+                    className={`absolute top-2 ${
+                      language === "ar" ? "right-2" : "left-2"
+                    } bg-[#00BFA6]`}
+                  >
+                    {t.hostDashboard.cover}
                   </Badge>
                 )}
               </div>
             ))}
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Close</AlertDialogCancel>
+            <AlertDialogCancel>{t.hostDashboard.close}</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

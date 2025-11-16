@@ -1,6 +1,7 @@
 // src/components/dashboard/renter/profile/ProfileTab.tsx
 import { Card } from "../ui/card";
 import { ProfileHeader } from "./ProfileHeader";
+import { Language, translations } from "../../lib/translations";
 import { AvatarUpload } from "./AvatarUpload";
 import { ProfileForm } from "./ProfileForm";
 import { PasswordChange } from "./PasswordChange";
@@ -11,12 +12,17 @@ import { UpdateProfileRequest } from "../../../api";
 interface ProfileTabProps {
   currentUser?: any;
   onUserUpdate?: (user: any) => void;
+  language: Language;
 }
 
-export function ProfileTab({
-  currentUser,
-  onUserUpdate,
-}: ProfileTabProps = {}) {
+export function ProfileTab(
+  {
+    currentUser,
+    onUserUpdate,
+    language,
+  }: ProfileTabProps = {} as ProfileTabProps
+) {
+  const t = translations[language];
   const { profile, loading, updateProfile, uploadAvatar, changePassword } =
     useProfile();
 
@@ -31,7 +37,7 @@ export function ProfileTab({
   if (!profile) {
     return (
       <Card className="p-12 text-center">
-        <p className="text-gray-600">Failed to load profile</p>
+        <p className="text-gray-600">{t.common.error}</p>{" "}
       </Card>
     );
   }
@@ -63,14 +69,18 @@ export function ProfileTab({
     }
   };
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir={language === "ar" ? "rtl" : "ltr"}>
       <Card className="p-6">
         <ProfileHeader profile={profile} />
       </Card>
 
       <Card className="p-6">
-        <h3 className="text-lg font-semibold text-[#2B2B2B] mb-6">
-          Profile Photo
+        <h3
+          className={`text-lg font-semibold text-[#2B2B2B] mb-6 ${
+            language === "ar" ? "text-right" : "text-left"
+          }`}
+        >
+          {t.hostDashboard.profilePhoto}
         </h3>
         <AvatarUpload
           currentPhoto={profile.profilePhoto}
@@ -80,8 +90,12 @@ export function ProfileTab({
       </Card>
 
       <Card className="p-6">
-        <h3 className="text-lg font-semibold text-[#2B2B2B] mb-6">
-          Personal Information
+        <h3
+          className={`text-lg font-semibold text-[#2B2B2B] mb-6 ${
+            language === "ar" ? "text-right" : "text-left"
+          }`}
+        >
+          {t.hostDashboard.personalInformation}
         </h3>
         <ProfileForm
           profile={profile}

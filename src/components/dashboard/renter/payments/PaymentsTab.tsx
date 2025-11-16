@@ -1,6 +1,7 @@
 // FILE 1: src/components/dashboard/renter/payments/PaymentsTab.tsx (~80 lines)
 import { useState, useEffect } from "react";
 import { Loader2, Receipt } from "lucide-react";
+import { Language, translations } from "../../../../lib/translations";
 import { EmptyState } from "../../shared/components/EmptyState";
 import { PaymentTable } from "./PaymentTable";
 import { PaymentMethods } from "./PaymentMethods";
@@ -9,9 +10,11 @@ import { toast } from "sonner";
 
 interface PaymentsTabProps {
   onNavigate: (page: string, id?: string) => void;
+  language: Language;
 }
 
-export function PaymentsTab({ onNavigate }: PaymentsTabProps) {
+export function PaymentsTab({ onNavigate, language }: PaymentsTabProps) {
+  const t = translations[language];
   const [payments, setPayments] = useState<TransactionResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -46,10 +49,15 @@ export function PaymentsTab({ onNavigate }: PaymentsTabProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir={language === "ar" ? "rtl" : "ltr"}>
+      {" "}
       <div>
-        <h2 className="text-2xl font-semibold text-[#2B2B2B] mb-4">
-          Payment History
+        <h2
+          className={`text-2xl font-semibold text-[#2B2B2B] mb-4 ${
+            language === "ar" ? "text-right" : "text-left"
+          }`}
+        >
+          {t.userDashboard.paymentHistory}
         </h2>
         {payments.length > 0 ? (
           <PaymentTable
@@ -61,12 +69,11 @@ export function PaymentsTab({ onNavigate }: PaymentsTabProps) {
         ) : (
           <EmptyState
             icon={Receipt}
-            title="No payment history"
-            description="Your completed transactions will appear here"
+            title={t.userDashboard.noPaymentHistory}
+            description={t.userDashboard.transactionsAppear}
           />
         )}
       </div>
-
       <PaymentMethods />
     </div>
   );
