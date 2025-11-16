@@ -1,4 +1,4 @@
-// src/components/dashboard/owner/OwnerProperties.tsx - FINAL FIX
+// src/components/dashboard/owner/OwnerProperties.tsx - TITLE FIX
 import { useState } from "react";
 import {
   Home,
@@ -100,7 +100,6 @@ export function OwnerProperties({
     }
   };
 
-  // ✅ CRITICAL FIX: Navigate internally, don't open new tab
   const handleViewProperty = (propertyId: number) => {
     if (onNavigate) {
       console.log("✅ Navigating to property details:", propertyId);
@@ -111,7 +110,6 @@ export function OwnerProperties({
     }
   };
 
-  // ✅ PropertyCard click handler
   const handleCardNavigate = (page: string, id?: string) => {
     if (page === "property-details" && id && onNavigate) {
       console.log("✅ Card clicked, navigating to:", id);
@@ -146,23 +144,52 @@ export function OwnerProperties({
     return [];
   };
 
+  // ✅ CRITICAL FIX: Better normalization with debugging
   const normalizeProperty = (property: PropertyResponse): PropertyResponse => {
-    return {
+    console.log("🔍 Normalizing property:", {
+      propertyId: property.propertyId,
+      raw: property,
+      titleEn: property.titleEn,
+      titleAr: property.titleAr,
+      title: (property as any).title,
+    });
+
+    // Try to extract title from various possible fields
+    const fallbackTitle =
+      (property as any).title ||
+      (property as any).name ||
+      (property as any).titleEn ||
+      (property as any).titleAr ||
+      "Untitled Property";
+
+    const normalized = {
       ...property,
-      titleEn: property.titleEn || property.title || "Untitled Property",
-      titleAr: property.titleAr || property.title || "عقار بدون عنوان",
-      averageRating: property.averageRating || 0,
-      totalReviews: property.totalReviews || 0,
-      pricePerNight: property.pricePerNight || 0,
+      titleEn: property.titleEn || fallbackTitle,
+      titleAr: property.titleAr || fallbackTitle,
+      averageRating: property.averageRating ?? 0,
+      totalReviews: property.totalReviews ?? 0,
+      pricePerNight: property.pricePerNight ?? 0,
       city: property.city || "Unknown",
       governorate: property.governorate || "Unknown",
     };
+
+    console.log("✅ Normalized property:", {
+      propertyId: normalized.propertyId,
+      titleEn: normalized.titleEn,
+      titleAr: normalized.titleAr,
+    });
+
+    return normalized;
   };
 
   if (!properties || !Array.isArray(properties)) {
+    console.error("❌ Invalid properties data:", properties);
     return (
       <div className="text-center py-12">
         <p className="text-red-600">Error: Invalid properties data</p>
+        <pre className="text-xs text-left mt-4 p-4 bg-gray-100 rounded">
+          {JSON.stringify(properties, null, 2)}
+        </pre>
       </div>
     );
   }
@@ -189,6 +216,17 @@ export function OwnerProperties({
       </div>
     );
   }
+
+  // ✅ Debug: Log all properties before rendering
+  console.log(
+    "📊 Rendering properties:",
+    properties.map((p) => ({
+      id: p.propertyId,
+      titleEn: p.titleEn,
+      titleAr: p.titleAr,
+      hasTitle: !!(p.titleEn || p.titleAr),
+    }))
+  );
 
   return (
     <div>
@@ -280,8 +318,10 @@ export function OwnerProperties({
             <AlertDialogTitle>Delete Property</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete "
-              {propertyToDelete?.titleEn || propertyToDelete?.titleAr}"? This
-              action cannot be undone.
+              {propertyToDelete?.titleEn ||
+                propertyToDelete?.titleAr ||
+                "this property"}
+              "? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -7,6 +7,7 @@ import { Language, translations } from "../../lib/translations";
 import { Globe, AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "../ui/alert";
 import api from "../../../api";
+import logo from "../../assets/Logo.svg";
 
 interface LoginPageProps {
   onNavigate: (page: string) => void;
@@ -72,17 +73,14 @@ export function LoginPage({
       </button>
 
       {/* Left Side - Form */}
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
+      <div className="flex-1 flex justify-center px-4 sm:px-6 lg:px-8 py-12">
         <div className="max-w-md w-full space-y-8">
           <div>
             <button
               onClick={() => onNavigate("home")}
               className="flex items-center gap-2 mb-8 hover:opacity-80 transition-opacity"
             >
-              <div className="w-10 h-10 bg-[#00BFA6] rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-xl">A</span>
-              </div>
-              <span className="font-bold text-2xl text-[#2B2B2B]">Ajarly</span>
+              <img src={logo} alt="Logo" className="w-34 h-34" />
             </button>
 
             <h2 className="text-3xl font-bold text-[#2B2B2B]">
@@ -184,25 +182,6 @@ export function LoginPage({
                 )}
               </Button>
             </div>
-
-            {/* Development Admin Access - Only show in dev */}
-            {import.meta.env.DEV && (
-              <div className="border-t border-dashed border-gray-300 pt-4">
-                <p className="text-xs text-gray-500 mb-2 text-center">
-                  {t.adminNote}
-                </p>
-                <Button
-                  type="button"
-                  onClick={() => onNavigate("admin-dashboard")}
-                  variant="outline"
-                  className="w-full border-purple-500 text-purple-600 hover:bg-purple-50"
-                  size="sm"
-                  disabled={isLoading}
-                >
-                  🔧 {t.adminAccess}
-                </Button>
-              </div>
-            )}
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">

@@ -1,5 +1,5 @@
-// src/components/Navbar.tsx - Updated with Favorites Context
-import { useState } from "react";
+// src/components/Navbar.tsx - Fixed Profile Photo Display
+import { useState, useEffect } from "react";
 import {
   Menu,
   Globe,
@@ -26,10 +26,11 @@ import {
 } from "./ui/dropdown-menu";
 import { Badge } from "./ui/badge";
 import { User as UserType } from "../App";
-import { Avatar, AvatarFallback } from "./ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { useFavorites } from "../contexts/FavoritesContext";
 import { FavoriteButton } from "./dashboard/shared/components/FavoriteButton";
 import logo from "../assets/Logo.svg";
+import { useProfile } from "../hooks/useProfile";
 
 interface NavbarProps {
   onNavigate?: (page: string, propertyId?: string) => void;
@@ -50,6 +51,22 @@ export function Navbar({
 }: NavbarProps) {
   const [localLanguage, setLocalLanguage] = useState<"en" | "ar">(language);
   const { favorites } = useFavorites();
+  const { profile, fetchProfile } = useProfile();
+
+  // Fetch profile when user logs in
+  useEffect(() => {
+    if (user) {
+      console.log("👤 User detected in Navbar:", user);
+      fetchProfile();
+    }
+  }, [user]);
+
+  // Log when profile updates
+  useEffect(() => {
+    if (profile) {
+      console.log("📸 Profile photo in Navbar:", profile.profilePhoto);
+    }
+  }, [profile]);
 
   const toggleLanguage = () => {
     const newLang = localLanguage === "en" ? "ar" : "en";
@@ -85,6 +102,28 @@ export function Navbar({
 
   const isArabic = localLanguage === "ar";
 
+  // Get user initials for fallback
+  const getUserInitials = () => {
+    if (!user) return "U";
+    const names = user.name.split(" ");
+    if (names.length >= 2) {
+      return `${names[0].charAt(0)}${names[1].charAt(0)}`.toUpperCase();
+    }
+    return user.name.charAt(0).toUpperCase();
+  };
+
+  // Get profile photo - prioritize user prop, then profile from hook
+  const getProfilePhoto = () => {
+    return user?.profilePhoto || user?.avatar || profile?.profilePhoto || null;
+  };
+
+  console.log(
+    "🔍 Navbar render - User:",
+    user?.name,
+    "Photo:",
+    getProfilePhoto()
+  );
+
   return (
     <nav className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -114,7 +153,7 @@ export function Navbar({
               {isArabic ? "كن مضيفاً" : "Become a Host"}
             </button>
 
-            {/* ✅ Favourites with Context */}
+            {/* Favourites with Context */}
             {user && (
               <Sheet>
                 <SheetTrigger asChild>
@@ -276,8 +315,15 @@ export function Navbar({
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="gap-2">
                     <Avatar className="w-8 h-8">
+                      {getProfilePhoto() && (
+                        <AvatarImage
+                          src={getProfilePhoto()!}
+                          alt={user.name}
+                          className="object-cover"
+                        />
+                      )}
                       <AvatarFallback className="bg-[#00BFA6] text-white">
-                        {user.name.charAt(0).toUpperCase()}
+                        {getUserInitials()}
                       </AvatarFallback>
                     </Avatar>
                     <span className="hidden lg:inline">{user.name}</span>
@@ -344,11 +390,25 @@ export function Navbar({
               <div className="flex flex-col gap-6 mt-8">
                 {user ? (
                   <>
-                    <div className="pb-4 border-b">
-                      <p className="text-sm font-semibold text-[#2B2B2B]">
-                        {user.name}
-                      </p>
-                      <p className="text-xs text-gray-600">{user.email}</p>
+                    <div className="pb-4 border-b flex items-center gap-3">
+                      <Avatar className="w-12 h-12">
+                        {getProfilePhoto() && (
+                          <AvatarImage
+                            src={getProfilePhoto()!}
+                            alt={user.name}
+                            className="object-cover"
+                          />
+                        )}
+                        <AvatarFallback className="bg-[#00BFA6] text-white">
+                          {getUserInitials()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-semibold text-[#2B2B2B]">
+                          {user.name}
+                        </p>
+                        <p className="text-xs text-gray-600">{user.email}</p>
+                      </div>
                     </div>
                     <Button
                       variant="outline"

@@ -5,14 +5,20 @@ import { Label } from "../ui/label";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { Language, translations } from "../../lib/translations";
-import { Globe, AlertCircle, Loader2, CheckCircle2 } from "lucide-react";
+import { Globe, AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "../ui/alert";
 import api from "../../../api";
+import logo from "../../assets/Logo.svg";
 
 interface RegisterPageProps {
   onNavigate: (page: string) => void;
-  initialRole?: "renter" | "landlord";
-  onRegisterSuccess?: (userData: any) => void;
+  initialRole?: "renter" | "landlord" | "owner";
+  onRegister?: (
+    name: string,
+    email: string,
+    password: string,
+    role: "renter" | "owner"
+  ) => Promise<void>;
   language?: Language;
   onLanguageChange?: (lang: Language) => void;
 }
@@ -114,16 +120,36 @@ export function RegisterPage({
         userType: formData.userType,
       });
 
+      console.log("✅ Registration successful:", response);
+
       // Get user profile after successful registration
       const userProfile = await api.getProfile();
 
-      // Pass user data to parent component
+      console.log("✅ Profile fetched:", userProfile);
+
+      // Create complete user object with all necessary data
+      const completeUserData = {
+        ...response,
+        profile: userProfile,
+        // Ensure these key properties are set
+        name: `${userProfile.firstName || formData.firstName} ${
+          userProfile.lastName || formData.lastName
+        }`,
+        email: userProfile.email || formData.email,
+        userType: userProfile.userType || formData.userType,
+        role: userProfile.userType || formData.userType, // Some components might use 'role'
+        profilePhoto: userProfile.profilePhoto || null,
+      };
+
+      console.log("✅ Complete user data:", completeUserData);
+
+      // Pass user data to parent component BEFORE navigation
       if (onRegisterSuccess) {
-        onRegisterSuccess({
-          ...response,
-          profile: userProfile,
-        });
+        onRegisterSuccess(completeUserData);
       }
+
+      // Small delay to ensure state updates
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Navigate based on user type
       if (userProfile.userType === "landlord") {
@@ -132,7 +158,7 @@ export function RegisterPage({
         onNavigate("user-dashboard");
       }
     } catch (err: any) {
-      console.error("Registration error:", err);
+      console.error("❌ Registration error:", err);
 
       // Handle validation errors from backend
       if (err.data?.errors) {
@@ -215,10 +241,9 @@ export function RegisterPage({
               onClick={() => onNavigate("home")}
               className="flex items-center gap-2 mb-8 hover:opacity-80 transition-opacity"
             >
-              <div className="w-10 h-10 bg-[#00BFA6] rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-xl">A</span>
+              <div className="rounded-full flex items-center justify-center">
+                <img src={logo} alt="Logo" className="w-34 h-34" />
               </div>
-              <span className="font-bold text-2xl text-[#2B2B2B]">Ajarly</span>
             </button>
 
             <h2 className="text-3xl font-bold text-[#2B2B2B]">

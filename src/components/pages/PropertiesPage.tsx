@@ -1,5 +1,5 @@
-// src/components/pages/PropertiesPage.tsx - Fixed Version
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom"; // ✅ React Router hook
 import { PropertyCard } from "../PropertyCard";
 import { Button } from "../ui/button";
 import {
@@ -12,10 +12,11 @@ import {
 import { Slider } from "../ui/slider";
 import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
-import { Search, SlidersHorizontal, Loader2 } from "lucide-react";
+import { Search, SlidersHorizontal, Loader2, X } from "lucide-react";
 import api, { PropertyResponse, SearchRequest } from "../../../api";
 import { toast } from "sonner";
-import { Language } from "../../lib/translations";
+import { Language, translations } from "../../lib/translations";
+import { SearchBar, SearchParams } from "./home/SearchBar";
 
 interface PropertiesPageProps {
   onNavigate: (page: string, propertyId?: string) => void;
@@ -26,39 +27,65 @@ export function PropertiesPage({
   onNavigate,
   language = "en",
 }: PropertiesPageProps) {
+  const t = translations[language]?.home || translations.en.home;
+
+  // ✅ Use React Router's useSearchParams hook
+  const [urlSearchParams] = useSearchParams();
+
   const [properties, setProperties] = useState<PropertyResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-  // Search filters
-  const [governorate, setGovernorate] = useState("");
+  // ✅ Parse URL search params from React Router
+  const initialGovernorate = urlSearchParams.get("governorate") ?? "";
+  const initialCheckIn = urlSearchParams.get("checkInDate") ?? "";
+  const initialCheckOut = urlSearchParams.get("checkOutDate") ?? "";
+  const initialGuests = urlSearchParams.get("minGuests") ?? "";
+
+  console.log("📥 PropertiesPage - URL Search Params:", {
+    raw: urlSearchParams.toString(),
+    parsed: {
+      governorate: initialGovernorate,
+      checkIn: initialCheckIn,
+      checkOut: initialCheckOut,
+      guests: initialGuests,
+    },
+  });
+
+  // Search filters - Initialize with URL params
+  const [governorate, setGovernorate] = useState(initialGovernorate);
   const [city, setCity] = useState("");
   const [propertyType, setPropertyType] = useState("");
   const [rentalType, setRentalType] = useState("");
   const [priceRange, setPriceRange] = useState([0, 50000]);
-  const [bedrooms, setBedrooms] = useState("");
+  const [bedrooms, setBedrooms] = useState(initialGuests);
   const [furnished, setFurnished] = useState<boolean | undefined>(undefined);
   const [petsAllowed, setPetsAllowed] = useState<boolean | undefined>(
     undefined
   );
   const [sortBy, setSortBy] = useState("recommended");
 
-  // Dropdown options
+  // Date filters
+  const [checkInDate, setCheckInDate] = useState(initialCheckIn);
+  const [checkOutDate, setCheckOutDate] = useState(initialCheckOut);
+
   const [governorates, setGovernorates] = useState<string[]>([]);
   const [cities, setCities] = useState<string[]>([]);
-
-  // Check if user is logged in
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    // Check auth status
     const token = localStorage.getItem("authToken");
     setIsLoggedIn(!!token);
 
-    // Load initial data
     loadGovernorates();
-    searchProperties();
   }, []);
+
+  // ✅ Search when URL params change
+  useEffect(() => {
+    console.log("🔄 URL params changed, triggering search...");
+    searchProperties();
+  }, [urlSearchParams]);
 
   useEffect(() => {
     if (governorate) {
@@ -88,7 +115,7 @@ export function PropertiesPage({
     try {
       setLoading(true);
 
-      const searchParams: SearchRequest = {
+      const searchRequest: SearchRequest = {
         governorate: governorate || undefined,
         city: city || undefined,
         propertyType: propertyType || undefined,
@@ -98,24 +125,21 @@ export function PropertiesPage({
         minBedrooms: bedrooms ? parseInt(bedrooms) : undefined,
         furnished: furnished,
         petsAllowed: petsAllowed,
+        checkInDate: checkInDate || undefined,
+        checkOutDate: checkOutDate || undefined,
         sortBy: sortBy === "recommended" ? "averageRating" : sortBy,
         sortDirection: "DESC",
         page: 0,
         size: 20,
       };
 
-      console.log("🔍 Search params:", searchParams);
+      console.log("🔍 PropertiesPage - Searching with:", searchRequest);
 
-      const response = await api.advancedSearch(searchParams);
+      const response = await api.advancedSearch(searchRequest);
 
-      // ✅ Validate response
       if (response && Array.isArray(response.properties)) {
         setProperties(response.properties);
-        console.log(
-          "✅ Found properties:",
-          response.properties.length,
-          response.properties
-        );
+        console.log("✅ Found properties:", response.properties.length);
       } else {
         console.warn("⚠️ Invalid search response:", response);
         setProperties([]);
@@ -127,6 +151,24 @@ export function PropertiesPage({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleStickySearch = (params: SearchParams) => {
+    console.log("🔍 Sticky search triggered:", params);
+
+    // Update filters
+    setGovernorate(params.location);
+    setBedrooms(params.guests);
+
+    if (params.checkIn) {
+      setCheckInDate(params.checkIn.toISOString().split("T")[0]);
+    }
+    if (params.checkOut) {
+      setCheckOutDate(params.checkOut.toISOString().split("T")[0]);
+    }
+
+    // Trigger search after state updates
+    setTimeout(() => searchProperties(), 100);
   };
 
   const handleSearch = () => {
@@ -143,13 +185,47 @@ export function PropertiesPage({
     setFurnished(undefined);
     setPetsAllowed(undefined);
     setSortBy("recommended");
+    setCheckInDate("");
+    setCheckOutDate("");
 
-    // Reload all properties
     setTimeout(() => searchProperties(), 100);
   };
 
+  const activeFilters = [
+    governorate && { label: `📍 ${governorate}`, key: "location" },
+    checkInDate &&
+      checkOutDate && {
+        label: `📅 ${checkInDate} → ${checkOutDate}`,
+        key: "dates",
+      },
+    bedrooms && { label: `👥 ${bedrooms}+ guests`, key: "guests" },
+    propertyType && { label: `🏠 ${propertyType}`, key: "type" },
+    rentalType && { label: `⏰ ${rentalType}`, key: "rental" },
+  ].filter(Boolean);
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Sticky Search Bar */}
+      <div className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <SearchBar
+            t={t}
+            language={language}
+            governorates={governorates}
+            isSearchFocused={isSearchFocused}
+            onFocusChange={setIsSearchFocused}
+            onSearch={handleStickySearch}
+            compact={true}
+            initialValues={{
+              location: governorate,
+              checkIn: checkInDate ? new Date(checkInDate) : undefined,
+              checkOut: checkOutDate ? new Date(checkOutDate) : undefined,
+              guests: bedrooms,
+            }}
+          />
+        </div>
+      </div>
+
       {/* Header */}
       <div className="bg-white border-b border-gray-200 py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -178,6 +254,42 @@ export function PropertiesPage({
                   </>
                 )}
               </p>
+
+              {/* Active Filters */}
+              {activeFilters.length > 0 && (
+                <div className="flex gap-2 mt-3 flex-wrap">
+                  {activeFilters.map((filter: any) => (
+                    <span
+                      key={filter.key}
+                      className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-[#00BFA6]/10 text-[#00BFA6] border border-[#00BFA6]/20"
+                    >
+                      {filter.label}
+                      <button
+                        onClick={() => {
+                          if (filter.key === "location") setGovernorate("");
+                          if (filter.key === "dates") {
+                            setCheckInDate("");
+                            setCheckOutDate("");
+                          }
+                          if (filter.key === "guests") setBedrooms("");
+                          if (filter.key === "type") setPropertyType("");
+                          if (filter.key === "rental") setRentalType("");
+                          setTimeout(() => searchProperties(), 100);
+                        }}
+                        className="hover:bg-[#00BFA6]/20 rounded-full p-0.5"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                  <button
+                    onClick={handleReset}
+                    className="text-sm text-gray-500 hover:text-gray-700 underline"
+                  >
+                    Clear all
+                  </button>
+                </div>
+              )}
             </div>
 
             <Button
@@ -187,6 +299,11 @@ export function PropertiesPage({
             >
               <SlidersHorizontal className="w-4 h-4" />
               {language === "ar" ? "الفلاتر" : "Filters"}
+              {activeFilters.length > 0 && (
+                <span className="ml-1 px-2 py-0.5 bg-[#00BFA6] text-white text-xs rounded-full">
+                  {activeFilters.length}
+                </span>
+              )}
             </Button>
           </div>
         </div>
@@ -197,12 +314,11 @@ export function PropertiesPage({
           {/* Filters Sidebar */}
           {showFilters && (
             <div className="w-80 flex-shrink-0">
-              <div className="bg-white rounded-lg shadow-sm p-6 space-y-6 sticky top-8">
+              <div className="bg-white rounded-lg shadow-sm p-6 space-y-6 sticky top-32">
                 <h3 className="font-semibold text-lg text-[#2B2B2B]">
                   {language === "ar" ? "تصفية النتائج" : "Filter Results"}
                 </h3>
 
-                {/* Location */}
                 <div className="space-y-3">
                   <Label>{language === "ar" ? "الموقع" : "Location"}</Label>
                   <Select value={governorate} onValueChange={setGovernorate}>
@@ -240,7 +356,6 @@ export function PropertiesPage({
                   )}
                 </div>
 
-                {/* Property Type */}
                 <div className="space-y-3">
                   <Label>
                     {language === "ar" ? "نوع العقار" : "Property Type"}
@@ -270,7 +385,6 @@ export function PropertiesPage({
                   </Select>
                 </div>
 
-                {/* Rental Type */}
                 <div className="space-y-3">
                   <Label>
                     {language === "ar" ? "نوع الإيجار" : "Rental Type"}
@@ -300,7 +414,6 @@ export function PropertiesPage({
                   </Select>
                 </div>
 
-                {/* Price Range */}
                 <div className="space-y-3">
                   <Label>
                     {language === "ar" ? "السعر" : "Price Range"}:{" "}
@@ -315,7 +428,6 @@ export function PropertiesPage({
                   />
                 </div>
 
-                {/* Bedrooms */}
                 <div className="space-y-3">
                   <Label>{language === "ar" ? "عدد الغرف" : "Bedrooms"}</Label>
                   <Select value={bedrooms} onValueChange={setBedrooms}>
@@ -334,7 +446,6 @@ export function PropertiesPage({
                   </Select>
                 </div>
 
-                {/* Furnished */}
                 <div className="flex items-center justify-between">
                   <Label>{language === "ar" ? "مفروش" : "Furnished"}</Label>
                   <Switch
@@ -343,7 +454,6 @@ export function PropertiesPage({
                   />
                 </div>
 
-                {/* Pets */}
                 <div className="flex items-center justify-between">
                   <Label>
                     {language === "ar" ? "يسمح بالحيوانات" : "Pets Allowed"}
@@ -354,7 +464,6 @@ export function PropertiesPage({
                   />
                 </div>
 
-                {/* Action Buttons */}
                 <div className="space-y-2 pt-4">
                   <Button
                     onClick={handleSearch}
@@ -377,7 +486,6 @@ export function PropertiesPage({
 
           {/* Properties Grid */}
           <div className="flex-1">
-            {/* Sort */}
             <div className="mb-6 flex items-center justify-between">
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-48">
@@ -400,14 +508,12 @@ export function PropertiesPage({
               </Select>
             </div>
 
-            {/* Loading State */}
             {loading && (
               <div className="flex items-center justify-center py-20">
                 <Loader2 className="w-10 h-10 text-[#00BFA6] animate-spin" />
               </div>
             )}
 
-            {/* Empty State */}
             {!loading && properties.length === 0 && (
               <div className="text-center py-20">
                 <p className="text-gray-600 text-lg">
@@ -425,7 +531,6 @@ export function PropertiesPage({
               </div>
             )}
 
-            {/* Properties Grid - ✅ FIXED */}
             {!loading && properties.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {properties.map((property) => (

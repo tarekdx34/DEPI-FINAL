@@ -1,4 +1,4 @@
-// src/App.tsx - Migrated to React Router
+// src/App.tsx - Fixed registration state update
 import { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
@@ -41,6 +41,7 @@ export interface User {
   phoneNumber?: string;
   isActive?: boolean;
   userType?: string;
+  profilePhoto?: string;
 }
 
 // Protected Route Component
@@ -88,6 +89,7 @@ function AppLayout() {
                 ? "admin"
                 : "renter",
             avatar: userProfile.profilePhoto,
+            profilePhoto: userProfile.profilePhoto,
             phoneNumber: userProfile.phoneNumber,
             isActive: userProfile.isActive,
             userType: userProfile.userType,
@@ -116,7 +118,11 @@ function AppLayout() {
   }, [location.pathname]);
 
   // Navigation handler (converts old string-based navigation to router navigation)
-  const handleNavigate = (page: string, propertyId?: string) => {
+  const handleNavigate = (
+    page: string,
+    propertyId?: string,
+    searchParams?: URLSearchParams
+  ) => {
     console.log("🔄 Navigation requested to:", page, propertyId);
 
     const [pageName, queryString] = page.split("?");
@@ -145,7 +151,11 @@ function AppLayout() {
       terms: "/terms",
     };
 
-    const route = routeMap[pageName] || "/";
+    let route = routeMap[pageName] || "/";
+    if (searchParams && searchParams.toString()) {
+      route += `?${searchParams.toString()}`;
+      console.log("✅ Final route with params:", route);
+    }
     navigate(route);
   };
 
@@ -177,6 +187,7 @@ function AppLayout() {
             ? "admin"
             : "renter",
         avatar: userProfile.profilePhoto,
+        profilePhoto: userProfile.profilePhoto,
         phoneNumber: userProfile.phoneNumber,
         isActive: userProfile.isActive,
         userType: userProfile.userType,
@@ -215,7 +226,7 @@ function AppLayout() {
     }
   };
 
-  // Register handler
+  // Register handler - FIXED VERSION
   const handleRegister = async (
     name: string,
     email: string,
@@ -235,11 +246,14 @@ function AppLayout() {
         userType: role === "owner" ? "landlord" : "renter",
       });
 
-      console.log("✅ Registration successful:", response);
+      console.log("✅ Registration response:", response);
 
+      // Immediately fetch the user profile
       const userProfile = await api.getProfile();
+      console.log("✅ Profile fetched:", userProfile);
 
-      const user: User = {
+      // Create the user object
+      const newUser: User = {
         userId: userProfile.userId,
         name: userProfile.firstName + " " + userProfile.lastName,
         email: userProfile.email,
@@ -250,21 +264,30 @@ function AppLayout() {
             ? "admin"
             : "renter",
         avatar: userProfile.profilePhoto,
+        profilePhoto: userProfile.profilePhoto,
         phoneNumber: userProfile.phoneNumber,
         isActive: userProfile.isActive,
         userType: userProfile.userType,
       };
 
-      setUser(user);
-      toast.success(`Welcome to Ajarly, ${user.name}!`);
+      // CRITICAL: Set user state BEFORE navigation
+      console.log("✅ Setting user state:", newUser);
+      setUser(newUser);
 
-      setTimeout(() => {
-        if (role === "owner") {
-          handleHostRegistration();
-        } else {
-          navigate("/");
-        }
-      }, 100);
+      // Show success message
+      toast.success(`Welcome to Ajarly, ${newUser.name}!`);
+
+      // Wait a bit to ensure state updates propagate
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      // Navigate to the appropriate dashboard
+      console.log("✅ Navigating to dashboard for role:", role);
+      if (role === "owner") {
+        setIsNewHost(true);
+        navigate("/dashboard/owner");
+      } else {
+        navigate("/dashboard/renter");
+      }
     } catch (error: any) {
       console.error("❌ Registration error:", error);
 
@@ -273,6 +296,8 @@ function AppLayout() {
         error?.data?.message ||
         "Registration failed. Please try again.";
       toast.error(errorMessage);
+
+      throw error; // Re-throw so the RegisterPage can handle it
     }
   };
 
@@ -307,6 +332,8 @@ function AppLayout() {
     location.pathname.startsWith(path)
   );
   const showFooter = showNavbar;
+
+  console.log("🔍 Current user state in App:", user);
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
