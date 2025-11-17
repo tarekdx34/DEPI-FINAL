@@ -33,50 +33,42 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints
+                        // ========== PUBLIC ENDPOINTS ==========
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/locations/**").permitAll()
                         .requestMatchers("/api/v1/search/**").permitAll()
                         
-                        // Admin endpoints - MUST be before other matchers
+                        // ========== ADMIN ENDPOINTS (Must be BEFORE other /api/v1/** matchers) ==========
                         .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "admin")
                         .requestMatchers("/api/v1/analytics/admin/**").hasAnyRole("ADMIN", "admin")
                         .requestMatchers("/api/v1/reports/admin/**").hasAnyRole("ADMIN", "admin")
+                        .requestMatchers("/api/v1/reviews/admin/**").hasAnyRole("ADMIN", "admin")  // ✅ ADDED
                         
-                        // Properties - GET public, others authenticated
+                        // ========== PROPERTIES ==========
                         .requestMatchers(HttpMethod.GET, "/api/v1/properties/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/properties/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/properties/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/properties/**").authenticated()
                         
-                        // User profile
-                        .requestMatchers("/api/v1/users/**").authenticated()
-                        
-                        // Bookings
-                        .requestMatchers("/api/v1/bookings/**").authenticated()
-                        
-                        // Reviews
-                        .requestMatchers(HttpMethod.GET, "/api/v1/reviews/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/reviews/**").authenticated()
+                        // ========== REVIEWS (Fixed ordering) ==========
+                        // Specific routes FIRST, then general patterns
+                        .requestMatchers(HttpMethod.GET, "/api/v1/reviews/property/**").permitAll()  // ✅ FIXED
+                        .requestMatchers(HttpMethod.GET, "/api/v1/reviews/user/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/reviews/{id}").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/reviews").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/reviews/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/reviews/**").authenticated()
                         
-                        // Favorites
+                        // ========== OTHER AUTHENTICATED ENDPOINTS ==========
+                        .requestMatchers("/api/v1/users/**").authenticated()
+                        .requestMatchers("/api/v1/bookings/**").authenticated()
                         .requestMatchers("/api/v1/favorites/**").authenticated()
-                        
-                        // Payments
                         .requestMatchers("/api/v1/payments/**").authenticated()
-                        
-                        // Subscriptions
                         .requestMatchers("/api/v1/subscriptions/**").authenticated()
-                        
-                        // Analytics (non-admin)
                         .requestMatchers("/api/v1/analytics/**").authenticated()
-                        
-                        // Reports (non-admin)
                         .requestMatchers("/api/v1/reports/**").authenticated()
                         
-                        // All other requests require authentication
+                        // ========== DEFAULT ==========
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->

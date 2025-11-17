@@ -36,8 +36,60 @@ public class ReviewController {
         return (Long) userId;
     }
     
-    // ==================== EXISTING ENDPOINTS (Keep as is) ====================
+    // ==================== PUBLIC ENDPOINTS ====================
     
+    /**
+     * ✅ Get reviews for a specific property - PUBLIC ENDPOINT
+     * GET /api/v1/reviews/property/{propertyId}
+     */
+    @GetMapping("/property/{propertyId}")
+    public ResponseEntity<Map<String, Object>> getPropertyReviews(
+            @PathVariable Long propertyId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortDirection
+    ) {
+        System.out.println("\n🎯 ========================================");
+        System.out.println("🎯 GET PROPERTY REVIEWS ENDPOINT CALLED");
+        System.out.println("🎯 Property ID: " + propertyId);
+        System.out.println("🎯 Page: " + page + ", Size: " + size);
+        System.out.println("🎯 ========================================\n");
+        
+        try {
+            Sort.Direction direction = sortDirection.equalsIgnoreCase("ASC") 
+                    ? Sort.Direction.ASC 
+                    : Sort.Direction.DESC;
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+            
+            Page<ReviewDto.Response> reviews = reviewService.getPropertyReviews(propertyId, pageable);
+            
+            Map<String, Object> data = new HashMap<>();
+            data.put("content", reviews.getContent());
+            data.put("currentPage", reviews.getNumber());
+            data.put("totalElements", reviews.getTotalElements());
+            data.put("totalPages", reviews.getTotalPages());
+            data.put("pageSize", reviews.getSize());
+            data.put("hasNext", reviews.hasNext());
+            data.put("hasPrevious", reviews.hasPrevious());
+            
+            System.out.println("✅ Returning " + reviews.getContent().size() + " reviews for property " + propertyId);
+            
+            return buildSuccessResponse("Reviews retrieved successfully", data, HttpStatus.OK);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error getting property reviews: " + e.getMessage());
+            e.printStackTrace();
+            return buildErrorResponse("Failed to retrieve reviews: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    // ==================== AUTHENTICATED ENDPOINTS ====================
+    
+    /**
+     * Create a new review
+     * POST /api/v1/reviews
+     */
     @PostMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, Object>> createReview(
@@ -55,12 +107,10 @@ public class ReviewController {
         }
     }
     
-    // ... (keep all other existing endpoints) ...
-    
-    // ==================== 🆕 ADMIN ENDPOINTS - COMPLETELY FIXED ====================
+    // ==================== ADMIN ENDPOINTS ====================
     
     /**
-     * ✅ Admin approves a review - FIXED
+     * ✅ Admin approves a review
      * PUT /api/v1/reviews/{id}/approve
      */
     @PutMapping("/{id}/approve")
@@ -75,17 +125,14 @@ public class ReviewController {
         System.out.println("🎯 ========================================\n");
         
         try {
-            // Get admin ID from request
             Long adminId = getUserIdFromRequest(httpRequest);
             System.out.println("✅ Admin ID from token: " + adminId);
             
-            // Call service to approve
             ReviewDto.Response review = reviewService.approveReview(id, adminId);
             
             System.out.println("✅ Service returned successfully");
             System.out.println("   Review approved: " + review.getIsApproved());
             
-            // Build response
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "Review approved successfully");
@@ -119,7 +166,7 @@ public class ReviewController {
     }
     
     /**
-     * ✅ Admin rejects a review - FIXED
+     * ✅ Admin rejects a review
      * PUT /api/v1/reviews/{id}/reject
      */
     @PutMapping("/{id}/reject")
@@ -155,7 +202,7 @@ public class ReviewController {
     }
     
     /**
-     * ✅ Admin gets all reviews - FIXED
+     * ✅ Admin gets all reviews
      * GET /api/v1/reviews/admin/all
      */
     @GetMapping("/admin/all")
@@ -185,7 +232,6 @@ public class ReviewController {
             
             System.out.println("✅ Service returned " + reviews.getContent().size() + " reviews");
             
-            // Build response matching frontend expectations
             Map<String, Object> data = new HashMap<>();
             data.put("content", reviews.getContent());
             data.put("currentPage", reviews.getNumber());
@@ -221,7 +267,7 @@ public class ReviewController {
     }
     
     /**
-     * ✅ Admin gets review statistics - FIXED
+     * ✅ Admin gets review statistics
      * GET /api/v1/reviews/admin/stats
      */
     @GetMapping("/admin/stats")

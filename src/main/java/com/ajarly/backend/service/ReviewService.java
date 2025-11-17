@@ -71,16 +71,66 @@ public class ReviewService {
         review.setCons(request.getCons());
         
         // ✅ Set to PENDING by default
-        review.setIsApproved(false);
-        review.setApprovedAt(null);
+        review.setIsApproved(true);
+        review.setApprovedAt(LocalDateTime.now());
+        review.setApprovedBy(null);
         
         review = reviewRepository.save(review);
         
-        System.out.println("✅ Review created: ID=" + review.getReviewId() + ", Status=PENDING");
-        
+        System.out.println("✅ Review created: ID=" + review.getReviewId() + ", Status=AUTO-APPROVED");
+        updatePropertyRating(review.getProperty().getPropertyId());
+
         return mapToResponse(review);
     }
+    /**
+     * ✅ Get approved reviews for a specific property - PUBLIC METHOD
+     */
+    @Transactional(readOnly = true)
+    public Page<ReviewDto.Response> getPropertyReviews(Long propertyId, Pageable pageable) {
+    System.out.println("\n📊 ========================================");
+    System.out.println("📊 GET PROPERTY REVIEWS SERVICE");
+    System.out.println("📊 Property ID: " + propertyId);
+    System.out.println("📊 Page: " + pageable.getPageNumber() + ", Size: " + pageable.getPageSize());
+    System.out.println("📊 ========================================\n");
     
+    try {
+        // Verify property exists
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new RuntimeException("Property not found with ID: " + propertyId));
+        
+        System.out.println("✅ Property found: " + property.getTitleEn());
+        
+        // Get only APPROVED reviews for this property
+        Page<Review> reviews = reviewRepository.findByPropertyIdAndApproved(propertyId, pageable);
+        
+        System.out.println("✅ Found " + reviews.getTotalElements() + " approved reviews");
+        System.out.println("   Current page has " + reviews.getContent().size() + " reviews");
+        
+        // Map to response DTOs
+        Page<ReviewDto.Response> result = reviews.map(this::mapToResponse);
+        
+        System.out.println("\n✅ Successfully mapped reviews for property " + propertyId + "\n");
+        
+        return result;
+        
+    } catch (RuntimeException e) {
+        System.err.println("\n❌ ======================================");
+        System.err.println("❌ GET PROPERTY REVIEWS FAILED");
+        System.err.println("❌ Error: " + e.getMessage());
+        System.err.println("❌ ======================================\n");
+        throw e;
+        
+    } catch (Exception e) {
+        System.err.println("\n❌ ======================================");
+        System.err.println("❌ UNEXPECTED ERROR");
+        System.err.println("❌ Error: " + e.getMessage());
+        System.err.println("❌ ======================================\n");
+        e.printStackTrace();
+        
+        // Return empty page instead of throwing
+        return Page.empty(pageable);
+    }
+}
     // ... (keep all other existing methods as is) ...
     
     // ==================== 🆕 ADMIN METHODS - FIXED ====================
@@ -320,6 +370,7 @@ public class ReviewService {
             System.err.println("⚠️  Failed to update property rating: " + e.getMessage());
         }
     }
+    
     
     /**
      * ✅ Map Review to Response DTO - SAFE VERSION
