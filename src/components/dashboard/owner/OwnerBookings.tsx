@@ -275,18 +275,20 @@ export function OwnerBookings({
                   <TableCell>
                     <div>
                       <p className="font-medium text-sm">
-                        {getPropertyTitle(booking)}
+                        {booking.propertyTitle || "Untitled Property"}
                       </p>
                       <p className="text-xs text-gray-600">
-                        {getPropertyLocation(booking)}
+                        {booking.propertyCity || "Unknown"}
                       </p>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div>
-                      <p className="text-sm">{getGuestName(booking)}</p>
+                      <p className="text-sm">
+                        {booking.otherPartyName || "Unknown Guest"}
+                      </p>
                       <p className="text-xs text-gray-600">
-                        {getGuestPhone(booking)}
+                        {booking.otherPartyPhone || "N/A"}
                       </p>
                     </div>
                   </TableCell>
@@ -294,7 +296,8 @@ export function OwnerBookings({
                   <TableCell>{formatDate(booking.checkOutDate)}</TableCell>
                   <TableCell>{booking.numberOfNights || 0}</TableCell>
                   <TableCell className="font-semibold">
-                    {(booking.totalPrice || 0).toLocaleString()} EGP
+                    {(booking.totalPrice || 0).toLocaleString()}{" "}
+                    {booking.currency || "EGP"}
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -457,10 +460,10 @@ export function OwnerBookings({
           }
         }}
       >
-        <AlertDialogContent className="max-w-3xl w-full max-h-[85vh] overflow-hidden p-0">
+        <AlertDialogContent className="max-w-xl w-full max-h-[75vh] overflow-hidden p-0">
           {/* Header with Close Button */}
-          <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10">
-            <AlertDialogTitle className="text-xl font-semibold">
+          <div className="sticky top-0 bg-white border-b px-3 py-2 flex items-center justify-between z-10">
+            <AlertDialogTitle className="text-base font-semibold">
               Booking Details
             </AlertDialogTitle>
             <button
@@ -470,19 +473,19 @@ export function OwnerBookings({
               }}
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" />
             </button>
           </div>
 
           {/* Scrollable Content */}
-          <div className="overflow-y-auto max-h-[calc(85vh-120px)] px-6 py-4">
+          <div className="overflow-y-auto max-h-[calc(75vh-60px)] px-3 py-2">
             {selectedBooking && (
-              <div className="space-y-6">
+              <div className="space-y-3">
                 {/* Booking Reference */}
-                <div className="flex items-center justify-between pb-4 border-b">
+                <div className="flex items-center justify-between pb-2 border-b">
                   <div>
-                    <p className="text-sm text-gray-600">Booking Reference</p>
-                    <p className="text-lg font-semibold">
+                    <p className="text-xs text-gray-600">Booking Reference</p>
+                    <p className="text-sm font-semibold">
                       {selectedBooking.bookingReference ||
                         `#${selectedBooking.bookingId}`}
                     </p>
@@ -497,73 +500,68 @@ export function OwnerBookings({
 
                 {/* Property Details */}
                 <div>
-                  <h3 className="font-semibold text-[#2B2B2B] mb-3">
+                  <h3 className="font-semibold text-sm text-[#2B2B2B] mb-2">
                     Property
                   </h3>
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                    <p className="font-medium">
-                      {getPropertyTitle(selectedBooking)}
+                  <div className="bg-gray-50 rounded-lg p-3 space-y-1">
+                    <p className="font-medium text-sm">
+                      {selectedBooking.propertyTitle || "N/A"}
                     </p>
-                    <p className="text-sm text-gray-600">
-                      📍 {getPropertyLocation(selectedBooking)}
+                    <p className="text-xs text-gray-600">
+                      📍 {selectedBooking.propertyCity || "Unknown"}
                     </p>
-                    <p className="text-sm text-gray-600">
-                      🏠 {selectedBooking.property?.propertyType || "N/A"}
+                    <p className="text-xs text-gray-600">
+                      🏠 {selectedBooking.propertyType || "N/A"}
                     </p>
                   </div>
                 </div>
 
                 {/* Guest Information */}
                 <div>
-                  <h3 className="font-semibold text-[#2B2B2B] mb-3">
+                  <h3 className="font-semibold text-sm text-[#2B2B2B] mb-2">
                     Guest Information
                   </h3>
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                    <p className="font-medium">
-                      {getGuestName(selectedBooking)}
+                  <div className="bg-gray-50 rounded-lg p-3 space-y-1">
+                    <p className="font-medium text-sm">
+                      {selectedBooking.otherPartyName || "Unknown Guest"}
                     </p>
-                    <p className="text-sm text-gray-600">
-                      📞 {getGuestPhone(selectedBooking)}
+                    <p className="text-xs text-gray-600">
+                      📞 {selectedBooking.otherPartyPhone || "N/A"}
                     </p>
-                    {selectedBooking.renter?.email && (
-                      <p className="text-sm text-gray-600">
-                        ✉️ {selectedBooking.renter.email}
-                      </p>
-                    )}
                   </div>
                 </div>
 
                 {/* Booking Details */}
                 <div>
-                  <h3 className="font-semibold text-[#2B2B2B] mb-3">
+                  <h3 className="font-semibold text-sm text-[#2B2B2B] mb-2">
                     Booking Information
                   </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-600 mb-1">Check-in</p>
-                      <p className="font-medium">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-gray-50 rounded-lg p-2">
+                      <p className="text-xs text-gray-600 mb-0.5">Check-in</p>
+                      <p className="font-medium text-sm">
                         {formatDate(selectedBooking.checkInDate)}
                       </p>
                     </div>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-600 mb-1">Check-out</p>
-                      <p className="font-medium">
+                    <div className="bg-gray-50 rounded-lg p-2">
+                      <p className="text-xs text-gray-600 mb-0.5">Check-out</p>
+                      <p className="font-medium text-sm">
                         {formatDate(selectedBooking.checkOutDate)}
                       </p>
                     </div>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-600 mb-1">
+                    <div className="bg-gray-50 rounded-lg p-2">
+                      <p className="text-xs text-gray-600 mb-0.5">
                         Number of Nights
                       </p>
-                      <p className="font-medium">
+                      <p className="font-medium text-sm">
                         {selectedBooking.numberOfNights || 0}
                       </p>
                     </div>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-600 mb-1">
+                    <div className="bg-gray-50 rounded-lg p-2">
+                      <p className="text-xs text-gray-600 mb-0.5">
                         Number of Guests
                       </p>
-                      <p className="font-medium">
+                      <p className="font-medium text-sm">
                         {selectedBooking.numberOfGuests || 0}
                       </p>
                     </div>
@@ -572,39 +570,30 @@ export function OwnerBookings({
 
                 {/* Payment Information */}
                 <div>
-                  <h3 className="font-semibold text-[#2B2B2B] mb-3">
+                  <h3 className="font-semibold text-sm text-[#2B2B2B] mb-2">
                     Payment Details
                   </h3>
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                    <div className="flex justify-between">
+                  <div className="bg-gray-50 rounded-lg p-3 space-y-1.5">
+                    <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Subtotal</span>
                       <span>
-                        {(
-                          (selectedBooking.totalPrice || 0) -
-                          (selectedBooking.platformFee || 0)
-                        ).toLocaleString()}{" "}
-                        EGP
+                        {(selectedBooking.totalPrice || 0).toLocaleString()}{" "}
+                        {selectedBooking.currency || "EGP"}
                       </span>
                     </div>
-                    {selectedBooking.platformFee &&
-                      selectedBooking.platformFee > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Platform Fee</span>
-                          <span>
-                            {selectedBooking.platformFee.toLocaleString()} EGP
-                          </span>
-                        </div>
-                      )}
-                    <div className="flex justify-between pt-2 border-t font-semibold text-lg">
+                    <div className="flex justify-between pt-1.5 border-t font-semibold text-base">
                       <span>Total Amount</span>
                       <span className="text-[#00BFA6]">
-                        {(selectedBooking.totalPrice || 0).toLocaleString()} EGP
+                        {(selectedBooking.totalPrice || 0).toLocaleString()}{" "}
+                        {selectedBooking.currency || "EGP"}
                       </span>
                     </div>
                     {selectedBooking.paymentStatus && (
-                      <div className="flex justify-between pt-2">
-                        <span className="text-gray-600">Payment Status</span>
-                        <Badge variant="outline" className="capitalize">
+                      <div className="flex justify-between pt-1.5">
+                        <span className="text-gray-600 text-sm">
+                          Payment Status
+                        </span>
+                        <Badge variant="outline" className="capitalize text-xs">
                           {selectedBooking.paymentStatus}
                         </Badge>
                       </div>
@@ -654,35 +643,44 @@ export function OwnerBookings({
                   </div>
                 )}
 
-                {/* Booking Timeline */}
+                {/* Timeline */}
                 <div>
-                  <h3 className="font-semibold text-[#2B2B2B] mb-3">
+                  <h3 className="font-semibold text-sm text-[#2B2B2B] mb-2">
                     Timeline
                   </h3>
-                  <div className="space-y-2 text-sm">
-                    {selectedBooking.createdAt && (
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <span className="w-2 h-2 rounded-full bg-gray-400"></span>
-                        <span>
-                          Created: {formatDateTime(selectedBooking.createdAt)}
+                  <div className="bg-gray-50 rounded-lg p-3 space-y-1.5">
+                    {selectedBooking.requestedAt && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                        <span className="text-gray-600">
+                          Requested:{" "}
+                          {formatDateTime(selectedBooking.requestedAt)}
                         </span>
                       </div>
                     )}
                     {selectedBooking.confirmedAt && (
-                      <div className="flex items-center gap-2 text-green-600">
-                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                        <span>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        <span className="text-green-600">
                           Confirmed:{" "}
                           {formatDateTime(selectedBooking.confirmedAt)}
                         </span>
                       </div>
                     )}
                     {selectedBooking.cancelledAt && (
-                      <div className="flex items-center gap-2 text-red-600">
-                        <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                        <span>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                        <span className="text-red-600">
                           Cancelled:{" "}
                           {formatDateTime(selectedBooking.cancelledAt)}
+                        </span>
+                      </div>
+                    )}
+                    {selectedBooking.expiresAt && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+                        <span className="text-gray-600">
+                          Expires: {formatDateTime(selectedBooking.expiresAt)}
                         </span>
                       </div>
                     )}

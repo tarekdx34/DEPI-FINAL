@@ -1,4 +1,4 @@
-// FILE 2: src/components/dashboard/renter/trips/TripCard.tsx
+// FILE 2: src/components/dashboard/renter/trips/TripCard.tsx (FIXED)
 import { useState, useEffect } from "react";
 import { Card } from "../../../ui/card";
 import { Button } from "../../../ui/button";
@@ -21,6 +21,7 @@ interface TripCardProps {
   type: "upcoming" | "past" | "cancelled";
   onNavigate: (page: string, id?: string) => void;
   onCancel?: (bookingId: number) => void;
+  onWriteReview?: (booking: BookingResponse) => void; // ✅ NEW: Callback to open review modal
   hasReview?: boolean;
   reviewsLoading?: boolean;
 }
@@ -30,6 +31,7 @@ export function TripCard({
   type,
   onNavigate,
   onCancel,
+  onWriteReview, // ✅ NEW: Receive callback
   hasReview,
   reviewsLoading,
 }: TripCardProps) {
@@ -252,9 +254,15 @@ export function TripCard({
                 <Button
                   size="sm"
                   className="bg-[#00BFA6] hover:bg-[#00A890] gap-2"
-                  onClick={() =>
-                    onNavigate("write-review", String(booking.bookingId))
-                  }
+                  onClick={() => {
+                    // ✅ FIXED: Call callback to open modal instead of navigate
+                    if (onWriteReview) {
+                      onWriteReview(booking);
+                    } else {
+                      // Fallback to old navigation if callback not provided
+                      onNavigate("write-review", String(booking.bookingId));
+                    }
+                  }}
                 >
                   <Star className="w-4 h-4" />
                   Write Review

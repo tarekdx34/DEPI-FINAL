@@ -563,9 +563,7 @@ export function PropertyDetailsPage({
                 )}
               </div>
             </div>
-
             <Separator />
-
             {/* Description */}
             <div>
               <h3 className="text-xl font-semibold text-[#2B2B2B] mb-4">
@@ -597,44 +595,198 @@ export function PropertyDetailsPage({
                 )}
               </div>
             </div>
-
             <Separator />
-
-            {/* Reviews */}
+            // Add this section after the Description section and before the
+            booking card // Replace lines 584-625 in your original code with
+            this enhanced version
+            {/* Reviews Section */}
             {reviews.length > 0 && (
-              <>
-                <div>
-                  <div className="flex items-center gap-2 mb-6">
+              <div className="space-y-6">
+                {/* Reviews Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
                     <Star className="w-6 h-6 fill-[#2B2B2B] text-[#2B2B2B]" />
-                    <h3 className="text-xl font-semibold text-[#2B2B2B]">
+                    <h3 className="text-2xl font-semibold text-[#2B2B2B]">
                       {property.averageRating.toFixed(1)} •{" "}
                       {property.totalReviews}{" "}
-                      {language === "ar" ? "تقييمات" : "reviews"}
+                      {language === "ar" ? "تقييم" : "review"}
+                      {property.totalReviews !== 1 ? "s" : ""}
                     </h3>
                   </div>
-                  <div className="space-y-6">
-                    {reviews.slice(0, 3).map((review) => (
-                      <div key={review.reviewId} className="flex gap-4">
-                        <Avatar>
-                          <AvatarFallback>
-                            {review.reviewer.firstName[0]}
-                          </AvatarFallback>
+                </div>
+
+                {/* Rating Breakdown */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">
+                        {language === "ar" ? "النظافة" : "Cleanliness"}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-0.5">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-3 h-3 ${
+                                star <=
+                                Math.round(reviews[0]?.cleanlinessRating || 0)
+                                  ? "fill-[#2B2B2B] text-[#2B2B2B]"
+                                  : "text-gray-300"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-sm font-medium">
+                          {reviews[0]?.cleanlinessRating?.toFixed(1) || "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">
+                        {language === "ar" ? "الدقة" : "Accuracy"}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-0.5">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-3 h-3 ${
+                                star <=
+                                Math.round(reviews[0]?.accuracyRating || 0)
+                                  ? "fill-[#2B2B2B] text-[#2B2B2B]"
+                                  : "text-gray-300"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-sm font-medium">
+                          {reviews[0]?.accuracyRating?.toFixed(1) || "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">
+                        {language === "ar" ? "التواصل" : "Communication"}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-0.5">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-3 h-3 ${
+                                star <=
+                                Math.round(reviews[0]?.communicationRating || 0)
+                                  ? "fill-[#2B2B2B] text-[#2B2B2B]"
+                                  : "text-gray-300"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-sm font-medium">
+                          {reviews[0]?.communicationRating?.toFixed(1) || "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">
+                        {language === "ar" ? "الموقع" : "Location"}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-0.5">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-3 h-3 ${
+                                star <=
+                                Math.round(reviews[0]?.locationRating || 0)
+                                  ? "fill-[#2B2B2B] text-[#2B2B2B]"
+                                  : "text-gray-300"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-sm font-medium">
+                          {reviews[0]?.locationRating?.toFixed(1) || "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">
+                        {language === "ar" ? "القيمة مقابل السعر" : "Value"}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-0.5">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-3 h-3 ${
+                                star <= Math.round(reviews[0]?.valueRating || 0)
+                                  ? "fill-[#2B2B2B] text-[#2B2B2B]"
+                                  : "text-gray-300"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-sm font-medium">
+                          {reviews[0]?.valueRating?.toFixed(1) || "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Individual Reviews */}
+                <div className="space-y-6">
+                  {reviews.map((review) => (
+                    <div
+                      key={review.reviewId}
+                      className="border-b border-gray-200 pb-6 last:border-0"
+                    >
+                      <div className="flex gap-4">
+                        {/* Reviewer Avatar */}
+                        <Avatar className="w-12 h-12">
+                          {review.reviewer.profilePhoto ? (
+                            <img
+                              src={review.reviewer.profilePhoto}
+                              alt={`${review.reviewer.firstName} ${review.reviewer.lastName}`}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <AvatarFallback className="bg-[#00BFA6] text-white text-lg font-semibold">
+                              {review.reviewer.firstName[0]}
+                              {review.reviewer.lastName[0]}
+                            </AvatarFallback>
+                          )}
                         </Avatar>
+
+                        {/* Review Content */}
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold">
+                          {/* Reviewer Info */}
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-semibold text-[#2B2B2B]">
                               {review.reviewer.firstName}{" "}
                               {review.reviewer.lastName}
                             </span>
                             {review.reviewer.verified && (
                               <Shield className="w-4 h-4 text-[#00BFA6]" />
                             )}
-                            <span className="text-gray-600">•</span>
+                            <span className="text-gray-400">•</span>
                             <span className="text-gray-600 text-sm">
-                              {new Date(review.createdAt).toLocaleDateString()}
+                              {new Date(review.createdAt).toLocaleDateString(
+                                language === "ar" ? "ar-EG" : "en-US",
+                                {
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                }
+                              )}
                             </span>
                           </div>
-                          <div className="flex gap-1 mb-2">
+
+                          {/* Star Rating */}
+                          <div className="flex gap-1 mb-3">
                             {[1, 2, 3, 4, 5].map((star) => (
                               <Star
                                 key={star}
@@ -646,15 +798,109 @@ export function PropertyDetailsPage({
                               />
                             ))}
                           </div>
-                          <p className="text-gray-700">{review.reviewText}</p>
+
+                          {/* Review Title */}
+                          {review.reviewTitle && (
+                            <h4 className="font-semibold text-[#2B2B2B] mb-2">
+                              {review.reviewTitle}
+                            </h4>
+                          )}
+
+                          {/* Review Text */}
+                          <p className="text-gray-700 leading-relaxed mb-3">
+                            {review.reviewText}
+                          </p>
+
+                          {/* Pros and Cons */}
+                          {(review.pros || review.cons) && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                              {review.pros && (
+                                <div className="bg-green-50 p-3 rounded-lg">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Check className="w-4 h-4 text-green-600" />
+                                    <span className="text-sm font-semibold text-green-700">
+                                      {language === "ar"
+                                        ? "الإيجابيات"
+                                        : "Pros"}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-gray-700">
+                                    {review.pros}
+                                  </p>
+                                </div>
+                              )}
+                              {review.cons && (
+                                <div className="bg-red-50 p-3 rounded-lg">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <AlertCircle className="w-4 h-4 text-red-600" />
+                                    <span className="text-sm font-semibold text-red-700">
+                                      {language === "ar" ? "السلبيات" : "Cons"}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-gray-700">
+                                    {review.cons}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Owner Response */}
+                          {review.ownerResponse && (
+                            <div className="mt-4 pl-4 border-l-2 border-[#00BFA6] bg-gray-50 p-3 rounded-r-lg">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-sm font-semibold text-[#2B2B2B]">
+                                  {language === "ar"
+                                    ? "رد المالك"
+                                    : "Owner's Response"}
+                                </span>
+                                {review.ownerResponseDate && (
+                                  <>
+                                    <span className="text-gray-400">•</span>
+                                    <span className="text-gray-600 text-xs">
+                                      {new Date(
+                                        review.ownerResponseDate
+                                      ).toLocaleDateString(
+                                        language === "ar" ? "ar-EG" : "en-US",
+                                        {
+                                          year: "numeric",
+                                          month: "long",
+                                          day: "numeric",
+                                        }
+                                      )}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-700">
+                                {review.ownerResponse}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-                <Separator />
-              </>
+
+                {/* Show More Reviews Button */}
+                {property.totalReviews > 3 && reviews.length <= 3 && (
+                  <Button
+                    variant="outline"
+                    className="w-full mt-4"
+                    onClick={() => {
+                      // You can implement pagination or navigate to a reviews page
+                      console.log("Load more reviews");
+                    }}
+                  >
+                    {language === "ar"
+                      ? `عرض جميع التقييمات (${property.totalReviews})`
+                      : `Show all ${property.totalReviews} reviews`}
+                  </Button>
+                )}
+              </div>
             )}
+            <Separator />
           </div>
 
           {/* Booking Card - Sticky */}
@@ -781,13 +1027,25 @@ export function PropertyDetailsPage({
                   !!availabilityError
                 }
               >
-                {creatingBooking ? (
+                {/* Normal State */}
+                {!creatingBooking && !checkingAvailability && "Reserve"}
+
+                {/* Creating Booking */}
+                {creatingBooking && (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {language === "ar"
+                      ? "جاري الحجز..."
+                      : "Creating booking..."}
+                  </>
+                )}
+
+                {/* Checking Availability */}
+                {!creatingBooking && checkingAvailability && (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     {language === "ar" ? "جاري التحقق..." : "Checking..."}
                   </>
-                ) : (
-                  t.reserve
                 )}
               </Button>
 

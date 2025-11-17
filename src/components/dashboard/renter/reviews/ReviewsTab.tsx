@@ -50,12 +50,8 @@ export function ReviewsTab({ onNavigate, language }: ReviewsTabProps) {
     try {
       setLoading(true);
 
-      // ✅ STEP 1: Get all user's bookings
-      console.log("📥 Fetching bookings...");
       const allBookings = await api.getBookings();
-      console.log("✅ Bookings fetched:", allBookings.length);
 
-      // ✅ STEP 2: Filter completed bookings
       let completedBookings: BookingResponse[];
 
       if (TEST_MODE) {
@@ -65,10 +61,6 @@ export function ReviewsTab({ onNavigate, language }: ReviewsTabProps) {
             b.status === "completed" ||
             b.status === "confirmed" ||
             new Date(b.checkOutDate) < new Date()
-        );
-
-        console.log(
-          `🧪 Test Mode: ${completedBookings.length} booking(s) available for review`
         );
       } else {
         // Production mode: only completed with past check-out
@@ -232,113 +224,6 @@ export function ReviewsTab({ onNavigate, language }: ReviewsTabProps) {
     <div className="space-y-6" dir={language === "ar" ? "rtl" : "ltr"}>
       {" "}
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div
-          className={`flex items-center gap-3 ${
-            language === "ar" ? "flex-row-reverse" : ""
-          }`}
-        >
-          <h2 className="text-2xl font-semibold text-[#2B2B2B]">
-            {t.userDashboard.myReviews}
-          </h2>
-          {TEST_MODE && (
-            <Badge
-              variant="outline"
-              className={`bg-purple-50 text-purple-700 border-purple-200 gap-1 ${
-                language === "ar" ? "flex-row-reverse" : ""
-              }`}
-            >
-              <TestTube className="w-3 h-3" />
-              {t.userDashboard.testMode}
-            </Badge>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {eligibleBookings.length > 0 && (
-            <Badge
-              variant="outline"
-              className={`bg-yellow-50 text-yellow-700 border-yellow-200 gap-1 ${
-                language === "ar" ? "flex-row-reverse" : ""
-              }`}
-            >
-              <MessageSquare className="w-3 h-3" />
-              {eligibleBookings.length} {t.userDashboard.pendingApproval}
-            </Badge>
-          )}
-          {pendingReviews.length > 0 && (
-            <Badge
-              variant="outline"
-              className={`bg-orange-50 text-orange-700 border-orange-200 gap-1 ${
-                language === "ar" ? "flex-row-reverse" : ""
-              }`}
-            >
-              <Clock className="w-3 h-3" />
-              {pendingReviews.length} {t.userDashboard.underReview}
-            </Badge>
-          )}
-        </div>
-      </div>
-      {/* Test Mode Notice */}
-      {TEST_MODE && (
-        <Card className="p-4 bg-purple-50 border-purple-200">
-          <div className="flex items-start gap-3">
-            <TestTube className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <h4 className="font-semibold text-purple-900 mb-1">
-                {t.userDashboard.testModeNotice}
-              </h4>
-              <p className="text-sm text-purple-700">
-                {t.userDashboard.testModeDesc} Set{" "}
-                <code className="px-1.5 py-0.5 bg-purple-100 rounded font-mono text-xs">
-                  TEST_MODE = false
-                </code>{" "}
-                in production.
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
-      {/* Pending Reviews (Awaiting Approval) */}
-      {pendingReviews.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-orange-600" />
-            <h3
-              className={`text-lg font-semibold text-[#2B2B2B] ${
-                language === "ar" ? "text-right" : "text-left"
-              }`}
-            >
-              {t.userDashboard.pendingApproval} ({pendingReviews.length})
-            </h3>
-          </div>
-          <Card className="p-4 bg-orange-50 border-orange-200">
-            <p className="text-sm text-orange-800">
-              <strong>⏳ Under Review:</strong> These reviews are waiting for
-              admin approval before being published. You can still edit or
-              delete them.
-            </p>
-          </Card>
-          <div className="space-y-4">
-            {pendingReviews.map((review) => (
-              <div key={review.reviewId} className="relative">
-                <div className="absolute -top-2 -right-2 z-10">
-                  <Badge className="bg-orange-500 text-white gap-1 shadow-md">
-                    <Clock className="w-3 h-3" />
-                    Pending
-                  </Badge>
-                </div>
-                <ReviewCard
-                  review={review}
-                  onEdit={handleEditReview}
-                  onDelete={handleDeleteReview}
-                  isPending={true}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      {/* Eligible Bookings - Write New Review */}
       {eligibleBookings.length > 0 && (
         <div className="space-y-3">
           <h3

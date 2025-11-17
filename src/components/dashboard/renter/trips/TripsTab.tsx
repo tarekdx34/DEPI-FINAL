@@ -1,12 +1,15 @@
-// FILE 1: src/components/dashboard/renter/trips/TripsTab.tsx (~100 lines)
-import { useState, useEffect } from "react";
+// FILE 1: src/components/dashboard/renter/trips/TripsTab.tsx (WITH REVIEW MODAL)
+import { useState, useEffect, useCallback } from "react";
 import { Loader2, Calendar } from "lucide-react";
 import { Language, translations } from "../../../../lib/translations";
 import { EmptyState } from "../../shared/components/EmptyState";
 import { TripCard } from "./TripCard";
 import { CancelDialog } from "./CancelDialog";
+import { WriteReviewModal } from "../reviews/WriteReviewModal"; // ✅ Import review modal
 import { useBookings } from "../../../../hooks/useBookings";
 import api from "../../../../../api";
+import type { BookingResponse } from "../../../../../api";
+import { toast } from "sonner";
 
 interface TripsTabProps {
   onNavigate: (page: string, id?: string) => void;
@@ -30,22 +33,13 @@ export function TripsTab({ onNavigate, language }: TripsTabProps) {
   );
   const [reviewsLoading, setReviewsLoading] = useState(false);
 
-  useEffect(() => {
-    fetchBookings();
-    checkExistingReviews();
-  }, []);
+  // ✅ NEW: Review modal state
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedBookingForReview, setSelectedBookingForReview] =
+    useState<BookingResponse | null>(null);
 
-  useEffect(() => {
-    checkExistingReviews();
-  }, [pastBookings]);
-
-  useEffect(() => {
-    const handleFocus = () => checkExistingReviews();
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, []);
-
-  const checkExistingReviews = async () => {
+  // ✅ Memoize the function to prevent infinite loops
+  const checkExistingReviews = useCallback(async () => {
     try {
       setReviewsLoading(true);
       const myReviews = await api.getMyReviews({ page: 0, size: 100 });
@@ -60,13 +54,56 @@ export function TripsTab({ onNavigate, language }: TripsTabProps) {
     } finally {
       setReviewsLoading(false);
     }
-  };
+  }, []);
+
+  // ✅ SINGLE effect on mount - fetch bookings and reviews ONCE
+  useEffect(() => {
+    fetchBookings();
+    checkExistingReviews();
+  }, []);
+
+  // ✅ Optional: Refresh reviews when window gains focus (but with debounce)
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    const handleFocus = () => {
+      // Debounce to prevent rapid calls
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        checkExistingReviews();
+      }, 1000); // Wait 1 second before refreshing
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      clearTimeout(timeoutId);
+    };
+  }, [checkExistingReviews]);
 
   const handleCancelBooking = async () => {
     if (cancelBookingId) {
       await cancelBooking(cancelBookingId, "Cancelled by user");
       setCancelBookingId(null);
+      // ✅ Refresh bookings after cancellation
+      await fetchBookings();
     }
+  };
+
+  // ✅ NEW: Handle opening review modal
+  const handleOpenReviewModal = (booking: BookingResponse) => {
+    console.log("📝 Opening review modal for booking:", booking.bookingId);
+    setSelectedBookingForReview(booking);
+    setShowReviewModal(true);
+  };
+
+  // ✅ NEW: Handle review submission success
+  const handleReviewSuccess = () => {
+    toast.success("Review submitted successfully!");
+    setShowReviewModal(false);
+    setSelectedBookingForReview(null);
+    // Refresh reviews to update the UI
+    checkExistingReviews();
   };
 
   if (loading) {
@@ -79,7 +116,6 @@ export function TripsTab({ onNavigate, language }: TripsTabProps) {
 
   return (
     <div className="space-y-8" dir={language === "ar" ? "rtl" : "ltr"}>
-      {" "}
       {/* Upcoming Trips */}
       <div>
         <h2
@@ -111,6 +147,7 @@ export function TripsTab({ onNavigate, language }: TripsTabProps) {
           />
         )}
       </div>
+
       {/* Past Trips */}
       <div>
         <h2
@@ -128,6 +165,7 @@ export function TripsTab({ onNavigate, language }: TripsTabProps) {
                 booking={booking}
                 type="past"
                 onNavigate={onNavigate}
+                onWriteReview={handleOpenReviewModal} // ✅ Pass callback
                 hasReview={existingReviews.has(booking.bookingId)}
                 reviewsLoading={reviewsLoading}
               />
@@ -139,6 +177,7 @@ export function TripsTab({ onNavigate, language }: TripsTabProps) {
           </div>
         )}
       </div>
+
       {/* Cancelled Trips */}
       <div>
         <h2
@@ -165,11 +204,26 @@ export function TripsTab({ onNavigate, language }: TripsTabProps) {
           </div>
         )}
       </div>
+
+      {/* Cancel Booking Dialog */}
       <CancelDialog
         open={cancelBookingId !== null}
         onClose={() => setCancelBookingId(null)}
         onConfirm={handleCancelBooking}
       />
+
+      {/* ✅ NEW: Review Modal */}
+      {showReviewModal && selectedBookingForReview && (
+        <WriteReviewModal
+          booking={selectedBookingForReview}
+          existingReview={null}
+          onClose={() => {
+            setShowReviewModal(false);
+            setSelectedBookingForReview(null);
+          }}
+          onSuccess={handleReviewSuccess}
+        />
+      )}
     </div>
   );
 }
