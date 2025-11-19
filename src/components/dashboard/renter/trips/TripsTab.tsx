@@ -1,11 +1,11 @@
-// FILE 1: src/components/dashboard/renter/trips/TripsTab.tsx (WITH REVIEW MODAL)
+// FILE 1: src/components/dashboard/renter/trips/TripsTab.tsx (WITH VIEW REVIEW)
 import { useState, useEffect, useCallback } from "react";
 import { Loader2, Calendar } from "lucide-react";
 import { Language, translations } from "../../../../lib/translations";
 import { EmptyState } from "../../shared/components/EmptyState";
 import { TripCard } from "./TripCard";
 import { CancelDialog } from "./CancelDialog";
-import { WriteReviewModal } from "../reviews/WriteReviewModal"; // ✅ Import review modal
+import { WriteReviewModal } from "../reviews/WriteReviewModal";
 import { useBookings } from "../../../../hooks/useBookings";
 import api from "../../../../../api";
 import type { BookingResponse } from "../../../../../api";
@@ -33,12 +33,11 @@ export function TripsTab({ onNavigate, language }: TripsTabProps) {
   );
   const [reviewsLoading, setReviewsLoading] = useState(false);
 
-  // ✅ NEW: Review modal state
+  // Review modal state
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedBookingForReview, setSelectedBookingForReview] =
     useState<BookingResponse | null>(null);
 
-  // ✅ Memoize the function to prevent infinite loops
   const checkExistingReviews = useCallback(async () => {
     try {
       setReviewsLoading(true);
@@ -56,22 +55,19 @@ export function TripsTab({ onNavigate, language }: TripsTabProps) {
     }
   }, []);
 
-  // ✅ SINGLE effect on mount - fetch bookings and reviews ONCE
   useEffect(() => {
     fetchBookings();
     checkExistingReviews();
   }, []);
 
-  // ✅ Optional: Refresh reviews when window gains focus (but with debounce)
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
 
     const handleFocus = () => {
-      // Debounce to prevent rapid calls
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         checkExistingReviews();
-      }, 1000); // Wait 1 second before refreshing
+      }, 1000);
     };
 
     window.addEventListener("focus", handleFocus);
@@ -85,25 +81,28 @@ export function TripsTab({ onNavigate, language }: TripsTabProps) {
     if (cancelBookingId) {
       await cancelBooking(cancelBookingId, "Cancelled by user");
       setCancelBookingId(null);
-      // ✅ Refresh bookings after cancellation
       await fetchBookings();
     }
   };
 
-  // ✅ NEW: Handle opening review modal
   const handleOpenReviewModal = (booking: BookingResponse) => {
     console.log("📝 Opening review modal for booking:", booking.bookingId);
     setSelectedBookingForReview(booking);
     setShowReviewModal(true);
   };
 
-  // ✅ NEW: Handle review submission success
   const handleReviewSuccess = () => {
     toast.success("Review submitted successfully!");
     setShowReviewModal(false);
     setSelectedBookingForReview(null);
-    // Refresh reviews to update the UI
     checkExistingReviews();
+  };
+
+  // ✅ NEW: Navigate to reviews tab and scroll to specific review
+  const handleViewReview = (bookingId: number) => {
+    console.log("👀 Viewing review for booking:", bookingId);
+    // Navigate to reviews tab with bookingId as parameter
+    onNavigate("reviews", String(bookingId));
   };
 
   if (loading) {
@@ -165,7 +164,8 @@ export function TripsTab({ onNavigate, language }: TripsTabProps) {
                 booking={booking}
                 type="past"
                 onNavigate={onNavigate}
-                onWriteReview={handleOpenReviewModal} // ✅ Pass callback
+                onWriteReview={handleOpenReviewModal}
+                onViewReview={handleViewReview} // ✅ NEW
                 hasReview={existingReviews.has(booking.bookingId)}
                 reviewsLoading={reviewsLoading}
               />
@@ -205,14 +205,12 @@ export function TripsTab({ onNavigate, language }: TripsTabProps) {
         )}
       </div>
 
-      {/* Cancel Booking Dialog */}
       <CancelDialog
         open={cancelBookingId !== null}
         onClose={() => setCancelBookingId(null)}
         onConfirm={handleCancelBooking}
       />
 
-      {/* ✅ NEW: Review Modal */}
       {showReviewModal && selectedBookingForReview && (
         <WriteReviewModal
           booking={selectedBookingForReview}
