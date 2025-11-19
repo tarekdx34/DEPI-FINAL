@@ -8,75 +8,193 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, Long> {
     
-    // ==================== EXISTING METHODS ====================
-    
-    // Find by property (approved only) with pagination
-    @Query("SELECT r FROM Review r WHERE r.property.propertyId = :propertyId AND r.isApproved = true ORDER BY r.createdAt DESC")
-    Page<Review> findByPropertyIdAndApproved(@Param("propertyId") Long propertyId, Pageable pageable);
-    
-    // Find all reviews by property (including unapproved - for admin)
+    // ==================== BASIC METHODS ====================
+    // في ReviewRepository.java
+Page<Review> findByPropertyPropertyIdAndIsApprovedTrue(Long propertyId, Pageable pageable);
+
     Page<Review> findByPropertyPropertyId(Long propertyId, Pageable pageable);
     
-    // Find by reviewer
-    @Query("SELECT r FROM Review r WHERE r.reviewer.userId = :reviewerId ORDER BY r.createdAt DESC")
-    Page<Review> findByReviewerId(@Param("reviewerId") Long reviewerId, Pageable pageable);
+    Page<Review> findByReviewerUserId(Long reviewerId, Pageable pageable);
     
-    // Find by reviewee (owner)
-    @Query("SELECT r FROM Review r WHERE r.reviewee.userId = :revieweeId AND r.isApproved = true ORDER BY r.createdAt DESC")
-    Page<Review> findByRevieweeId(@Param("revieweeId") Long revieweeId, Pageable pageable);
+    Page<Review> findByRevieweeUserId(Long revieweeId, Pageable pageable);
     
-    // Find by booking
-    Optional<Review> findByBookingBookingId(Integer bookingId);
-    
-    // Check if review exists for booking
     boolean existsByBookingBookingId(Integer bookingId);
     
-    // Count approved reviews for property
-    @Query("SELECT COUNT(r) FROM Review r WHERE r.property.propertyId = :propertyId AND r.isApproved = true")
-    Long countApprovedByPropertyId(@Param("propertyId") Long propertyId);
+    Optional<Review> findByBookingBookingId(Integer bookingId);
     
-    // Get average rating for property (approved only)
-    @Query("SELECT AVG(r.overallRating) FROM Review r WHERE r.property.propertyId = :propertyId AND r.isApproved = true")
+    @Query("SELECT COUNT(r) FROM Review r")
+    long count();
+    
+    Long countByReviewerUserId(Long userId);
+    
+    // ==================== ✅ NEW: MY REVIEWS QUERIES ====================
+    
+    /**
+     * ✅ Find reviews written by current user (renter) with approval filter
+     * Used by: /api/v1/reviews/my-reviews
+     */
+    Page<Review> findByReviewerUserIdAndIsApproved(
+        Long reviewerId, 
+        Boolean isApproved, 
+        Pageable pageable
+    );
+    
+    /**
+     * ✅ Find reviews for a specific property with approval filter
+     * Used by: /api/v1/reviews/property/{propertyId}
+     */
+    Page<Review> findByPropertyPropertyIdAndIsApproved(
+        Long propertyId, 
+        Boolean isApproved, 
+        Pageable pageable
+    );
+    
+    // ==================== SINGLE PROPERTY QUERIES ====================
+    
+    @Query("SELECT AVG(r.overallRating) FROM Review r WHERE r.property.propertyId = :propertyId AND r.isApproved = TRUE")
     Optional<Double> getAverageRatingByPropertyId(@Param("propertyId") Long propertyId);
     
-    // Find reviews pending approval (for admin)
-    @Query("SELECT r FROM Review r WHERE r.isApproved = false ORDER BY r.createdAt DESC")
-    Page<Review> findPendingApproval(Pageable pageable);
+    @Query("SELECT COUNT(r) FROM Review r WHERE r.property.propertyId = :propertyId AND r.isApproved = TRUE")
+    Long countApprovedByPropertyId(@Param("propertyId") Long propertyId);
     
-    // Get reviewer's total review count
-    Long countByReviewerUserId(Long reviewerId);
+    @Query("SELECT r FROM Review r " +
+           "WHERE r.property.propertyId = :propertyId " +
+           "AND r.isApproved = TRUE " +
+           "ORDER BY r.createdAt DESC")
+    Page<Review> findByPropertyIdAndApproved(
+        @Param("propertyId") Long propertyId, 
+        Pageable pageable
+    );
     
-    // ==================== 🆕 NEW ADMIN METHODS ====================
-    
-    /**
-     * ✅ Find all reviews by approval status
-     */
-    Page<Review> findByIsApproved(Boolean isApproved, Pageable pageable);
-    
-    /**
-     * ✅ Count reviews by approval status
-     */
-    long countByIsApproved(Boolean isApproved);
+    // ==================== ✅ CRITICAL: MULTI-PROPERTY QUERIES ====================
+    // These are the KEY methods for Owner Dashboard!
     
     /**
-     * ✅ Calculate average rating for ALL approved reviews (platform-wide)
+     * ✅ Count approved reviews across MULTIPLE properties
+     * Used by Owner Dashboard to get total review count
      */
-    @Query("SELECT AVG(r.overallRating) FROM Review r WHERE r.isApproved = true")
+    @Query("SELECT COUNT(r) FROM Review r " +
+           "WHERE r.property.propertyId IN :propertyIds " +
+           "AND r.isApproved = TRUE")
+    Long countApprovedByPropertyIds(@Param("propertyIds") List<Long> propertyIds);
+    
+    /**
+     * ✅ Get average rating across MULTIPLE properties
+     * Used by Owner Dashboard to calculate overall rating
+     */
+    @Query("SELECT AVG(r.overallRating) FROM Review r " +
+           "WHERE r.property.propertyId IN :propertyIds " +
+           "AND r.isApproved = TRUE")
+    Optional<Double> getAverageRatingByPropertyIds(@Param("propertyIds") List<Long> propertyIds);
+    
+    /**
+     * ✅ Find approved reviews for multiple properties
+     * Used for getting reviews across owner's portfolio
+     */
+    @Query("SELECT r FROM Review r " +
+           "WHERE r.property.propertyId IN :propertyIds " +
+           "AND r.isApproved = TRUE " +
+           "ORDER BY r.createdAt DESC")
+    Page<Review> findByPropertyIdsAndApproved(
+        @Param("propertyIds") List<Long> propertyIds,
+        Pageable pageable
+    );
+    
+    /**
+     * ✅ Alternative: Find reviews by owner ID directly
+     * Backup method if property IDs not available
+     */
+    @Query("SELECT r FROM Review r " +
+           "WHERE r.property.owner.userId = :ownerId " +
+           "AND r.isApproved = TRUE " +
+           "ORDER BY r.createdAt DESC")
+    Page<Review> findRecentReviewsByOwnerId(
+        @Param("ownerId") Long ownerId,
+        Pageable pageable
+    );
+    
+    // ==================== ADMIN QUERIES ====================
+    
+    @Query("SELECT AVG(r.overallRating) FROM Review r WHERE r.isApproved = TRUE")
     Double getAverageRatingForApprovedReviews();
     
-    /**
-     * ✅ Find reviews by property and approval status
-     */
-    Page<Review> findByPropertyPropertyIdAndIsApproved(Long propertyId, Boolean isApproved, Pageable pageable);
+    Long countByIsApproved(Boolean isApproved);
     
-    /**
-     * ✅ Count approved reviews for a property
-     */
-    long countByPropertyPropertyIdAndIsApprovedTrue(Long propertyId);
+    Page<Review> findByIsApproved(Boolean isApproved, Pageable pageable);
+    
+    Page<Review> findAll(Pageable pageable);
+    
+    // ==================== OWNER RESPONSE TRACKING ====================
+    
+    @Query("SELECT r FROM Review r " +
+           "WHERE r.property.propertyId = :propertyId " +
+           "AND r.isApproved = TRUE " +
+           "AND r.ownerResponse IS NOT NULL " +
+           "ORDER BY r.ownerResponseDate DESC")
+    Page<Review> findByPropertyIdWithResponse(
+        @Param("propertyId") Long propertyId,
+        Pageable pageable
+    );
+    
+    @Query("SELECT r FROM Review r " +
+           "WHERE r.property.propertyId = :propertyId " +
+           "AND r.isApproved = TRUE " +
+           "AND r.ownerResponse IS NULL " +
+           "ORDER BY r.createdAt DESC")
+    Page<Review> findByPropertyIdWithoutResponse(
+        @Param("propertyId") Long propertyId,
+        Pageable pageable
+    );
+    
+    @Query("SELECT COUNT(r) FROM Review r " +
+           "WHERE r.property.propertyId = :propertyId " +
+           "AND r.isApproved = TRUE " +
+           "AND r.ownerResponse IS NULL")
+    Long countPendingResponsesByPropertyId(@Param("propertyId") Long propertyId);
+    
+    // ==================== RATING BREAKDOWN ====================
+    
+    @Query("SELECT " +
+           "AVG(r.cleanlinessRating) as cleanlinessAvg, " +
+           "AVG(r.accuracyRating) as accuracyAvg, " +
+           "AVG(r.communicationRating) as communicationAvg, " +
+           "AVG(r.locationRating) as locationAvg, " +
+           "AVG(r.valueRating) as valueAvg " +
+           "FROM Review r " +
+           "WHERE r.property.propertyId = :propertyId " +
+           "AND r.isApproved = TRUE")
+    Object[] getRatingBreakdownByPropertyId(@Param("propertyId") Long propertyId);
+    
+    @Query("SELECT r FROM Review r " +
+           "WHERE r.property.propertyId = :propertyId " +
+           "AND r.isApproved = TRUE " +
+           "AND r.overallRating >= :minRating " +
+           "ORDER BY r.overallRating DESC, r.createdAt DESC")
+    Page<Review> findTopRatedReviewsByPropertyId(
+        @Param("propertyId") Long propertyId,
+        @Param("minRating") BigDecimal minRating,
+        Pageable pageable
+    );
+
+/**
+ * ✅ CRITICAL FIX: Get reviews by reviewer with EAGER loading of images
+ */
+@Query("SELECT DISTINCT r FROM Review r " +
+       "LEFT JOIN FETCH r.property p " +
+       "LEFT JOIN FETCH p.images img " +
+       "WHERE r.reviewer.userId = :reviewerId " +
+       "ORDER BY r.createdAt DESC")
+Page<Review> findByReviewerWithPropertyAndImages(
+    @Param("reviewerId") Long reviewerId,
+    Pageable pageable
+);
+
+
 }

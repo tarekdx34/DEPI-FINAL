@@ -1,5 +1,3 @@
-// src/main/java/com/ajarly/backend/dto/PropertyDto.java
-
 package com.ajarly.backend.dto;
 
 import com.ajarly.backend.model.Property;
@@ -93,7 +91,7 @@ public class PropertyDto {
         private Boolean instantBooking = false;
     }
     
-    // Response DTO
+    // Response DTO (Full details)
     @Data
     public static class Response {
         private Long propertyId;
@@ -134,13 +132,12 @@ public class PropertyDto {
         }
     }
     
-    // Simple/List Response
+    // Simple/List Response (for cards)
     @Data
     public static class ListResponse {
         private Long propertyId;
         private String titleAr;
-        private String titleEn;
-
+        private String titleEn;  // ✅ مهم للعرض
         private String slug;
         private Property.PropertyType propertyType;
         private String governorate;
@@ -152,6 +149,6 @@ public class PropertyDto {
         private BigDecimal averageRating;
         private Integer totalReviews;
         private Boolean isFeatured;
-        private String coverImage;
+        private String coverImage;  // ✅ الصورة الرئيسية
     }
 }

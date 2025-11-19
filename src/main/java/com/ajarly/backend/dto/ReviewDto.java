@@ -1,7 +1,6 @@
 package com.ajarly.backend.dto;
 
 import lombok.Data;
-
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -69,6 +68,9 @@ public class ReviewDto {
         private Long propertyId;
         private String propertyTitle;
         
+        // ✅ ADDED: Property info with image
+        private PropertyBasicInfo property;
+        
         private ReviewerInfo reviewer;
         private ReviewerInfo reviewee;
         
@@ -104,6 +106,20 @@ public class ReviewDto {
         private String profilePhoto;
         private Boolean verified;
         private Integer totalReviews;
+    }
+    
+    // ✅ NEW: Property Basic Info (with image)
+    @Data
+    @lombok.Builder
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class PropertyBasicInfo {
+        private Long propertyId;
+        private String titleAr;
+        private String titleEn;
+        private String city;
+        private String governorate;
+        private String coverImage;
     }
     
     // Simple Review Response for List

@@ -10,6 +10,10 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * ✅ FINAL VERSION - Review Entity
+ * Fixed: Auto-approve reviews by default
+ */
 @Entity
 @Table(name = "reviews")
 @Data
@@ -38,7 +42,10 @@ public class Review {
     @JoinColumn(name = "reviewee_id", nullable = false)
     private User reviewee; // Owner being reviewed
     
-    // Ratings (1-5)
+    // ============================================
+    // RATINGS (1-5)
+    // ============================================
+    
     @Column(name = "overall_rating", nullable = false, precision = 2, scale = 1)
     private BigDecimal overallRating;
     
@@ -57,7 +64,10 @@ public class Review {
     @Column(name = "value_rating")
     private Integer valueRating;
     
-    // Review Content
+    // ============================================
+    // REVIEW CONTENT
+    // ============================================
+    
     @Column(name = "review_title", length = 255)
     private String reviewTitle;
     
@@ -70,16 +80,23 @@ public class Review {
     @Column(columnDefinition = "TEXT")
     private String cons;
     
-    // Owner Response
+    // ============================================
+    // OWNER RESPONSE
+    // ============================================
+    
     @Column(name = "owner_response", columnDefinition = "TEXT")
     private String ownerResponse;
     
     @Column(name = "owner_response_date")
     private LocalDateTime ownerResponseDate;
     
-    // Moderation
+    // ============================================
+    // MODERATION
+    // ✅ CRITICAL FIX: Default to TRUE for auto-approval
+    // ============================================
+    
     @Column(name = "is_approved", nullable = false)
-     private Boolean isApproved = false;// Auto-approve by default
+    private Boolean isApproved = true;  // 👈 Changed from false to true
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "approved_by")
@@ -88,12 +105,19 @@ public class Review {
     @Column(name = "approved_at")
     private LocalDateTime approvedAt;
     
-    // Analytics
+    // ============================================
+    // ANALYTICS
+    // ============================================
+    
     @Column(name = "helpful_count")
     private Integer helpfulCount = 0;
     
     @Column(name = "not_helpful_count")
     private Integer notHelpfulCount = 0;
+    
+    // ============================================
+    // TIMESTAMPS
+    // ============================================
     
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -103,10 +127,33 @@ public class Review {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
-    // Helper method to calculate if review is within 14 days of checkout
+    // ============================================
+    // HELPER METHODS
+    // ============================================
+    
+    /**
+     * Check if review is within 14 days of checkout
+     */
     public boolean isWithinReviewWindow(LocalDateTime checkoutDate) {
         if (checkoutDate == null) return false;
         LocalDateTime reviewDeadline = checkoutDate.plusDays(14);
         return LocalDateTime.now().isBefore(reviewDeadline);
+    }
+    
+    /**
+     * Check if owner has responded
+     */
+    public boolean hasOwnerResponse() {
+        return ownerResponse != null && !ownerResponse.trim().isEmpty();
+    }
+    
+    /**
+     * Calculate helpfulness ratio
+     */
+    public double getHelpfulnessRatio() {
+        int total = (helpfulCount != null ? helpfulCount : 0) + 
+                   (notHelpfulCount != null ? notHelpfulCount : 0);
+        if (total == 0) return 0.0;
+        return (double) (helpfulCount != null ? helpfulCount : 0) / total;
     }
 }
