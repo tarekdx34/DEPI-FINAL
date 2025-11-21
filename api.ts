@@ -777,27 +777,74 @@ class ApiClient {
   }
 
   // ✅ Helper to normalize review response
-  private normalizeReview(review: any): ReviewResponse {
-    return {
-      ...review,
-      property: review.property || {
-        propertyId: review.propertyId,
-        titleAr: review.propertyTitle || "",
-        titleEn: review.propertyTitle || "",
-        city: "",
-        governorate: "",
-        coverImage: "https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f?w=800&q=80"
-      },
-      reviewer: review.reviewer || {
-        userId: 0,
-        firstName: "Unknown",
-        lastName: "User",
-        verified: false,
-        totalReviews: 0
-      }
-    };
+ // ✅ FIXED: Helper to normalize review response with proper image handling
+private normalizeReview(review: any): ReviewResponse {
+  console.log('🔍 Normalizing review:', {
+    reviewId: review.reviewId,
+    hasProperty: !!review.property,
+    propertyId: review.property?.propertyId || review.propertyId,
+    coverImage: review.property?.coverImage,
+    propertyTitle: review.property?.titleAr || review.propertyTitle
+  });
+
+  // ✅ Extract property info with proper null checks
+  const propertyInfo: any = {
+    propertyId: review.property?.propertyId || review.propertyId || 0,
+    titleAr: review.property?.titleAr || review.propertyTitle || "عقار غير متوفر",
+    titleEn: review.property?.titleEn || review.propertyTitle || "Property Not Available",
+    city: review.property?.city || "",
+    governorate: review.property?.governorate || "",
+    coverImage: null  // Will be set below
+  };
+
+  // ✅ CRITICAL: Try multiple sources for cover image
+  let coverImage = null;
+  
+  // Priority 1: property.coverImage from backend
+  if (review.property?.coverImage && review.property.coverImage !== "") {
+    coverImage = review.property.coverImage;
+    console.log('✅ Using property.coverImage:', coverImage);
+  }
+  // Priority 2: property.coverImageUrl
+  else if (review.property?.coverImageUrl && review.property.coverImageUrl !== "") {
+    coverImage = review.property.coverImageUrl;
+    console.log('✅ Using property.coverImageUrl:', coverImage);
+  }
+  // Priority 3: First image from property.images array
+  else if (review.property?.images && Array.isArray(review.property.images) && review.property.images.length > 0) {
+    const coverImg = review.property.images.find((img: any) => img.isCover);
+    coverImage = coverImg?.imageUrl || review.property.images[0]?.imageUrl;
+    console.log('✅ Using first image from array:', coverImage);
+  }
+  // Priority 4: Fallback image
+  else {
+    coverImage = "https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f?w=800&q=80";
+    console.log('⚠️ Using fallback image');
   }
 
+  propertyInfo.coverImage = coverImage;
+
+  // ✅ Build complete response
+  const normalized: ReviewResponse = {
+    ...review,
+    property: propertyInfo,
+    reviewer: review.reviewer || {
+      userId: 0,
+      firstName: "Unknown",
+      lastName: "User",
+      verified: false,
+      totalReviews: 0
+    }
+  };
+
+  console.log('✅ Normalized review result:', {
+    reviewId: normalized.reviewId,
+    propertyId: normalized.property.propertyId,
+    finalCoverImage: normalized.property.coverImage
+  });
+
+  return normalized;
+}
   // ============================================
   // 1. AUTHENTICATION
   // ============================================
@@ -1060,53 +1107,112 @@ class ApiClient {
     );
   }
 
-  async respondToReview(
-    reviewId: number,
-    ownerResponse: string
-  ): Promise<ReviewResponse> {
-    const review = await this.request<any>(`/reviews/${reviewId}/response`, {
+// api.ts - ✅ FIXED respondToReview with Better Error Handling
+
+async respondToReview(
+  reviewId: number,
+  ownerResponse: string
+): Promise<ReviewResponse> {
+  console.log("\n📤 ========================================");
+  console.log("📤 API: Responding to Review");
+  console.log("📤 Review ID:", reviewId);
+  console.log("📤 Response:", ownerResponse.substring(0, 50) + "...");
+  console.log("📤 ========================================\n");
+
+  try {
+    const endpoint = `/reviews/${reviewId}/response`;
+    console.log(`🔄 API Call: ${this.baseURL}${endpoint}`);
+    console.log("📦 Request Body:", { ownerResponse });
+
+    const review = await this.request<any>(endpoint, {
       method: "PUT",
       body: JSON.stringify({ ownerResponse }),
     });
-    return this.normalizeReview(review);
-  }
 
-  async canReviewBooking(bookingId: number): Promise<{ canReview: boolean }> {
-    return this.request<{ canReview: boolean }>(
-      `/reviews/booking/${bookingId}/can-review`
-    );
-  }
-
-  async getMyReviews(params?: any): Promise<PaginatedResponse<ReviewResponse>> {
-    const queryString = new URLSearchParams(
-      Object.entries(params || {})
-        .filter(([_, v]) => v !== undefined)
-        .map(([k, v]) => [k, String(v)])
-    ).toString();
+    console.log("✅ API Response received:", review);
     
-    const response = await this.request<PaginatedResponse<any>>(
-      `/reviews/my-reviews${queryString ? `?${queryString}` : ""}`
-    );
+    return this.normalizeReview(review);
+    
+  } catch (error: any) {
+    console.error("\n❌ ========================================");
+    console.error("❌ API: respondToReview FAILED");
+    console.error("❌ Review ID:", reviewId);
+    console.error("❌ Status:", error.status);
+    console.error("❌ Message:", error.message);
+    console.error("❌ Data:", error.data);
+    console.error("❌ ========================================\n");
+
+    // ✅ Enhanced error messages
+    if (error.status === 500) {
+      throw new ApiError(
+        "Server error. The backend is experiencing issues. Please contact support if this persists.",
+        500,
+        error.data
+      );
+    } else if (error.status === 404) {
+      throw new ApiError(
+        "Review not found. It may have been deleted.",
+        404,
+        error.data
+      );
+    } else if (error.status === 403) {
+      throw new ApiError(
+        "Access denied. You may not be authorized to respond to this review.",
+        403,
+        error.data
+      );
+    } else if (error.status === 400) {
+      throw new ApiError(
+        error.message || "Invalid data. Please check your response text.",
+        400,
+        error.data
+      );
+    }
+    
+    throw error;
+  }
+}
+
+// ============================================
+// ✅ Helper to check backend health
+// ============================================
+async checkBackendHealth(): Promise<{
+  healthy: boolean;
+  message: string;
+  endpoints: Record<string, boolean>;
+}> {
+  const endpoints = {
+    properties: false,
+    bookings: false,
+    reviews: false,
+    dashboard: false,
+  };
+
+  try {
+    // Test each endpoint
+    await Promise.allSettled([
+      this.request("/properties?page=0&size=1").then(() => endpoints.properties = true),
+      this.request("/bookings").then(() => endpoints.bookings = true),
+      this.request("/reviews/my-reviews?page=0&size=1").then(() => endpoints.reviews = true),
+      this.request("/analytics/owner/dashboard").then(() => endpoints.dashboard = true),
+    ]);
+
+    const healthyCount = Object.values(endpoints).filter(Boolean).length;
+    const totalCount = Object.keys(endpoints).length;
 
     return {
-      ...response,
-      content: response.content.map(r => this.normalizeReview(r))
+      healthy: healthyCount === totalCount,
+      message: `${healthyCount}/${totalCount} endpoints healthy`,
+      endpoints
+    };
+  } catch (error) {
+    return {
+      healthy: false,
+      message: "Backend health check failed",
+      endpoints
     };
   }
-
-  async deleteReview(reviewId: number): Promise<void> {
-    return this.request<void>(`/reviews/${reviewId}`, {
-      method: "DELETE",
-    });
-  }
-
-  async updateReview(reviewId: number, data: Partial<ReviewCreateRequest>): Promise<ReviewResponse> {
-    const review = await this.request<any>(`/reviews/${reviewId}`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    });
-    return this.normalizeReview(review);
-  }
+}
 
   // ============================================
   // DIAGNOSTIC HELPERS
@@ -1837,7 +1943,165 @@ async deleteReviewAdmin(reviewId: number): Promise<void> {
       `/analytics/admin/platform${queryString ? `?${queryString}` : ""}`
     );
   }
+
+  /**
+ * ✅ Get reviews written by current user (renter)
+ */
+async getMyReviews(params?: {
+  page?: number;
+  size?: number;
+}): Promise<PaginatedResponse<ReviewResponse>> {
+  console.log("\n📝 ========================================");
+  console.log("📝 FETCHING MY REVIEWS");
+  console.log("📝 ========================================\n");
+  
+  const queryParams: Record<string, string> = {
+    page: String(params?.page ?? 0),
+    size: String(params?.size ?? 100),
+    sortBy: 'createdAt',
+    sortDirection: 'DESC'
+  };
+
+  const queryString = new URLSearchParams(queryParams).toString();
+  
+  try {
+    const endpoint = `/reviews/my-reviews?${queryString}`;
+    console.log(`🔄 API Call: ${this.baseURL}${endpoint}`);
+    
+    const response = await this.request<any>(endpoint);
+    console.log(`✅ Response received:`, response);
+
+    // Handle response structure
+    let reviewsData = response;
+    
+    if (response.data) {
+      reviewsData = response.data;
+    }
+    
+    let content: any[] = [];
+    let totalElements = 0;
+    let totalPages = 0;
+    let currentPage = 0;
+    let pageSize = 100;
+
+    if (reviewsData.content) {
+      content = reviewsData.content;
+      totalElements = reviewsData.totalElements || 0;
+      totalPages = reviewsData.totalPages || 0;
+      currentPage = reviewsData.currentPage || 0;
+      pageSize = reviewsData.pageSize || 100;
+    } else if (Array.isArray(reviewsData)) {
+      content = reviewsData;
+      totalElements = reviewsData.length;
+      totalPages = 1;
+      currentPage = 0;
+    }
+
+    console.log(`✅ Processing ${content.length} reviews...`);
+
+    // ✅ Normalize reviews with proper image handling
+    const normalizedReviews = content.map((r, index) => {
+      try {
+        return this.normalizeReview(r);
+      } catch (err) {
+        console.error(`⚠️ Failed to normalize review ${index}:`, err);
+        return null;
+      }
+    }).filter(r => r !== null) as ReviewResponse[];
+
+    console.log(`✅ Successfully loaded ${normalizedReviews.length} reviews\n`);
+
+    return {
+      content: normalizedReviews,
+      totalElements: totalElements,
+      totalPages: totalPages,
+      currentPage: currentPage,
+      pageSize: pageSize
+    };
+    
+  } catch (error: any) {
+    console.error(`\n❌ ========================================`);
+    console.error(`❌ FAILED TO FETCH MY REVIEWS`);
+    console.error(`❌ Status: ${error.status}`);
+    console.error(`❌ Message: ${error.message}`);
+    console.error(`❌ ========================================\n`);
+    
+    if (error.status === 500) {
+      console.warn("⚠️ Server error, returning empty result");
+      return {
+        content: [],
+        totalElements: 0,
+        totalPages: 0,
+        currentPage: 0,
+        pageSize: 100
+      };
+    }
+    
+    throw error;
+  }
 }
+
+/**
+ * ✅ Check if a booking can be reviewed
+ */
+async canReviewBooking(bookingId: number): Promise<{ canReview: boolean; reason?: string }> {
+  try {
+    return await this.request<{ canReview: boolean; reason?: string }>(
+      `/bookings/${bookingId}/can-review`
+    );
+  } catch (error: any) {
+    console.error(`Error checking review eligibility for booking ${bookingId}:`, error);
+    return { canReview: false, reason: "Unable to verify review eligibility" };
+  }
+}
+
+/**
+ * ✅ Delete a review
+ */
+async deleteReview(reviewId: number): Promise<void> {
+  console.log(`\n🗑️ Deleting review ${reviewId}...`);
+  
+  try {
+    await this.request<void>(`/reviews/${reviewId}`, {
+      method: "DELETE",
+    });
+    
+    console.log("✅ Review deleted successfully\n");
+    
+  } catch (error: any) {
+    console.error("❌ Delete failed:", error.message, "\n");
+    throw error;
+  }
+}
+
+/**
+ * ✅ Update an existing review
+ */
+async updateReview(
+  reviewId: number,
+  data: ReviewCreateRequest
+): Promise<ReviewResponse> {
+  console.log(`\n✏️ Updating review ${reviewId}...`);
+  
+  try {
+    const review = await this.request<any>(`/reviews/${reviewId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+    
+    console.log("✅ Review updated successfully");
+    
+    return this.normalizeReview(review);
+    
+  } catch (error: any) {
+    console.error("❌ Update failed:", error.message);
+    throw error;
+  }
+}
+}
+
+
+
 
 // ============================================
 // SINGLETON INSTANCE
@@ -1889,6 +2153,9 @@ export const formatPaymentError = (error: unknown): string => {
   }
   return "An unexpected payment error occurred";
 };
+
+
+
 
 // ============================================
 // EXPORTS
