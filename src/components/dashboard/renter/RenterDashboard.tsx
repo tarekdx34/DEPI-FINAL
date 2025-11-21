@@ -1,5 +1,5 @@
-// src/components/dashboard/renter/RenterDashboard.tsx
-import { useState } from "react";
+// src/components/dashboard/renter/RenterDashboard.tsx - FIXED URL PERSISTENCE
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../ui/tabs";
 import { Language, translations } from "../../../lib/translations";
 import { OverviewTab } from "./overview/OverviewTab";
@@ -31,8 +31,9 @@ export function RenterDashboard({
   language,
 }: RenterDashboardProps) {
   const t = translations[language];
+  
+  // ✅ Initialize tab from URL
   const [activeTab, setActiveTab] = useState(() => {
-    // ✅ Check URL for tab parameter
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam = urlParams.get("tab");
@@ -51,6 +52,90 @@ export function RenterDashboard({
     return "overview";
   });
 
+  // ✅ Extract highlightBookingId from URL
+  const [highlightBookingId, setHighlightBookingId] = useState<number | undefined>(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const bookingId = urlParams.get("bookingId");
+      return bookingId ? parseInt(bookingId, 10) : undefined;
+    }
+    return undefined;
+  });
+
+  // ✅ Update URL when tab changes manually
+  const handleTabChange = (newTab: string) => {
+    console.log("🔄 Manual tab change to:", newTab);
+    setActiveTab(newTab);
+    
+    const params = new URLSearchParams(window.location.search);
+    params.set("tab", newTab);
+    
+    // Clear bookingId when switching tabs manually
+    if (newTab !== "reviews") {
+      params.delete("bookingId");
+      setHighlightBookingId(undefined);
+    }
+    
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.pushState({}, "", newUrl);
+  };
+
+  // ✅ Listen to popstate AND custom events for tab changes
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get("tab") || "overview";
+      const bookingId = urlParams.get("bookingId");
+      
+      console.log("📍 URL Changed - Tab:", tabParam, "BookingId:", bookingId);
+      
+      setActiveTab(tabParam);
+      setHighlightBookingId(bookingId ? parseInt(bookingId, 10) : undefined);
+    };
+
+    // Listen to both popstate and custom storage events
+    window.addEventListener("popstate", handleUrlChange);
+    
+    // Initial check on mount
+    handleUrlChange();
+    
+    return () => {
+      window.removeEventListener("popstate", handleUrlChange);
+    };
+  }, []);
+
+  // ✅ Enhanced navigate handler that supports tab switching
+  const handleNavigate = (page: string, id?: string) => {
+    // If page is a tab name (reviews, trips, etc.), switch to that tab
+    const validTabs = ["overview", "trips", "favorites", "reviews", "payments", "profile"];
+    
+    if (validTabs.includes(page)) {
+      const params = new URLSearchParams(window.location.search);
+      params.set("tab", page);
+      
+      // If id is provided (e.g., bookingId), add it to URL
+      if (id) {
+        params.set("bookingId", id);
+        setHighlightBookingId(parseInt(id, 10));
+      } else {
+        params.delete("bookingId");
+        setHighlightBookingId(undefined);
+      }
+      
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      window.history.pushState({}, "", newUrl);
+      setActiveTab(page);
+      
+      // Smooth scroll to top after tab change
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 100);
+    } else {
+      // Otherwise, use the original navigation handler
+      onNavigate(page, id);
+    }
+  };
+
   return (
     <div
       className="min-h-screen bg-[#F9F6F1]"
@@ -64,7 +149,7 @@ export function RenterDashboard({
         >
           {t.userDashboard.myDashboard}
         </h1>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList
             className="grid w-full max-w-4xl grid-cols-6 mb-8"
             style={{
@@ -104,7 +189,7 @@ export function RenterDashboard({
               className={`gap-2 ${language === "ar" ? "flex-row-reverse" : ""}`}
             >
               <MessageSquare className="w-4 h-4" />
-              <span className="hidden sm:inline">{t.nav.favourites}</span>
+              <span className="hidden sm:inline">{t.userDashboard.reviews}</span>
             </TabsTrigger>
             <TabsTrigger
               value="payments"
@@ -128,27 +213,31 @@ export function RenterDashboard({
 
           {/* Overview Tab */}
           <TabsContent value="overview">
-            <OverviewTab onNavigate={onNavigate} language={language} />
+            <OverviewTab onNavigate={handleNavigate} language={language} />
           </TabsContent>
 
           {/* Trips Tab */}
           <TabsContent value="trips">
-            <TripsTab onNavigate={onNavigate} language={language} />
+            <TripsTab onNavigate={handleNavigate} language={language} />
           </TabsContent>
 
           {/* Favorites Tab */}
           <TabsContent value="favorites">
-            <FavoritesTab onNavigate={onNavigate} language={language} />
+            <FavoritesTab onNavigate={handleNavigate} language={language} />
           </TabsContent>
 
           {/* Reviews Tab */}
           <TabsContent value="reviews">
-            <ReviewsTab onNavigate={onNavigate} language={language} />
+            <ReviewsTab 
+              onNavigate={handleNavigate} 
+              language={language}
+              highlightBookingId={highlightBookingId}
+            />
           </TabsContent>
 
           {/* Payments Tab */}
           <TabsContent value="payments">
-            <PaymentsTab onNavigate={onNavigate} language={language} />
+            <PaymentsTab onNavigate={handleNavigate} language={language} />
           </TabsContent>
 
           {/* Profile Tab */}

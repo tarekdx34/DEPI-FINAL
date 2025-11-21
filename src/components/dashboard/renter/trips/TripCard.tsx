@@ -1,4 +1,4 @@
-// FILE 2: src/components/dashboard/renter/trips/TripCard.tsx (FIXED)
+// src/components/dashboard/renter/trips/TripCard.tsx - FIXED NAVIGATION
 import { useState, useEffect } from "react";
 import { Card } from "../../../ui/card";
 import { Button } from "../../../ui/button";
@@ -21,7 +21,7 @@ interface TripCardProps {
   type: "upcoming" | "past" | "cancelled";
   onNavigate: (page: string, id?: string) => void;
   onCancel?: (bookingId: number) => void;
-  onWriteReview?: (booking: BookingResponse) => void; // ✅ NEW: Callback to open review modal
+  onWriteReview?: (booking: BookingResponse) => void;
   hasReview?: boolean;
   reviewsLoading?: boolean;
 }
@@ -31,7 +31,7 @@ export function TripCard({
   type,
   onNavigate,
   onCancel,
-  onWriteReview, // ✅ NEW: Receive callback
+  onWriteReview,
   hasReview,
   reviewsLoading,
 }: TripCardProps) {
@@ -55,20 +55,17 @@ export function TripCard({
         const imagesData = await api.getPropertyImages(property.propertyId);
 
         if (imagesData && imagesData.length > 0) {
-          // Sort by imageOrder and get the first image
           const sortedImages = imagesData.sort(
             (a, b) => a.imageOrder - b.imageOrder
           );
           setThumbnail(sortedImages[0].imageUrl);
         } else {
-          // Fallback to default image if no photos
           setThumbnail(
             `https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f?w=400`
           );
         }
       } catch (error) {
         console.error("Error fetching thumbnail:", error);
-        // Use fallback image on error
         setThumbnail(
           `https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f?w=400`
         );
@@ -130,6 +127,15 @@ export function TripCard({
         Completed
       </Badge>
     );
+  };
+
+  // ✅ FIXED: Navigate to reviews tab with bookingId
+  const handleViewReview = () => {
+    console.log("👀 Navigating to review for booking:", booking.bookingId);
+    
+    // Navigate using the parent component's navigation handler
+    // Pass the bookingId as a special parameter
+    onNavigate("reviews", String(booking.bookingId));
   };
 
   return (
@@ -255,11 +261,9 @@ export function TripCard({
                   size="sm"
                   className="bg-[#00BFA6] hover:bg-[#00A890] gap-2"
                   onClick={() => {
-                    // ✅ FIXED: Call callback to open modal instead of navigate
                     if (onWriteReview) {
                       onWriteReview(booking);
                     } else {
-                      // Fallback to old navigation if callback not provided
                       onNavigate("write-review", String(booking.bookingId));
                     }
                   }}
@@ -271,8 +275,8 @@ export function TripCard({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="gap-2 border-[#00BFA6] text-[#00BFA6] hover:bg-[#00BFA6]/5"
-                  onClick={() => onNavigate("reviews")}
+                  className="gap-2 border-[#00BFA6] text-[#00BFA6] hover:bg-[#00BFA6] hover:text-white transition-colors"
+                  onClick={handleViewReview}
                 >
                   <Star className="w-4 h-4 fill-[#00BFA6]" />
                   View Your Review
