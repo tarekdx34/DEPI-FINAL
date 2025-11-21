@@ -1,14 +1,14 @@
-// src/main/java/com/ajarly/backend/service/PropertyService.java
-
 package com.ajarly.backend.service;
 
 import com.ajarly.backend.dto.PropertyDto;
 import com.ajarly.backend.model.Property;
 import com.ajarly.backend.model.Property.PropertyStatus;
+import com.ajarly.backend.model.PropertyImage;
 import com.ajarly.backend.model.User;
 import com.ajarly.backend.repository.PropertyRepository;
 import com.ajarly.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PropertyService {
     
     private final PropertyRepository propertyRepository;
@@ -64,12 +65,19 @@ public class PropertyService {
         property.setStatus(PropertyStatus.pending_approval);
         
         Property saved = propertyRepository.save(property);
+        log.info("✅ Property created successfully: {}", saved.getPropertyId());
+        
         return mapToResponse(saved);
     }
     
+    @Transactional
     public PropertyDto.Response getPropertyById(Long propertyId) {
-        Property property = propertyRepository.findById(propertyId)
-            .orElseThrow(() -> new RuntimeException("Property not found"));
+        // استخدم الـ method الجديدة اللي بتجيب الصور
+        Property property = propertyRepository.findByIdWithImages(propertyId);
+        
+        if (property == null) {
+            throw new RuntimeException("Property not found");
+        }
         
         // Increment view count
         property.setViewCount(property.getViewCount() + 1);
@@ -87,7 +95,11 @@ public class PropertyService {
             Integer bedrooms,
             Pageable pageable) {
         
-        Page<Property> properties = propertyRepository.searchProperties(
+        log.info("🔍 Searching properties: gov={}, city={}, type={}, beds={}", 
+                 governorate, city, propertyType, bedrooms);
+        
+        // استخدم الـ query الجديدة اللي بتجيب الصور
+        Page<Property> properties = propertyRepository.searchPropertiesWithImages(
             PropertyStatus.active,
             governorate,
             city,
@@ -98,12 +110,19 @@ public class PropertyService {
             pageable
         );
         
+        log.info("✅ Found {} properties", properties.getTotalElements());
+        
         return properties.map(this::mapToListResponse);
     }
     
     public Page<PropertyDto.ListResponse> getMyProperties(Long ownerId, Pageable pageable) {
-        return propertyRepository.findByOwner_UserId(ownerId, pageable)
-            .map(this::mapToListResponse);
+        log.info("📋 Fetching properties for owner: {}", ownerId);
+        
+        Page<Property> properties = propertyRepository.findByOwner_UserId(ownerId, pageable);
+        
+        log.info("✅ Found {} properties for owner {}", properties.getTotalElements(), ownerId);
+        
+        return properties.map(this::mapToListResponse);
     }
     
     @Transactional
@@ -120,12 +139,36 @@ public class PropertyService {
         property.setTitleEn(request.getTitleEn());
         property.setDescriptionAr(request.getDescriptionAr());
         property.setDescriptionEn(request.getDescriptionEn());
+        property.setPropertyType(request.getPropertyType());
+        property.setRentalType(request.getRentalType());
+        property.setGovernorate(request.getGovernorate());
+        property.setCity(request.getCity());
+        property.setNeighborhood(request.getNeighborhood());
+        property.setStreetAddress(request.getStreetAddress());
+        property.setLatitude(request.getLatitude());
+        property.setLongitude(request.getLongitude());
         property.setBedrooms(request.getBedrooms());
         property.setBathrooms(request.getBathrooms());
+        property.setGuestsCapacity(request.getGuestsCapacity());
+        property.setAreaSqm(request.getAreaSqm());
+        property.setFloorNumber(request.getFloorNumber());
+        property.setTotalFloors(request.getTotalFloors());
+        property.setFurnished(request.getFurnished());
+        property.setPetsAllowed(request.getPetsAllowed());
+        property.setSmokingAllowed(request.getSmokingAllowed());
         property.setPricePerNight(request.getPricePerNight());
-        // ... update other fields
+        property.setPricePerWeek(request.getPricePerWeek());
+        property.setPricePerMonth(request.getPricePerMonth());
+        property.setCleaningFee(request.getCleaningFee());
+        property.setSecurityDeposit(request.getSecurityDeposit());
+        property.setAvailableFrom(request.getAvailableFrom());
+        property.setAvailableTo(request.getAvailableTo());
+        property.setMinRentalDays(request.getMinRentalDays());
+        property.setInstantBooking(request.getInstantBooking());
         
         Property updated = propertyRepository.save(property);
+        log.info("✅ Property updated successfully: {}", propertyId);
+        
         return mapToResponse(updated);
     }
     
@@ -136,10 +179,12 @@ public class PropertyService {
         
         if (!property.getOwner().getUserId().equals(ownerId)) {
            throw new RuntimeException("Unauthorized");
-       }
+        }
         
         property.setStatus(PropertyStatus.deleted);
         propertyRepository.save(property);
+        
+        log.info("✅ Property deleted successfully: {}", propertyId);
     }
     
     private String generateSlug(String title) {
@@ -195,6 +240,9 @@ public class PropertyService {
         return response;
     }
     
+    /**
+     * ✅ Map Property to ListResponse with cover image
+     */
     private PropertyDto.ListResponse mapToListResponse(Property property) {
         PropertyDto.ListResponse response = new PropertyDto.ListResponse();
         response.setPropertyId(property.getPropertyId());
@@ -211,6 +259,23 @@ public class PropertyService {
         response.setAverageRating(property.getAverageRating());
         response.setTotalReviews(property.getTotalReviews());
         response.setIsFeatured(property.getIsFeatured());
+        
+        // ✅ معالجة الصور بشكل آمن
+        if (property.getImages() != null && !property.getImages().isEmpty()) {
+            // البحث عن الصورة المحددة كغلاف
+            PropertyImage coverImage = property.getImages().stream()
+                .filter(img -> img.getIsCover() != null && img.getIsCover())
+                .findFirst()
+                .orElse(property.getImages().get(0)); // لو مافيش cover، خذ أول صورة
+            
+            response.setCoverImage(coverImage.getImageUrl());
+            
+            log.debug("🖼️ Cover image set for property {}: {}", 
+                     property.getPropertyId(), coverImage.getImageUrl());
+        } else {
+            log.debug("⚠️ No images found for property {}", property.getPropertyId());
+        }
+        
         return response;
     }
 }

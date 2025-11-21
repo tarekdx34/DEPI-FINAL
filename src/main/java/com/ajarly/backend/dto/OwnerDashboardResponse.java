@@ -90,6 +90,9 @@ public class OwnerDashboardResponse {
         private String status;
     }
     
+    /**
+     * ✅ UPDATED: إضافة reviewer photo و owner response
+     */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -99,10 +102,12 @@ public class OwnerDashboardResponse {
         private Long propertyId;
         private String propertyTitle;
         private String reviewerName;
+        private String reviewerPhoto;        // ✅ NEW
         private BigDecimal rating;
         private String reviewText;
         private String reviewDate;
         private Boolean hasResponse;
+        private String ownerResponse;        // ✅ NEW
     }
     
     @Data

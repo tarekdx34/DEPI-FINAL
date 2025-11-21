@@ -107,6 +107,100 @@ public class ReviewController {
         }
     }
     
+    /**
+     * ✅ Get reviews written by current user (renter)
+     * GET /api/v1/reviews/my-reviews
+     */
+    @GetMapping("/my-reviews")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Object>> getMyReviews(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortDirection,
+            HttpServletRequest httpRequest
+    ) {
+        System.out.println("\n📝 ========================================");
+        System.out.println("📝 GET MY REVIEWS ENDPOINT CALLED");
+        System.out.println("📝 Page: " + page + ", Size: " + size);
+        System.out.println("📝 ========================================\n");
+        
+        try {
+            Long userId = getUserIdFromRequest(httpRequest);
+            System.out.println("✅ User ID from token: " + userId);
+            
+            Sort.Direction direction = sortDirection.equalsIgnoreCase("ASC") 
+                    ? Sort.Direction.ASC 
+                    : Sort.Direction.DESC;
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+            
+            Page<ReviewDto.Response> reviews = reviewService.getReviewsByReviewer(userId, pageable);
+            
+            System.out.println("✅ Found " + reviews.getTotalElements() + " reviews");
+            
+            Map<String, Object> data = new HashMap<>();
+            data.put("content", reviews.getContent());
+            data.put("currentPage", reviews.getNumber());
+            data.put("totalElements", reviews.getTotalElements());
+            data.put("totalPages", reviews.getTotalPages());
+            data.put("pageSize", reviews.getSize());
+            data.put("hasNext", reviews.hasNext());
+            data.put("hasPrevious", reviews.hasPrevious());
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Reviews retrieved successfully");
+            response.put("data", data);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error getting reviews: " + e.getMessage());
+            e.printStackTrace();
+            
+            return buildErrorResponse(
+                "Failed to retrieve reviews: " + e.getMessage(), 
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+    
+    /**
+     * ✅ Owner responds to review
+     * PUT /api/v1/reviews/{id}/response
+     */
+    @PutMapping("/{id}/response")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Object>> respondToReview(
+            @PathVariable Long id,
+            @Valid @RequestBody ReviewDto.OwnerResponseRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        System.out.println("💬 Respond to review: " + id);
+        
+        try {
+            Long ownerId = getUserIdFromRequest(httpRequest);
+            
+            ReviewDto.Response review = reviewService.respondToReview(
+                id, 
+                request.getOwnerResponse(), 
+                ownerId
+            );
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Response submitted successfully");
+            response.put("data", review);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            return buildErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            return buildErrorResponse("Server error: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
     // ==================== ADMIN ENDPOINTS ====================
     
     /**

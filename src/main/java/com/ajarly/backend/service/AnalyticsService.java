@@ -41,11 +41,13 @@ public class AnalyticsService {
     }
     
     /**
-     * ✅ IMPROVED: إضافة logging تفصيلي للـ debugging
+     * ✅ FINAL FIX: Owner Dashboard with DIRECT database query for reviews
      */
     @Transactional(readOnly = true)
     public OwnerDashboardResponse getOwnerDashboard(Long ownerId) {
+        log.info("🔍 ========================================");
         log.info("🔍 Fetching dashboard for owner: {}", ownerId);
+        log.info("🔍 ========================================");
         
         // ✅ التحقق من وجود المالك
         User owner = userRepository.findById(ownerId)
@@ -61,23 +63,19 @@ public class AnalyticsService {
             .filter(p -> p.getStatus() != Property.PropertyStatus.deleted)
             .collect(Collectors.toList());
         
-        log.info("📊 Found {} properties for owner {} (excluding deleted)", 
-                 properties.size(), ownerId);
+        log.info("📊 Found {} properties for owner {}", properties.size(), ownerId);
         
-        // ✅ اطبع تفاصيل الـ properties للـ debugging
         if (log.isDebugEnabled()) {
             properties.forEach(p -> 
-                log.debug("  ➤ Property: {} | Status: {} | Views: {} | Rating: {}", 
+                log.debug("  ➤ Property: {} | Status: {} | Stored Reviews: {} | Stored Rating: {}", 
                          p.getPropertyId(), 
                          p.getStatus(), 
-                         p.getViewCount(),
+                         p.getTotalReviews(),
                          p.getAverageRating())
             );
         }
         
         // ✅ بناء الـ response
-        log.debug("Building dashboard components...");
-        
         OwnerDashboardResponse response = OwnerDashboardResponse.builder()
             .ownerId(ownerId)
             .ownerName(owner.getFirstName() + " " + owner.getLastName())
@@ -90,6 +88,8 @@ public class AnalyticsService {
             .build();
         
         log.info("✅ Dashboard built successfully for owner {}", ownerId);
+        log.info("   - Total Reviews: {}", response.getOverview().getTotalReviews());
+        log.info("   - Average Rating: {}", response.getOverview().getAverageRating());
         
         return response;
     }
@@ -164,44 +164,102 @@ public class AnalyticsService {
             .avgResponseTimeHours(24).build();
     }
     
+    /**
+     * ✅ ULTIMATE FIX - DIRECT DATABASE QUERY for reviews
+     * NO dependency on Property.totalReviews field
+     */
     private OwnerDashboardResponse.OverviewStats buildOwnerOverview(Long ownerId, List<Property> properties) {
+        log.info("📊 ========================================");
+        log.info("📊 Building overview for owner: {}", ownerId);
+        log.info("📊 Properties count: {}", properties.size());
+        log.info("📊 ========================================");
+        
         List<Booking> allBookings = bookingRepository.findByOwnerUserIdOrderByRequestedAtDesc(ownerId);
         LocalDate thirtyDaysAgo = LocalDate.now().minusDays(30);
-        List<Long> propertyIds = properties.stream().map(Property::getPropertyId).collect(Collectors.toList());
-        int totalReviews = 0;
-        BigDecimal totalRating = BigDecimal.ZERO;
-        int ratedCount = 0;
-        for (Long propertyId : propertyIds) {
-            totalReviews += reviewRepository.countApprovedByPropertyId(propertyId).intValue();
-            reviewRepository.getAverageRatingByPropertyId(propertyId).ifPresent(r -> {});
+        
+        // ============================================
+        // ✅ CRITICAL FIX: Query database DIRECTLY for reviews
+        // Don't trust Property.totalReviews - it might be stale!
+        // ============================================
+        
+        List<Long> propertyIds = properties.stream()
+            .map(Property::getPropertyId)
+            .collect(Collectors.toList());
+        
+        log.info("🔍 Querying reviews directly from database for {} properties", propertyIds.size());
+        
+        // Query 1: Get total count of approved reviews
+        Long totalReviewsCount = propertyIds.isEmpty() ? 0L : 
+            reviewRepository.countApprovedByPropertyIds(propertyIds);
+        
+        int totalReviews = totalReviewsCount != null ? totalReviewsCount.intValue() : 0;
+        
+        // Query 2: Get average rating across all properties
+        Optional<Double> avgRatingOpt = propertyIds.isEmpty() ? Optional.empty() :
+            reviewRepository.getAverageRatingByPropertyIds(propertyIds);
+        
+        BigDecimal averageRating = avgRatingOpt
+            .map(rating -> BigDecimal.valueOf(rating).setScale(2, RoundingMode.HALF_UP))
+            .orElse(BigDecimal.ZERO);
+        
+        log.info("✅ DIRECT DATABASE RESULTS:");
+        log.info("   - Property IDs queried: {}", propertyIds);
+        log.info("   - Total Reviews (from DB): {}", totalReviews);
+        log.info("   - Average Rating (from DB): {}", averageRating);
+        
+        // Optional: Compare with Property entity values for debugging
+        if (log.isDebugEnabled()) {
+            int storedReviews = properties.stream()
+                .mapToInt(p -> p.getTotalReviews() != null ? p.getTotalReviews() : 0)
+                .sum();
+            log.debug("⚠️  Comparison: Stored in Property entities: {} reviews", storedReviews);
+            if (storedReviews != totalReviews) {
+                log.warn("⚠️  MISMATCH DETECTED! DB has {} but Property entities show {}", 
+                        totalReviews, storedReviews);
+            }
         }
+        
+        // ============================================
+        // ✅ BUILD RESPONSE WITH CORRECT VALUES
+        // ============================================
         return OwnerDashboardResponse.OverviewStats.builder()
             .totalProperties(properties.size())
-            .activeProperties((int) properties.stream().filter(p -> p.getStatus() == Property.PropertyStatus.active).count())
-            .pendingApprovalProperties((int) properties.stream().filter(p -> p.getStatus() == Property.PropertyStatus.pending_approval).count())
-            .totalRevenue(allBookings.stream().filter(b -> b.getStatus() == Booking.BookingStatus.confirmed || 
-                b.getStatus() == Booking.BookingStatus.completed).map(Booking::getTotalPrice).reduce(BigDecimal.ZERO, BigDecimal::add))
-            .monthlyRevenue(allBookings.stream().filter(b -> (b.getStatus() == Booking.BookingStatus.confirmed || 
-                b.getStatus() == Booking.BookingStatus.completed) && b.getRequestedAt().toLocalDate().isAfter(thirtyDaysAgo))
-                .map(Booking::getTotalPrice).reduce(BigDecimal.ZERO, BigDecimal::add))
+            .activeProperties((int) properties.stream()
+                .filter(p -> p.getStatus() == Property.PropertyStatus.active)
+                .count())
+            .pendingApprovalProperties((int) properties.stream()
+                .filter(p -> p.getStatus() == Property.PropertyStatus.pending_approval)
+                .count())
+            .totalRevenue(allBookings.stream()
+                .filter(b -> b.getStatus() == Booking.BookingStatus.confirmed || 
+                            b.getStatus() == Booking.BookingStatus.completed)
+                .map(Booking::getTotalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add))
+            .monthlyRevenue(allBookings.stream()
+                .filter(b -> (b.getStatus() == Booking.BookingStatus.confirmed || 
+                             b.getStatus() == Booking.BookingStatus.completed) && 
+                             b.getRequestedAt().toLocalDate().isAfter(thirtyDaysAgo))
+                .map(Booking::getTotalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add))
             .totalBookings(allBookings.size())
-            .pendingBookings((int) allBookings.stream().filter(b -> b.getStatus() == Booking.BookingStatus.pending).count())
+            .pendingBookings((int) allBookings.stream()
+                .filter(b -> b.getStatus() == Booking.BookingStatus.pending)
+                .count())
             .upcomingBookings(bookingRepository.findUpcomingBookingsForOwner(ownerId, LocalDate.now()).size())
-            .averageRating(BigDecimal.ZERO).totalReviews(totalReviews).build();
+            .averageRating(averageRating)     // ✅ FROM DATABASE QUERY
+            .totalReviews(totalReviews)       // ✅ FROM DATABASE QUERY
+            .build();
     }
     
     /**
      * إيجاد أفضل عقار من حيث الأداء (Revenue)
-     * ✅ FIXED: تحسين المقارنة والـ filtering والـ logging
      */
     private OwnerDashboardResponse.BestProperty findBestPerformingProperty(List<Property> properties) {
-        // ✅ تحقق من وجود properties
         if (properties == null || properties.isEmpty()) {
             log.warn("No properties found for owner");
             return null;
         }
         
-        // ✅ فلتر العقارات الـ active فقط
         List<Property> activeProperties = properties.stream()
             .filter(p -> p.getStatus() == Property.PropertyStatus.active)
             .collect(Collectors.toList());
@@ -214,7 +272,6 @@ public class AnalyticsService {
         Property bestProperty = null;
         BigDecimal maxRevenue = BigDecimal.ZERO;
         
-        // ✅ احسب revenue لكل property بشكل صحيح
         for (Property property : activeProperties) {
             List<Booking> propertyBookings = bookingRepository
                 .findByPropertyPropertyIdOrderByRequestedAtDesc(property.getPropertyId());
@@ -225,26 +282,17 @@ public class AnalyticsService {
                 .map(Booking::getTotalPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
             
-            log.debug("Property {} (Status: {}) - Revenue: {}", 
-                     property.getPropertyId(), 
-                     property.getStatus(), 
-                     propertyRevenue);
-            
-            // ✅ قارن بالـ max revenue بشكل صحيح
             if (propertyRevenue.compareTo(maxRevenue) > 0) {
                 maxRevenue = propertyRevenue;
                 bestProperty = property;
             }
         }
         
-        // ✅ لو مفيش property عنده bookings، خد أول واحد active
         if (bestProperty == null) {
-            log.info("No property has bookings, returning first active property");
             bestProperty = activeProperties.get(0);
             maxRevenue = BigDecimal.ZERO;
         }
         
-        // ✅ احسب عدد الـ bookings للـ best property
         List<Booking> bestBookings = bookingRepository
             .findByPropertyPropertyIdOrderByRequestedAtDesc(bestProperty.getPropertyId());
         
@@ -252,10 +300,6 @@ public class AnalyticsService {
             .filter(b -> b.getStatus() == Booking.BookingStatus.confirmed || 
                         b.getStatus() == Booking.BookingStatus.completed)
             .count();
-        
-        log.info("Best property selected: {} with revenue: {}", 
-                 bestProperty.getPropertyId(), 
-                 maxRevenue);
         
         return OwnerDashboardResponse.BestProperty.builder()
             .propertyId(bestProperty.getPropertyId())
@@ -283,21 +327,34 @@ public class AnalyticsService {
             .collect(Collectors.toList());
     }
     
+    /**
+     * ✅ ENHANCED: Add reviewer photo and owner response to recent reviews
+     */
     private List<OwnerDashboardResponse.RecentReview> getRecentReviewsForOwner(List<Property> properties) {
         List<OwnerDashboardResponse.RecentReview> reviews = new ArrayList<>();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+        
         for (Property property : properties) {
-            reviewRepository.findByPropertyIdAndApproved(property.getPropertyId(), Pageable.unpaged()).getContent()
+            reviewRepository.findByPropertyIdAndApproved(property.getPropertyId(), Pageable.unpaged())
+                .getContent()
                 .forEach(review -> reviews.add(OwnerDashboardResponse.RecentReview.builder()
-                    .reviewId(review.getReviewId()).propertyId(property.getPropertyId())
+                    .reviewId(review.getReviewId())
+                    .propertyId(property.getPropertyId())
                     .propertyTitle(property.getTitleAr())
                     .reviewerName(review.getReviewer().getFirstName() + " " + review.getReviewer().getLastName())
-                    .rating(review.getOverallRating()).reviewText(review.getReviewText())
+                    .reviewerPhoto(review.getReviewer().getProfilePhoto())  // ✅ NEW
+                    .rating(review.getOverallRating())
+                    .reviewText(review.getReviewText())
                     .reviewDate(review.getCreatedAt().format(formatter))
-                    .hasResponse(review.getOwnerResponse() != null).build()));
+                    .hasResponse(review.getOwnerResponse() != null)
+                    .ownerResponse(review.getOwnerResponse())               // ✅ NEW
+                    .build()));
         }
-        return reviews.stream().sorted((r1, r2) -> r2.getReviewDate().compareTo(r1.getReviewDate()))
-            .limit(10).collect(Collectors.toList());
+        
+        return reviews.stream()
+            .sorted((r1, r2) -> r2.getReviewDate().compareTo(r1.getReviewDate()))
+            .limit(10)
+            .collect(Collectors.toList());
     }
     
     private List<OwnerDashboardResponse.RevenueData> getOwnerRevenueChart(Long ownerId) {

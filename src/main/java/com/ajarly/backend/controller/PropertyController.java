@@ -20,11 +20,6 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Property Controller
- * 
- * Uses JWT authentication from request attributes
- */
 @RestController
 @RequestMapping("/api/v1/properties")
 @RequiredArgsConstructor
@@ -35,7 +30,7 @@ public class PropertyController {
     private final PropertyService propertyService;
     
     /**
-     * Extract userId from JWT token (set by JwtAuthenticationFilter)
+     * Extract userId from JWT token
      */
     private Long getUserIdFromRequest(HttpServletRequest request) {
         Object userId = request.getAttribute("userId");
@@ -58,7 +53,7 @@ public class PropertyController {
         try {
             Long userId = getUserIdFromRequest(httpRequest);
             
-            log.info("User {} creating a new property", userId);
+            log.info("👤 User {} creating a new property", userId);
             
             PropertyDto.Response property = propertyService.createProperty(request, userId);
             
@@ -70,7 +65,7 @@ public class PropertyController {
             ));
             
         } catch (RuntimeException e) {
-            log.error("Error creating property: {}", e.getMessage());
+            log.error("❌ Error creating property: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                 "success", false,
                 "message", e.getMessage()
@@ -79,12 +74,14 @@ public class PropertyController {
     }
     
     /**
-     * Get a single property by ID (public endpoint)
+     * Get a single property by ID (public)
      * GET /api/v1/properties/{id}
      */
     @GetMapping("/{id}")
     public ResponseEntity<?> getProperty(@PathVariable Long id) {
         try {
+            log.info("📖 Fetching property: {}", id);
+            
             PropertyDto.Response property = propertyService.getPropertyById(id);
             
             return ResponseEntity.ok(Map.of(
@@ -93,7 +90,7 @@ public class PropertyController {
             ));
             
         } catch (RuntimeException e) {
-            log.error("Error fetching property {}: {}", id, e.getMessage());
+            log.error("❌ Error fetching property {}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
                 "success", false,
                 "message", e.getMessage()
@@ -102,7 +99,7 @@ public class PropertyController {
     }
     
     /**
-     * Search properties with filters (public endpoint)
+     * Search properties with filters (public)
      * GET /api/v1/properties
      */
     @GetMapping
@@ -119,6 +116,9 @@ public class PropertyController {
             @RequestParam(defaultValue = "DESC") String sortDir) {
         
         try {
+            log.info("🔍 Search request - gov: {}, city: {}, type: {}, beds: {}, page: {}", 
+                     governorate, city, propertyType, bedrooms, page);
+            
             Sort sort = sortDir.equalsIgnoreCase("ASC") 
                 ? Sort.by(sortBy).ascending() 
                 : Sort.by(sortBy).descending();
@@ -141,10 +141,12 @@ public class PropertyController {
                 "hasPrevious", properties.hasPrevious()
             ));
             
+            log.info("✅ Search completed - found {} properties", properties.getTotalElements());
+            
             return ResponseEntity.ok(response);
             
         } catch (RuntimeException e) {
-            log.error("Error searching properties: {}", e.getMessage());
+            log.error("❌ Error searching properties: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                 "success", false,
                 "message", e.getMessage()
@@ -166,11 +168,13 @@ public class PropertyController {
         try {
             Long userId = getUserIdFromRequest(httpRequest);
             
-            log.info("Fetching properties for user {}", userId);
+            log.info("👤 User {} fetching their properties (page: {})", userId, page);
             
             Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
             
             Page<PropertyDto.ListResponse> properties = propertyService.getMyProperties(userId, pageable);
+            
+            log.info("✅ Found {} properties for user {}", properties.getTotalElements(), userId);
             
             return ResponseEntity.ok(Map.of(
                 "success", true,
@@ -186,7 +190,7 @@ public class PropertyController {
             ));
             
         } catch (RuntimeException e) {
-            log.error("Error fetching user properties: {}", e.getMessage());
+            log.error("❌ Error fetching user properties: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                 "success", false,
                 "message", e.getMessage()
@@ -208,7 +212,7 @@ public class PropertyController {
         try {
             Long userId = getUserIdFromRequest(httpRequest);
             
-            log.info("User {} updating property {}", userId, id);
+            log.info("✏️ User {} updating property {}", userId, id);
             
             PropertyDto.Response property = propertyService.updateProperty(id, request, userId);
             
@@ -220,7 +224,7 @@ public class PropertyController {
             ));
             
         } catch (RuntimeException e) {
-            log.error("Error updating property {}: {}", id, e.getMessage());
+            log.error("❌ Error updating property {}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                 "success", false,
                 "message", e.getMessage()
@@ -241,7 +245,7 @@ public class PropertyController {
         try {
             Long userId = getUserIdFromRequest(httpRequest);
             
-            log.info("User {} deleting property {}", userId, id);
+            log.info("🗑️ User {} deleting property {}", userId, id);
             
             propertyService.deleteProperty(id, userId);
             
@@ -252,7 +256,7 @@ public class PropertyController {
             ));
             
         } catch (RuntimeException e) {
-            log.error("Error deleting property {}: {}", id, e.getMessage());
+            log.error("❌ Error deleting property {}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
                 "success", false,
                 "message", e.getMessage()

@@ -22,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -58,23 +57,21 @@ public class AdminService {
                         .count())
                 .generatedAt(LocalDateTime.now())
                 .build();
-        Long pendingApprovalsCount = propertyRepository.findByStatus(
-            PropertyStatus.pending_approval, 
-            Pageable.unpaged()
-        ).getTotalElements();
+        
+        // ✅ استخدم countByStatus بدل findByStatus
+        Long pendingApprovalsCount = propertyRepository.countByStatus(
+            PropertyStatus.pending_approval
+        );
         
         // ✅ FIXED: Count only active properties
-        Long activeProperties = propertyRepository.findByStatus(
-            PropertyStatus.active, 
-            Pageable.unpaged()
-        ).getTotalElements();
+        Long activeProperties = propertyRepository.countByStatus(
+            PropertyStatus.active
+        );
         
         // ✅ FIXED: Count only banned users (is_active = false)
         Long bannedUsers = userRepository.findAll().stream()
             .filter(u -> !u.getIsActive())
             .count();
-
-        
         
         return DashboardStatsResponse.builder()
                 .totalUsers(totalUsers)
@@ -90,8 +87,15 @@ public class AdminService {
     
     // ============ PENDING PROPERTIES ============
     
+    /**
+     * ✅ FIXED: Get only pending_approval properties
+     */
     public Page<PendingPropertyResponse> getPendingProperties(Pageable pageable) {
-        Page<Property> pendingProperties = propertyRepository.findAll(pageable);
+        // ✅ جيب العقارات اللي pending_approval فقط
+        Page<Property> pendingProperties = propertyRepository.findByStatus(
+            PropertyStatus.pending_approval, 
+            pageable
+        );
         
         return pendingProperties.map(this::convertToPropertyResponse);
     }

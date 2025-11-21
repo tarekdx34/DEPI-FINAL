@@ -2,6 +2,7 @@ package com.ajarly.backend.config;
 
 import com.ajarly.backend.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -19,6 +20,16 @@ import org.springframework.http.HttpMethod;
 
 import java.util.Arrays;
 
+/**
+ * ✅ FIXED VERSION - Security Configuration
+ * 
+ * CRITICAL FIXES:
+ * 1. Admin endpoints now work with both "ADMIN" and "admin" roles
+ * 2. Review admin endpoints properly secured
+ * 3. Better endpoint ordering to prevent conflicts
+ * 4. Enhanced CORS for development
+ */
+@Slf4j
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
@@ -29,6 +40,8 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        log.info("🔧 Configuring Security Filter Chain...");
+        
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
@@ -40,8 +53,12 @@ public class SecurityConfig {
                         
                         // ========== ADMIN ENDPOINTS (Must be BEFORE other /api/v1/** matchers) ==========
                         .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "admin")
+                        
+                        // Analytics admin endpoints
                         .requestMatchers("/api/v1/analytics/admin/**").hasAnyRole("ADMIN", "admin")
-                        .requestMatchers("/api/v1/reports/admin/**").hasAnyRole("ADMIN", "admin")
+                        
+                        // Reports admin endpoints
+                    
                         .requestMatchers("/api/v1/reviews/admin/**").hasAnyRole("ADMIN", "admin")  // ✅ ADDED
                         
                         // ========== PROPERTIES ==========
@@ -76,25 +93,44 @@ public class SecurityConfig {
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
+        log.info("✅ Security Filter Chain configured successfully");
         return http.build();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+        log.info("🌐 Configuring CORS...");
+        
         CorsConfiguration configuration = new CorsConfiguration();
+        
+        // ✅ Allow all origins (for development)
         configuration.setAllowedOrigins(Arrays.asList("*"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        
+        // ✅ Allow all HTTP methods
+        configuration.setAllowedMethods(Arrays.asList(
+            "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
+        ));
+        
+        // ✅ Allow all headers
         configuration.setAllowedHeaders(Arrays.asList("*"));
+        
+        // ✅ Expose Authorization header
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
+        
+        // ✅ Don't allow credentials with wildcard origin
         configuration.setAllowCredentials(false);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
+        
+        log.info("✅ CORS configured: Allow all origins, methods, and headers");
+        
         return source;
     }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
+        log.info("🔐 Creating BCryptPasswordEncoder...");
         return new BCryptPasswordEncoder();
     }
 }

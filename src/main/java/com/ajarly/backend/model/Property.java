@@ -94,14 +94,6 @@ public class Property {
     @Column(name = "price_per_month", precision = 10, scale = 2)
     private BigDecimal pricePerMonth;
     
-    @Column(name = "updated_at")
-private LocalDateTime updatedAt;
-
-@Column(name = "last_booked_at")
-private LocalDateTime lastBookedAt;
-
-@Column(name = "favorite_count")
-private Integer favoriteCount = 0;
     @Column(name = "cleaning_fee", precision = 10, scale = 2)
     private BigDecimal cleaningFee;
     
@@ -132,7 +124,6 @@ private Integer favoriteCount = 0;
     @Column(name = "view_count")
     private Integer viewCount = 0;
     
-    // ADDED: Missing field for booking statistics
     @Column(name = "booking_request_count")
     private Integer bookingRequestCount = 0;
     
@@ -151,12 +142,18 @@ private Integer favoriteCount = 0;
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
     
-  
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
+    @Column(name = "last_booked_at")
+    private LocalDateTime lastBookedAt;
 
+    @Column(name = "favorite_count")
+    private Integer favoriteCount = 0;
     
-    // ADDED: Relationship with PropertyImage (if you want to use it)
-    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true)
+    // ✅ Relationship with PropertyImage
+    // استخدم LAZY loading عادي، لكن في الـ queries هنستخدم FETCH JOIN
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<PropertyImage> images = new ArrayList<>();
     
     @PrePersist
@@ -182,4 +179,11 @@ private Integer favoriteCount = 0;
     public enum PropertyStatus {
         draft, pending_approval, active, inactive, suspended, deleted
     }
+
+    /**
+     * ✅ ADD THIS FIELD
+     * Cover image URL for the property
+     */
+    @Column(name = "cover_image", length = 500)
+    private String coverImage;
 }

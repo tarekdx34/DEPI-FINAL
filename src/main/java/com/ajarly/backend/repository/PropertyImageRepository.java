@@ -13,6 +13,12 @@ import java.util.Optional;
 @Repository
 public interface PropertyImageRepository extends JpaRepository<PropertyImage, Long> {
     
+
+      // ✅ Existing method
+    Optional<PropertyImage> findFirstByPropertyPropertyIdAndIsCoverTrue(Long propertyId);
+    
+    // ✅ ADD THIS NEW METHOD
+    Optional<PropertyImage> findFirstByPropertyPropertyId(Long propertyId);
     /**
      * Find all images for a specific property, ordered by imageOrder
      */
@@ -49,4 +55,12 @@ public interface PropertyImageRepository extends JpaRepository<PropertyImage, Lo
      */
     @Query("SELECT CASE WHEN COUNT(pi) > 0 THEN true ELSE false END FROM PropertyImage pi WHERE pi.imageId = :imageId AND pi.property.id = :propertyId")
     boolean existsByImageIdAndPropertyId(@Param("imageId") Long imageId, @Param("propertyId") Long propertyId);
+
+    
+    /**
+     * ✅ Alternative: Get any image if no cover exists
+     */
+    Optional<PropertyImage> findFirstByPropertyPropertyIdOrderByImageOrderAsc(Long propertyId);
+
+    
 }
