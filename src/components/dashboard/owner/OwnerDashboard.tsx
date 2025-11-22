@@ -37,14 +37,16 @@ export function OwnerDashboard({
   const t = translations[language];
   const { profile, loading: profileLoading } = useProfile();
   const [activeTab, setActiveTab] = useState("overview");
-  const [showAddProperty, setShowAddProperty] = useState(showAddPropertyOnMount);
+  const [showAddProperty, setShowAddProperty] = useState(
+    showAddPropertyOnMount
+  );
 
   const [dashboard, setDashboard] = useState<any>(null);
   const [properties, setProperties] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // ✅ Track last refresh to prevent duplicate calls
   const lastRefreshTime = useRef<number>(0);
   const refreshCooldown = 1000; // 1 second cooldown
@@ -54,13 +56,12 @@ export function OwnerDashboard({
   // ============================================
   const loadDashboardData = useCallback(async (forceReload = false) => {
     const now = Date.now();
-    
+
     // ✅ Prevent duplicate calls within cooldown period
     if (now - lastRefreshTime.current < refreshCooldown && !forceReload) {
-      console.log("⏸️ Skipping refresh - cooldown active");
       return;
     }
-    
+
     lastRefreshTime.current = now;
 
     try {
@@ -95,7 +96,10 @@ export function OwnerDashboard({
       if (propertiesData.data) {
         if (Array.isArray(propertiesData.data)) {
           propertiesList = propertiesData.data;
-        } else if (propertiesData.data.content && Array.isArray(propertiesData.data.content)) {
+        } else if (
+          propertiesData.data.content &&
+          Array.isArray(propertiesData.data.content)
+        ) {
           propertiesList = propertiesData.data.content;
         }
       } else if (Array.isArray(propertiesData)) {
@@ -124,7 +128,6 @@ export function OwnerDashboard({
       setDashboard(dashboardData);
       setProperties(activeProperties);
       setBookings(Array.isArray(bookingsData) ? bookingsData : []);
-
     } catch (error: any) {
       console.error("❌ Dashboard load failed:", error.message);
       toast.error("Failed to load dashboard data");
@@ -140,7 +143,7 @@ export function OwnerDashboard({
   // ============================================
   const handleManualRefresh = useCallback(async () => {
     setRefreshing(true);
-    
+
     try {
       await loadDashboardData(true);
       toast.success("Dashboard refreshed successfully");
@@ -165,7 +168,6 @@ export function OwnerDashboard({
   // ============================================
   useEffect(() => {
     const handleReviewEvent = (event: Event) => {
-      console.log("🎉 Review event received:", event.type);
       loadDashboardData(true);
     };
 
@@ -291,7 +293,9 @@ export function OwnerDashboard({
             {!showAddProperty && (
               <Button
                 onClick={() => setShowAddProperty(true)}
-                className={`gap-2 ${language === "ar" ? "flex-row-reverse" : ""}`}
+                className={`gap-2 ${
+                  language === "ar" ? "flex-row-reverse" : ""
+                }`}
               >
                 <Plus className="w-5 h-5" />
                 {t.hostDashboard.addProperty}
@@ -315,10 +319,14 @@ export function OwnerDashboard({
             >
               <TabsTrigger
                 value="overview"
-                className={`gap-2 ${language === "ar" ? "flex-row-reverse" : ""}`}
+                className={`gap-2 ${
+                  language === "ar" ? "flex-row-reverse" : ""
+                }`}
               >
                 <Home className="w-4 h-4" />
-                <span className="hidden sm:inline">{t.hostDashboard.overview}</span>
+                <span className="hidden sm:inline">
+                  {t.hostDashboard.overview}
+                </span>
               </TabsTrigger>
               <TabsTrigger value="properties" className="gap-2">
                 <Home className="w-4 h-4" />
@@ -328,18 +336,26 @@ export function OwnerDashboard({
               </TabsTrigger>
               <TabsTrigger value="bookings" className="gap-2">
                 <Calendar className="w-4 h-4" />
-                <span className="hidden sm:inline">{t.hostDashboard.bookings}</span>
+                <span className="hidden sm:inline">
+                  {t.hostDashboard.bookings}
+                </span>
               </TabsTrigger>
               <TabsTrigger value="analytics" className="gap-2">
                 <TrendingUp className="w-4 h-4" />
-                <span className="hidden sm:inline">{t.hostDashboard.analytics}</span>
+                <span className="hidden sm:inline">
+                  {t.hostDashboard.analytics}
+                </span>
               </TabsTrigger>
               <TabsTrigger
                 value="settings"
-                className={`gap-2 ${language === "ar" ? "flex-row-reverse" : ""}`}
+                className={`gap-2 ${
+                  language === "ar" ? "flex-row-reverse" : ""
+                }`}
               >
                 <Settings className="w-4 h-4" />
-                <span className="hidden sm:inline">{t.hostDashboard.settings}</span>
+                <span className="hidden sm:inline">
+                  {t.hostDashboard.settings}
+                </span>
               </TabsTrigger>
             </TabsList>
 

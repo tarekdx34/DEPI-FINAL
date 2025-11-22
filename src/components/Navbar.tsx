@@ -56,7 +56,6 @@ export function Navbar({
   // Fetch profile when user logs in
   useEffect(() => {
     if (user) {
-      console.log("👤 User detected in Navbar:", user);
       fetchProfile();
     }
   }, [user]);
@@ -64,7 +63,6 @@ export function Navbar({
   // Log when profile updates
   useEffect(() => {
     if (profile) {
-      console.log("📸 Profile photo in Navbar:", profile.profilePhoto);
     }
   }, [profile]);
 
@@ -78,19 +76,12 @@ export function Navbar({
 
   const handleNavigation = (page: string, propertyId?: string) => {
     if (onNavigate) {
-      console.log(
-        "🔄 Navbar navigation to:",
-        page,
-        propertyId ? `Property: ${propertyId}` : ""
-      );
       onNavigate(page, propertyId);
     }
   };
 
   const getDashboardPage = () => {
     if (!user) return "user-dashboard";
-
-    console.log("🎯 Getting dashboard for user:", user.userType, user.role);
 
     if (user.userType === "landlord") return "owner-dashboard";
     if (user.userType === "admin") return "admin-dashboard";
@@ -116,13 +107,6 @@ export function Navbar({
   const getProfilePhoto = () => {
     return user?.profilePhoto || user?.avatar || profile?.profilePhoto || null;
   };
-
-  console.log(
-    "🔍 Navbar render - User:",
-    user?.name,
-    "Photo:",
-    getProfilePhoto()
-  );
 
   return (
     <nav className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-gray-200">

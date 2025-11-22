@@ -1,5 +1,5 @@
-// src/App.tsx - Resolved merge conflicts
-import { useState, useEffect } from "react";
+// src/App.tsx - With Lazy Loading
+import { useState, useEffect, lazy, Suspense } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -10,27 +10,100 @@ import {
 } from "react-router-dom";
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
-import { HomePage } from "./components/pages/HomePage";
-import { LoginPage } from "./components/pages/LoginPage";
-import { RegisterPage } from "./components/pages/RegisterPage";
-import { PropertiesPage } from "./components/pages/PropertiesPage";
-import { PropertyDetailsPage } from "./components/pages/PropertyDetailsPage";
-import { BookingConfirmationPage } from "./components/pages/BookingConfirmationPage";
-import { RenterDashboard } from "./components/dashboard/renter/RenterDashboard";
-import { OwnerDashboard } from "./components/dashboard/owner/OwnerDashboard";
-import { ForgotPasswordPage } from "./components/pages/ForgotPasswordPage";
-import { AdminDashboard } from "./components/dashboard/admin/AdminDashboard";
-import { AboutUsPage } from "./components/pages/AboutUsPage";
-import { ContactPage } from "./components/pages/ContactPage";
-import { FAQPage } from "./components/pages/FAQPage";
-import { SupportPage } from "./components/pages/SupportPage";
-import { PrivacyPolicyPage } from "./components/pages/PrivacyPolicyPage";
-import { TermsConditionsPage } from "./components/pages/TermsConditionsPage";
 import { Toaster } from "./components/ui/sonner";
 import { FavoritesProvider } from "./contexts/FavoritesContext";
 import { Language } from "./lib/translations";
 import api from "../api";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+
+// Lazy load all page components
+const HomePage = lazy(() =>
+  import("./components/pages/HomePage").then((m) => ({ default: m.HomePage }))
+);
+const LoginPage = lazy(() =>
+  import("./components/pages/LoginPage").then((m) => ({ default: m.LoginPage }))
+);
+const RegisterPage = lazy(() =>
+  import("./components/pages/RegisterPage").then((m) => ({
+    default: m.RegisterPage,
+  }))
+);
+const PropertiesPage = lazy(() =>
+  import("./components/pages/PropertiesPage").then((m) => ({
+    default: m.PropertiesPage,
+  }))
+);
+const PropertyDetailsPage = lazy(() =>
+  import("./components/pages/PropertyDetailsPage").then((m) => ({
+    default: m.PropertyDetailsPage,
+  }))
+);
+const BookingConfirmationPage = lazy(() =>
+  import("./components/pages/BookingConfirmationPage").then((m) => ({
+    default: m.BookingConfirmationPage,
+  }))
+);
+const RenterDashboard = lazy(() =>
+  import("./components/dashboard/renter/RenterDashboard").then((m) => ({
+    default: m.RenterDashboard,
+  }))
+);
+const OwnerDashboard = lazy(() =>
+  import("./components/dashboard/owner/OwnerDashboard").then((m) => ({
+    default: m.OwnerDashboard,
+  }))
+);
+const AdminDashboard = lazy(() =>
+  import("./components/dashboard/admin/AdminDashboard").then((m) => ({
+    default: m.AdminDashboard,
+  }))
+);
+const ForgotPasswordPage = lazy(() =>
+  import("./components/pages/ForgotPasswordPage").then((m) => ({
+    default: m.ForgotPasswordPage,
+  }))
+);
+const AboutUsPage = lazy(() =>
+  import("./components/pages/AboutUsPage").then((m) => ({
+    default: m.AboutUsPage,
+  }))
+);
+const ContactPage = lazy(() =>
+  import("./components/pages/ContactPage").then((m) => ({
+    default: m.ContactPage,
+  }))
+);
+const FAQPage = lazy(() =>
+  import("./components/pages/FAQPage").then((m) => ({ default: m.FAQPage }))
+);
+const SupportPage = lazy(() =>
+  import("./components/pages/SupportPage").then((m) => ({
+    default: m.SupportPage,
+  }))
+);
+const PrivacyPolicyPage = lazy(() =>
+  import("./components/pages/PrivacyPolicyPage").then((m) => ({
+    default: m.PrivacyPolicyPage,
+  }))
+);
+const TermsConditionsPage = lazy(() =>
+  import("./components/pages/TermsConditionsPage").then((m) => ({
+    default: m.TermsConditionsPage,
+  }))
+);
+
+// Loading Fallback Component
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <Loader2 className="w-12 h-12 text-[#00BFA6] animate-spin mx-auto mb-4" />
+        <p className="text-gray-600 text-lg">Loading...</p>
+      </div>
+    </div>
+  );
+}
 
 export interface User {
   userId: number;
@@ -94,9 +167,7 @@ function AppLayout() {
             userType: userProfile.userType,
           };
           setUser(user);
-          console.log("✅ Auth restored for:", user.email);
         } catch (error) {
-          console.error("❌ Auth check failed:", error);
           localStorage.removeItem("authToken");
         }
       }
@@ -122,8 +193,6 @@ function AppLayout() {
     propertyId?: string,
     searchParams?: URLSearchParams
   ) => {
-    console.log("🔄 Navigation requested to:", page, propertyId);
-
     const [pageName, queryString] = page.split("?");
     const params = new URLSearchParams(queryString || "");
 
@@ -152,13 +221,11 @@ function AppLayout() {
     let route = routeMap[pageName] || "/";
     if (searchParams && searchParams.toString()) {
       route += `?${searchParams.toString()}`;
-      console.log("✅ Final route with params:", route);
     }
     navigate(route);
   };
 
   const handleHostRegistration = () => {
-    console.log("🏠 New host registration");
     setIsNewHost(true);
     navigate("/dashboard/owner");
   };
@@ -166,13 +233,8 @@ function AppLayout() {
   // Login handler
   const handleLogin = async (email: string, password: string) => {
     try {
-      console.log("1️⃣ Starting login for:", email);
-
       const response = await api.login(email, password);
-      console.log("2️⃣ Login response received:", response);
-
       const userProfile = await api.getProfile();
-      console.log("3️⃣ User profile loaded:", userProfile);
 
       const user: User = {
         userId: userProfile.userId,
@@ -192,12 +254,9 @@ function AppLayout() {
       };
 
       setUser(user);
-      console.log("4️⃣ User state updated:", user);
-
       toast.success(`Welcome back, ${user.name}!`);
 
       let targetRoute: string;
-
       if (userProfile.userType === "admin") {
         targetRoute = "/dashboard/admin";
       } else if (userProfile.userType === "landlord") {
@@ -206,25 +265,20 @@ function AppLayout() {
         targetRoute = "/dashboard/renter";
       }
 
-      console.log("5️⃣ Navigating to:", targetRoute);
-
       setTimeout(() => {
         navigate(targetRoute);
       }, 100);
     } catch (error: any) {
-      console.error("❌ Login error:", error);
-
       const errorMessage =
         error?.message ||
         error?.data?.message ||
         "Login failed. Please check your credentials.";
       toast.error(errorMessage);
-
       throw error;
     }
   };
 
-  // Register handler - FIXED VERSION
+  // Register handler
   const handleRegister = async (
     name: string,
     email: string,
@@ -232,8 +286,6 @@ function AppLayout() {
     role: "renter" | "owner"
   ) => {
     try {
-      console.log("📝 Starting registration:", { email, role });
-
       const [firstName, lastName] = name.split(" ");
       const response = await api.register({
         email,
@@ -244,13 +296,8 @@ function AppLayout() {
         userType: role === "owner" ? "landlord" : "renter",
       });
 
-      console.log("✅ Registration response:", response);
-
-      // Immediately fetch the user profile
       const userProfile = await api.getProfile();
-      console.log("✅ Profile fetched:", userProfile);
 
-      // Create the user object
       const newUser: User = {
         userId: userProfile.userId,
         name: userProfile.firstName + " " + userProfile.lastName,
@@ -268,18 +315,11 @@ function AppLayout() {
         userType: userProfile.userType,
       };
 
-      // CRITICAL: Set user state BEFORE navigation
-      console.log("✅ Setting user state:", newUser);
       setUser(newUser);
-
-      // Show success message
       toast.success(`Welcome to Ajarly, ${newUser.name}!`);
 
-      // Wait a bit to ensure state updates propagate
       await new Promise((resolve) => setTimeout(resolve, 150));
 
-      // Navigate to the appropriate dashboard
-      console.log("✅ Navigating to dashboard for role:", role);
       if (role === "owner") {
         setIsNewHost(true);
         navigate("/dashboard/owner");
@@ -287,14 +327,11 @@ function AppLayout() {
         navigate("/dashboard/renter");
       }
     } catch (error: any) {
-      console.error("❌ Registration error:", error);
-
       const errorMessage =
         error?.message ||
         error?.data?.message ||
         "Registration failed. Please try again.";
       toast.error(errorMessage);
-
       throw error;
     }
   };
@@ -302,19 +339,13 @@ function AppLayout() {
   // Logout handler
   const handleLogout = async () => {
     try {
-      console.log("👋 Logging out user:", user?.email);
-
       await api.logout();
       setUser(null);
-
       toast.success("Logged out successfully!");
-
       setTimeout(() => {
         navigate("/");
       }, 100);
     } catch (error) {
-      console.error("❌ Logout error:", error);
-
       setUser(null);
       navigate("/");
     }
@@ -331,8 +362,6 @@ function AppLayout() {
   );
   const showFooter = showNavbar;
 
-  console.log("🔍 Current user state in App:", user);
-
   return (
     <div className="min-h-screen flex flex-col bg-white">
       {showNavbar && (
@@ -347,179 +376,184 @@ function AppLayout() {
       )}
 
       <main className="flex-1">
-        <Routes>
-          {/* Public Routes */}
-          <Route
-            path="/"
-            element={
-              <HomePage
-                onNavigate={handleNavigate}
-                language={language}
-                user={user}
-              />
-            }
-          />
-
-          <Route
-            path="/properties"
-            element={
-              <PropertiesPage onNavigate={handleNavigate} language={language} />
-            }
-          />
-
-          <Route
-            path="/properties/:id"
-            element={
-              <PropertyDetailsPage
-                onNavigate={handleNavigate}
-                language={language}
-              />
-            }
-          />
-
-          <Route
-            path="/about"
-            element={
-              <AboutUsPage onNavigate={handleNavigate} language={language} />
-            }
-          />
-
-          <Route
-            path="/contact"
-            element={
-              <ContactPage onNavigate={handleNavigate} language={language} />
-            }
-          />
-
-          <Route
-            path="/faq"
-            element={
-              <FAQPage onNavigate={handleNavigate} language={language} />
-            }
-          />
-
-          <Route
-            path="/support"
-            element={
-              <SupportPage onNavigate={handleNavigate} language={language} />
-            }
-          />
-
-          <Route
-            path="/privacy"
-            element={
-              <PrivacyPolicyPage
-                onNavigate={handleNavigate}
-                language={language}
-              />
-            }
-          />
-
-          <Route
-            path="/terms"
-            element={
-              <TermsConditionsPage
-                onNavigate={handleNavigate}
-                language={language}
-              />
-            }
-          />
-
-          {/* Auth Routes */}
-          <Route
-            path="/login"
-            element={
-              <LoginPage
-                onNavigate={handleNavigate}
-                onLogin={handleLogin}
-                language={language}
-                onLanguageChange={setLanguage}
-              />
-            }
-          />
-
-          <Route
-            path="/register"
-            element={
-              <RegisterPage
-                onNavigate={handleNavigate}
-                initialRole={
-                  new URLSearchParams(location.search).get("role") === "owner"
-                    ? "owner"
-                    : "renter"
-                }
-                onRegister={handleRegister}
-                language={language}
-                onLanguageChange={setLanguage}
-              />
-            }
-          />
-
-          <Route
-            path="/forgot-password"
-            element={
-              <ForgotPasswordPage
-                onNavigate={handleNavigate}
-                language={language}
-                onLanguageChange={setLanguage}
-              />
-            }
-          />
-
-          {/* Booking Route */}
-          <Route
-            path="/booking/confirmation"
-            element={
-              <BookingConfirmationPage
-                onNavigate={handleNavigate}
-                language={language}
-              />
-            }
-          />
-
-          {/* Protected Dashboard Routes */}
-          <Route
-            path="/dashboard/renter/*"
-            element={
-              <ProtectedRoute allowedRoles={["renter"]}>
-                <RenterDashboard
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            {/* Public Routes */}
+            <Route
+              path="/"
+              element={
+                <HomePage
                   onNavigate={handleNavigate}
-                  currentUser={user}
-                  onUserUpdate={setUser}
                   language={language}
+                  user={user}
                 />
-              </ProtectedRoute>
-            }
-          />
+              }
+            />
 
-          <Route
-            path="/dashboard/owner/*"
-            element={
-              <ProtectedRoute allowedRoles={["owner"]}>
-                <OwnerDashboard
-                  onNavigate={handleNavigate}
-                  showAddPropertyOnMount={isNewHost}
-                  language={language}
-                />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/dashboard/admin/*"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <AdminDashboard
+            <Route
+              path="/properties"
+              element={
+                <PropertiesPage
                   onNavigate={handleNavigate}
                   language={language}
                 />
-              </ProtectedRoute>
-            }
-          />
+              }
+            />
 
-          {/* Catch all - redirect to home */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            <Route
+              path="/properties/:id"
+              element={
+                <PropertyDetailsPage
+                  onNavigate={handleNavigate}
+                  language={language}
+                />
+              }
+            />
+
+            <Route
+              path="/about"
+              element={
+                <AboutUsPage onNavigate={handleNavigate} language={language} />
+              }
+            />
+
+            <Route
+              path="/contact"
+              element={
+                <ContactPage onNavigate={handleNavigate} language={language} />
+              }
+            />
+
+            <Route
+              path="/faq"
+              element={
+                <FAQPage onNavigate={handleNavigate} language={language} />
+              }
+            />
+
+            <Route
+              path="/support"
+              element={
+                <SupportPage onNavigate={handleNavigate} language={language} />
+              }
+            />
+
+            <Route
+              path="/privacy"
+              element={
+                <PrivacyPolicyPage
+                  onNavigate={handleNavigate}
+                  language={language}
+                />
+              }
+            />
+
+            <Route
+              path="/terms"
+              element={
+                <TermsConditionsPage
+                  onNavigate={handleNavigate}
+                  language={language}
+                />
+              }
+            />
+
+            {/* Auth Routes */}
+            <Route
+              path="/login"
+              element={
+                <LoginPage
+                  onNavigate={handleNavigate}
+                  onLogin={handleLogin}
+                  language={language}
+                  onLanguageChange={setLanguage}
+                />
+              }
+            />
+
+            <Route
+              path="/register"
+              element={
+                <RegisterPage
+                  onNavigate={handleNavigate}
+                  initialRole={
+                    new URLSearchParams(location.search).get("role") === "owner"
+                      ? "owner"
+                      : "renter"
+                  }
+                  onRegister={handleRegister}
+                  language={language}
+                  onLanguageChange={setLanguage}
+                />
+              }
+            />
+
+            <Route
+              path="/forgot-password"
+              element={
+                <ForgotPasswordPage
+                  onNavigate={handleNavigate}
+                  language={language}
+                  onLanguageChange={setLanguage}
+                />
+              }
+            />
+
+            {/* Booking Route */}
+            <Route
+              path="/booking/confirmation"
+              element={
+                <BookingConfirmationPage
+                  onNavigate={handleNavigate}
+                  language={language}
+                />
+              }
+            />
+
+            {/* Protected Dashboard Routes */}
+            <Route
+              path="/dashboard/renter/*"
+              element={
+                <ProtectedRoute allowedRoles={["renter"]}>
+                  <RenterDashboard
+                    onNavigate={handleNavigate}
+                    currentUser={user}
+                    onUserUpdate={setUser}
+                    language={language}
+                  />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/dashboard/owner/*"
+              element={
+                <ProtectedRoute allowedRoles={["owner"]}>
+                  <OwnerDashboard
+                    onNavigate={handleNavigate}
+                    showAddPropertyOnMount={isNewHost}
+                    language={language}
+                  />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/dashboard/admin/*"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AdminDashboard
+                    onNavigate={handleNavigate}
+                    language={language}
+                  />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Catch all - redirect to home */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </main>
 
       {showFooter && <Footer onNavigate={handleNavigate} language={language} />}

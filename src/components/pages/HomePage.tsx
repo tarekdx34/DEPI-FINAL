@@ -44,25 +44,19 @@ export function HomePage({ onNavigate, language = "en", user }: HomePageProps) {
   const handleSearch = (params: SearchParams) => {
     const urlParams = new URLSearchParams();
 
-    console.log("🏠 HomePage - Search triggered with:", params);
-
     if (params.location) {
       urlParams.set("governorate", params.location);
-      console.log("  ✓ Added governorate:", params.location);
     }
     if (params.checkIn) {
       const checkInStr = params.checkIn.toISOString().split("T")[0];
       urlParams.set("checkInDate", checkInStr);
-      console.log("  ✓ Added checkInDate:", checkInStr);
     }
     if (params.checkOut) {
       const checkOutStr = params.checkOut.toISOString().split("T")[0];
       urlParams.set("checkOutDate", checkOutStr);
-      console.log("  ✓ Added checkOutDate:", checkOutStr);
     }
     if (params.guests) {
       urlParams.set("minGuests", params.guests);
-      console.log("  ✓ Added minGuests:", params.guests);
     }
 
     console.log("🔗 Final URL params:", urlParams.toString());

@@ -49,7 +49,6 @@ export function TripsTab({ onNavigate, language }: TripsTabProps) {
       );
       setExistingReviews(reviewedBookingIds);
     } catch (error) {
-      console.warn("⚠️ Could not fetch reviews:", error);
     } finally {
       setReviewsLoading(false);
     }
@@ -86,7 +85,6 @@ export function TripsTab({ onNavigate, language }: TripsTabProps) {
   };
 
   const handleOpenReviewModal = (booking: BookingResponse) => {
-    console.log("📝 Opening review modal for booking:", booking.bookingId);
     setSelectedBookingForReview(booking);
     setShowReviewModal(true);
   };
@@ -100,7 +98,7 @@ export function TripsTab({ onNavigate, language }: TripsTabProps) {
 
   // ✅ NEW: Navigate to reviews tab and scroll to specific review
   const handleViewReview = (bookingId: number) => {
-    console.log("👀 Viewing review for booking:", bookingId);
+    e.log("👀 Viewing review for booking:", bookingId);
     // Navigate to reviews tab with bookingId as parameter
     onNavigate("reviews", String(bookingId));
   };

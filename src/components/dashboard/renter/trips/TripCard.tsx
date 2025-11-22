@@ -131,8 +131,6 @@ export function TripCard({
 
   // ✅ FIXED: Navigate to reviews tab with bookingId
   const handleViewReview = () => {
-    console.log("👀 Navigating to review for booking:", booking.bookingId);
-    
     // Navigate using the parent component's navigation handler
     // Pass the bookingId as a special parameter
     onNavigate("reviews", String(booking.bookingId));

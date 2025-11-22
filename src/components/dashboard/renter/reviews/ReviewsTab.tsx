@@ -1,12 +1,6 @@
 // src/components/dashboard/renter/reviews/ReviewsTab.tsx - WITH BEAUTIFUL HIGHLIGHT
 import { useState, useEffect, useRef } from "react";
-import {
-  MessageSquare,
-  Loader2,
-  Star,
-  Clock,
-  CheckCircle,
-} from "lucide-react";
+import { MessageSquare, Loader2, Star, Clock, CheckCircle } from "lucide-react";
 import { Language, translations } from "../../../../lib/translations";
 import { Card } from "../../../ui/card";
 import { Button } from "../../../ui/button";
@@ -26,15 +20,24 @@ interface ReviewsTabProps {
 
 const TEST_MODE = false;
 
-export function ReviewsTab({ onNavigate, language, highlightBookingId }: ReviewsTabProps) {
+export function ReviewsTab({
+  onNavigate,
+  language,
+  highlightBookingId,
+}: ReviewsTabProps) {
   const t = translations[language];
   const [reviews, setReviews] = useState<ReviewResponse[]>([]);
-  const [eligibleBookings, setEligibleBookings] = useState<BookingResponse[]>([]);
+  const [eligibleBookings, setEligibleBookings] = useState<BookingResponse[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
   const [showWriteReview, setShowWriteReview] = useState(false);
-  const [selectedBooking, setSelectedBooking] = useState<BookingResponse | null>(null);
-  const [editingReview, setEditingReview] = useState<ReviewResponse | null>(null);
-  
+  const [selectedBooking, setSelectedBooking] =
+    useState<BookingResponse | null>(null);
+  const [editingReview, setEditingReview] = useState<ReviewResponse | null>(
+    null
+  );
+
   // ✅ Refs for auto-scrolling
   const reviewRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
@@ -43,34 +46,36 @@ export function ReviewsTab({ onNavigate, language, highlightBookingId }: Reviews
   }, []);
 
   // ✅ ENHANCED: Auto-scroll with beautiful animation
- // BEAUTIFUL HIGHLIGHT EFFECT
-useEffect(() => {
-  if (highlightBookingId && reviewRefs.current.size > 0) {
-    const element = reviewRefs.current.get(highlightBookingId);
+  // BEAUTIFUL HIGHLIGHT EFFECT
+  useEffect(() => {
+    if (highlightBookingId && reviewRefs.current.size > 0) {
+      const element = reviewRefs.current.get(highlightBookingId);
 
-    if (element) {
-      // Scroll smoothly
-      setTimeout(() => {
-        element.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-
+      if (element) {
+        // Scroll smoothly
         setTimeout(() => {
-          // Apply highlight
-          element.classList.add("soft-highlight", "ring-2", "ring-[#00BFA6]");
+          element.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
 
-          // Remove highlight after animation
           setTimeout(() => {
-            element.classList.remove("soft-highlight", "ring-2", "ring-[#00BFA6]");
-          }, 3200);
+            // Apply highlight
+            element.classList.add("soft-highlight", "ring-2", "ring-[#00BFA6]");
+
+            // Remove highlight after animation
+            setTimeout(() => {
+              element.classList.remove(
+                "soft-highlight",
+                "ring-2",
+                "ring-[#00BFA6]"
+              );
+            }, 3200);
+          }, 300);
         }, 300);
-      }, 300);
+      }
     }
-  }
-}, [highlightBookingId, reviews]);
-
-
+  }, [highlightBookingId, reviews]);
 
   const loadData = async () => {
     try {
@@ -89,7 +94,8 @@ useEffect(() => {
         );
       } else {
         completedBookings = allBookings.filter(
-          (b) => b.status === "completed" && new Date(b.checkOutDate) < new Date()
+          (b) =>
+            b.status === "completed" && new Date(b.checkOutDate) < new Date()
         );
       }
 
@@ -99,9 +105,7 @@ useEffect(() => {
         userReviews = reviewsData.content || [];
       } catch (error: any) {
         if (error.status === 500) {
-          console.warn("⚠️ getMyReviews returned 500. Continuing without reviews.");
         } else if (error.status === 404) {
-          console.log("ℹ️ getMyReviews endpoint not found. Continuing without reviews.");
         } else {
           console.error("❌ Error fetching reviews:", error);
         }
@@ -109,10 +113,10 @@ useEffect(() => {
 
       setReviews(userReviews);
 
-      const reviewedBookingIds = new Set(userReviews.map(r => r.bookingId));
-      
+      const reviewedBookingIds = new Set(userReviews.map((r) => r.bookingId));
+
       const pendingReviews = completedBookings.filter(
-        booking => !reviewedBookingIds.has(booking.bookingId)
+        (booking) => !reviewedBookingIds.has(booking.bookingId)
       );
 
       setEligibleBookings(pendingReviews);
@@ -136,7 +140,9 @@ useEffect(() => {
       return;
     }
 
-    let booking = eligibleBookings.find((b) => b.bookingId === review.bookingId);
+    let booking = eligibleBookings.find(
+      (b) => b.bookingId === review.bookingId
+    );
 
     if (!booking) {
       booking = {
@@ -158,7 +164,11 @@ useEffect(() => {
   };
 
   const handleDeleteReview = async (reviewId: number) => {
-    if (!confirm("Are you sure you want to delete this review? This action cannot be undone.")) {
+    if (
+      !confirm(
+        "Are you sure you want to delete this review? This action cannot be undone."
+      )
+    ) {
       return;
     }
 
@@ -206,7 +216,7 @@ useEffect(() => {
   return (
     <div className="space-y-6" dir={language === "ar" ? "rtl" : "ltr"}>
       {/* Add CSS for pulse animation */}
-     <style>{`
+      <style>{`
   @keyframes softHighlight {
     0% {
       transform: scale(1);
@@ -231,14 +241,21 @@ useEffect(() => {
   }
 `}</style>
 
-
       {/* Eligible Bookings Section */}
       {eligibleBookings.length > 0 && (
         <div className="space-y-3">
-          <h3 className={`text-lg font-semibold text-[#2B2B2B] ${language === "ar" ? "text-right" : "text-left"}`}>
+          <h3
+            className={`text-lg font-semibold text-[#2B2B2B] ${
+              language === "ar" ? "text-right" : "text-left"
+            }`}
+          >
             {t.userDashboard.writeAReview}
           </h3>
-          <p className={`text-sm text-gray-600 ${language === "ar" ? "text-right" : "text-left"}`}>
+          <p
+            className={`text-sm text-gray-600 ${
+              language === "ar" ? "text-right" : "text-left"
+            }`}
+          >
             {t.userDashboard.helpOthers}
           </p>
           <div className="space-y-3">
@@ -256,7 +273,10 @@ useEffect(() => {
                         {booking.property.titleEn}
                       </h4>
                       {TEST_MODE && booking.status === "confirmed" && (
-                        <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                        <Badge
+                          variant="outline"
+                          className="text-xs bg-purple-50 text-purple-700 border-purple-200"
+                        >
                           Test
                         </Badge>
                       )}
@@ -265,8 +285,15 @@ useEffect(() => {
                       {booking.property.city}, {booking.property.governorate}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {new Date(booking.checkInDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}{" "}
-                      - {new Date(booking.checkOutDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      {new Date(booking.checkInDate).toLocaleDateString(
+                        "en-US",
+                        { month: "short", day: "numeric" }
+                      )}{" "}
+                      -{" "}
+                      {new Date(booking.checkOutDate).toLocaleDateString(
+                        "en-US",
+                        { month: "short", day: "numeric", year: "numeric" }
+                      )}
                     </p>
                   </div>
                   <Button
@@ -288,7 +315,11 @@ useEffect(() => {
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-orange-600" />
-            <h3 className={`text-lg font-semibold text-[#2B2B2B] ${language === "ar" ? "text-right" : "text-left"}`}>
+            <h3
+              className={`text-lg font-semibold text-[#2B2B2B] ${
+                language === "ar" ? "text-right" : "text-left"
+              }`}
+            >
               Pending Approval ({pendingReviews.length})
             </h3>
           </div>
@@ -297,7 +328,7 @@ useEffect(() => {
           </p>
           <div className="space-y-4">
             {pendingReviews.map((review) => (
-              <div 
+              <div
                 key={review.reviewId}
                 ref={(el) => {
                   if (el) reviewRefs.current.set(review.reviewId, el);
@@ -321,13 +352,17 @@ useEffect(() => {
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-600" />
-            <h3 className={`text-lg font-semibold text-[#2B2B2B] ${language === "ar" ? "text-right" : "text-left"}`}>
+            <h3
+              className={`text-lg font-semibold text-[#2B2B2B] ${
+                language === "ar" ? "text-right" : "text-left"
+              }`}
+            >
               {t.userDashboard.publishedReviews} ({approvedReviews.length})
             </h3>
           </div>
           <div className="space-y-4">
             {approvedReviews.map((review) => (
-              <div 
+              <div
                 key={review.reviewId}
                 ref={(el) => {
                   if (el) reviewRefs.current.set(review.reviewId, el);

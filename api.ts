@@ -883,8 +883,6 @@ class ApiClient {
   }
 
   async deletePropertyAsAdmin(propertyId: number): Promise<void> {
-    console.log(`🗑️ Admin deleting property: ${propertyId}`);
-
     try {
       // Try admin-specific endpoint first
       return await this.request<void>(`/admin/properties/${propertyId}`, {
@@ -893,7 +891,6 @@ class ApiClient {
     } catch (error: any) {
       // If admin endpoint doesn't exist (404), try regular endpoint
       if (error.status === 404) {
-        console.log("⚠️ Admin endpoint not found, trying regular endpoint");
         return await this.request<void>(`/properties/${propertyId}`, {
           method: "DELETE",
         });
@@ -1153,14 +1150,9 @@ class ApiClient {
       "/admin/reviews?page=0&size=1",
     ];
 
-    console.log("ðŸ” Testing admin reviews endpoints...");
-
     for (const endpoint of testEndpoints) {
       try {
-        console.log(`Testing: ${endpoint}`);
         const response = await this.request<any>(endpoint);
-
-        console.log(`âœ… SUCCESS with: ${endpoint}`, response);
 
         return {
           success: true,
@@ -1168,10 +1160,6 @@ class ApiClient {
           details: response,
         };
       } catch (error: any) {
-        console.log(
-          `âŒ FAILED: ${endpoint} - ${error.message} (Status: ${error.status})`
-        );
-
         if (endpoint === testEndpoints[testEndpoints.length - 1]) {
           return {
             success: false,
@@ -1229,11 +1217,6 @@ class ApiClient {
     size?: number;
     status?: "all" | "pending" | "approved";
   }): Promise<PaginatedResponse<ReviewResponse>> {
-    console.log(`\nðŸ“Š ========================================`);
-    console.log(`ðŸ“Š FETCHING ADMIN REVIEWS`);
-    console.log(`ðŸ“Š Filter: ${params?.status || "all"}`);
-    console.log(`ðŸ“Š ========================================\n`);
-
     const queryParams: Record<string, string> = {
       page: String(params?.page ?? 0),
       size: String(params?.size ?? 50),
@@ -1254,10 +1237,8 @@ class ApiClient {
     try {
       // âœ… Use correct admin endpoint
       const endpoint = `/reviews/admin/all?${queryString}`;
-      console.log(`ðŸ”„ API Call: ${this.baseURL}${endpoint}`);
 
       const response = await this.request<any>(endpoint);
-      console.log(`âœ… Response received:`, response);
 
       // Handle response structure
       let reviewsData = response;
@@ -1289,23 +1270,16 @@ class ApiClient {
         currentPage = 0;
       }
 
-      console.log(`âœ… Processing ${content.length} reviews...`);
-
       // Normalize reviews
       const normalizedReviews = content
         .map((r, index) => {
           try {
             return this.normalizeReview(r);
           } catch (err) {
-            console.error(`âš ï¸ Failed to normalize review ${index}:`, err);
             return null;
           }
         })
         .filter((r) => r !== null) as ReviewResponse[];
-
-      console.log(
-        `âœ… Successfully loaded ${normalizedReviews.length} reviews\n`
-      );
 
       return {
         content: normalizedReviews,
@@ -1315,12 +1289,6 @@ class ApiClient {
         pageSize: pageSize,
       };
     } catch (error: any) {
-      console.error(`\nâŒ ========================================`);
-      console.error(`âŒ FAILED TO FETCH REVIEWS`);
-      console.error(`âŒ Status: ${error.status}`);
-      console.error(`âŒ Message: ${error.message}`);
-      console.error(`âŒ ========================================\n`);
-
       // Better error handling
       if (error.status === 403) {
         throw new ApiError(
@@ -1330,7 +1298,6 @@ class ApiClient {
         );
       } else if (error.status === 500) {
         // Return empty result instead of crashing
-        console.warn("âš ï¸ Server error, returning empty result");
         return {
           content: [],
           totalElements: 0,
@@ -1348,15 +1315,10 @@ class ApiClient {
    * âœ… Get review statistics for admin - REAL BACKEND
    */
   async getReviewStats(): Promise<ReviewAdminStatsResponse> {
-    console.log("\nðŸ“Š Fetching admin review stats...");
-
     try {
       const endpoint = "/reviews/admin/stats";
-      console.log(`ðŸ”„ API Call: ${this.baseURL}${endpoint}`);
 
       const stats = await this.request<any>(endpoint);
-
-      console.log("âœ… Stats received:", stats);
 
       return {
         totalReviews: stats.totalReviews || 0,
@@ -1366,8 +1328,6 @@ class ApiClient {
         averageRating: stats.averageRating || 0,
       };
     } catch (error: any) {
-      console.error("âŒ Failed to fetch stats:", error);
-
       // Return default stats on error
       return {
         totalReviews: 0,
@@ -1383,29 +1343,15 @@ class ApiClient {
    * âœ… Approve review - REAL BACKEND
    */
   async approveReview(reviewId: number): Promise<ReviewResponse> {
-    console.log(`\nâœ… ========================================`);
-    console.log(`âœ… APPROVING REVIEW ${reviewId}`);
-    console.log(`âœ… ========================================\n`);
-
     try {
       const endpoint = `/reviews/${reviewId}/approve`;
-      console.log(`ðŸ”„ API Call: ${this.baseURL}${endpoint}`);
 
       const review = await this.request<any>(endpoint, {
         method: "PUT",
       });
 
-      console.log("âœ… Review approved:", review);
-
       return this.normalizeReview(review);
     } catch (error: any) {
-      console.error(`\nâŒ ========================================`);
-      console.error(`âŒ APPROVE FAILED`);
-      console.error(`âŒ Status: ${error.status}`);
-      console.error(`âŒ Message: ${error.message}`);
-      console.error(`âŒ Data:`, error.data);
-      console.error(`âŒ ========================================\n`);
-
       throw error;
     }
   }
@@ -1417,14 +1363,8 @@ class ApiClient {
     reviewId: number,
     reason?: string
   ): Promise<ReviewResponse> {
-    console.log(`\nâŒ ========================================`);
-    console.log(`âŒ REJECTING REVIEW ${reviewId}`);
-    console.log(`âŒ Reason: ${reason || "No reason provided"}`);
-    console.log(`âŒ ========================================\n`);
-
     try {
       const endpoint = `/reviews/${reviewId}/reject`;
-      console.log(`ðŸ”„ API Call: ${this.baseURL}${endpoint}`);
 
       const review = await this.request<any>(endpoint, {
         method: "PUT",
@@ -1433,16 +1373,8 @@ class ApiClient {
         }),
       });
 
-      console.log("âœ… Review rejected:", review);
-
       return this.normalizeReview(review);
     } catch (error: any) {
-      console.error(`\nâŒ ========================================`);
-      console.error(`âŒ REJECT FAILED`);
-      console.error(`âŒ Status: ${error.status}`);
-      console.error(`âŒ Message: ${error.message}`);
-      console.error(`âŒ ========================================\n`);
-
       throw error;
     }
   }
@@ -1451,14 +1383,10 @@ class ApiClient {
    * âœ… Delete review as admin - REAL BACKEND
    */
   async deleteReviewAdmin(reviewId: number): Promise<void> {
-    console.log(`\nðŸ—‘ï¸ Deleting review ${reviewId}...`);
-
     try {
       await this.request<void>(`/reviews/${reviewId}`, {
         method: "DELETE",
       });
-
-      console.log("âœ… Review deleted successfully\n");
     } catch (error: any) {
       console.error("âŒ Delete failed:", error.message, "\n");
       throw error;
@@ -1748,8 +1676,6 @@ class ApiClient {
       paymentMethod: this.mapPaymentMethod(data.paymentMethod),
     };
 
-    console.log("ðŸ’³ Payment Intent Request:", mappedData);
-
     try {
       const response = await this.request<PaymentIntentResponse>(
         "/payments/create",
@@ -1759,10 +1685,8 @@ class ApiClient {
         }
       );
 
-      console.log("âœ… Payment Intent Response:", response);
       return response;
     } catch (error) {
-      console.error("âŒ Payment Intent Error:", error);
       throw error;
     }
   }
@@ -1770,8 +1694,6 @@ class ApiClient {
   async confirmPayment(
     data: PaymentConfirmRequest
   ): Promise<TransactionResponse> {
-    console.log("ðŸ’³ Confirming Payment:", data);
-
     try {
       const response = await this.request<TransactionResponse>(
         "/payments/confirm",
@@ -1781,7 +1703,6 @@ class ApiClient {
         }
       );
 
-      console.log("âœ… Payment Confirmed:", response);
       return response;
     } catch (error) {
       console.error("âŒ Payment Confirmation Error:", error);

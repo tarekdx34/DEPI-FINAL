@@ -1,4 +1,4 @@
-// src/components/dashboard/owner/OwnerProperties.tsx - FINAL FIX
+// src/components/dashboard/owner/OwnerProperties.tsx - WITH EDIT FUNCTIONALITY
 import { useState } from "react";
 import { Language, translations } from "../../../lib/translations";
 import {
@@ -8,6 +8,8 @@ import {
   Eye,
   MoreVertical,
   Image as ImageIcon,
+  Save,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import api, { PropertyResponse } from "../../../../api";
@@ -31,6 +33,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../../ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../../ui/dialog";
+import { Input } from "../../ui/input";
+import { Textarea } from "../../ui/textarea";
+import { Label } from "../../ui/label";
 
 interface OwnerPropertiesProps {
   properties: PropertyResponse[];
@@ -38,6 +51,24 @@ interface OwnerPropertiesProps {
   onEditProperty?: (property: PropertyResponse) => void;
   onNavigate?: (page: string, propertyId?: string) => void;
   language: Language;
+}
+
+interface EditFormData {
+  titleAr: string;
+  titleEn: string;
+  descriptionAr: string;
+  descriptionEn: string;
+  propertyType: string;
+  rentalType: "both" | "vacation" | "long_term";
+  governorate: string;
+  city: string;
+  bedrooms: number;
+  bathrooms: number;
+  guestsCapacity: number;
+  pricePerNight: number;
+  pricePerMonth?: number;
+  furnished: boolean;
+  petsAllowed: boolean;
 }
 
 export function OwnerProperties({
@@ -52,10 +83,19 @@ export function OwnerProperties({
   const [propertyToDelete, setPropertyToDelete] =
     useState<PropertyResponse | null>(null);
   const [deleting, setDeleting] = useState(false);
+
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [selectedPropertyImages, setSelectedPropertyImages] = useState<any[]>(
     []
   );
+
+  // ✅ NEW: Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [propertyToEdit, setPropertyToEdit] = useState<PropertyResponse | null>(
+    null
+  );
+  const [editFormData, setEditFormData] = useState<EditFormData | null>(null);
+  const [updating, setUpdating] = useState(false);
 
   const handleDeleteClick = (property: PropertyResponse) => {
     setPropertyToDelete(property);
@@ -67,17 +107,11 @@ export function OwnerProperties({
 
     try {
       setDeleting(true);
-      console.log("🗑️ Deleting property:", propertyToDelete.propertyId);
-
       await api.deleteProperty(propertyToDelete.propertyId);
-
       toast.success("Property deleted successfully");
       setDeleteDialogOpen(false);
       setPropertyToDelete(null);
-
-      setTimeout(() => {
-        onPropertyDeleted();
-      }, 500);
+      setTimeout(() => onPropertyDeleted(), 500);
     } catch (error: any) {
       console.error("❌ Delete error:", error);
       toast.error(error.message || "Failed to delete property");
@@ -86,11 +120,130 @@ export function OwnerProperties({
     }
   };
 
+  // ✅ NEW: Edit functionality
   const handleEditClick = (property: PropertyResponse) => {
-    if (onEditProperty) {
-      onEditProperty(property);
-    } else {
-      toast.error("Edit functionality not configured");
+    setPropertyToEdit(property);
+
+    // ✅ FIX: Map old rental types to valid backend values
+    let validRentalType = property.rentalType;
+    if (validRentalType === "daily" || validRentalType === "short_term") {
+      validRentalType = "vacation";
+    } else if (!["both", "vacation", "long_term"].includes(validRentalType)) {
+      validRentalType = "vacation"; // default fallback
+    }
+
+    // Initialize form with current property data - ALL fields
+    setEditFormData({
+      titleAr: property.titleAr || "",
+      titleEn: property.titleEn || "",
+      descriptionAr: property.descriptionAr || "",
+      descriptionEn: property.descriptionEn || "",
+      propertyType: property.propertyType || "apartment",
+      rentalType: validRentalType as "both" | "vacation" | "long_term",
+      governorate: property.governorate || "",
+      city: property.city || "",
+      bedrooms: property.bedrooms || 1,
+      bathrooms: property.bathrooms || 1,
+      guestsCapacity: property.guestsCapacity || 1,
+      pricePerNight: property.pricePerNight || 0,
+      pricePerMonth: property.pricePerMonth || undefined,
+      furnished: property.furnished ?? false,
+      petsAllowed: property.petsAllowed ?? false,
+    });
+
+    setEditDialogOpen(true);
+  };
+
+  const handleEditFormChange = (field: keyof EditFormData, value: any) => {
+    if (!editFormData) return;
+
+    setEditFormData({
+      ...editFormData,
+      [field]: value,
+    });
+  };
+
+  const handleUpdateProperty = async () => {
+    if (!propertyToEdit || !editFormData) return;
+
+    // ✅ Validate required fields
+    if (!editFormData.titleEn || !editFormData.titleAr) {
+      toast.error("Title is required in both languages");
+      return;
+    }
+
+    if (!editFormData.descriptionEn || !editFormData.descriptionAr) {
+      toast.error("Description is required in both languages");
+      return;
+    }
+
+    // ✅ Check authentication
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      toast.error("Authentication required. Please log in again.");
+      return;
+    }
+
+    try {
+      setUpdating(true);
+
+      // ✅ Prepare complete payload matching backend expectations
+      const updatePayload = {
+        titleAr: editFormData.titleAr.trim(),
+        titleEn: editFormData.titleEn.trim(),
+        descriptionAr: editFormData.descriptionAr.trim(),
+        descriptionEn: editFormData.descriptionEn.trim(),
+        propertyType: editFormData.propertyType,
+        rentalType: editFormData.rentalType,
+        governorate: editFormData.governorate.trim(),
+        city: editFormData.city.trim(),
+        bedrooms: Number(editFormData.bedrooms),
+        bathrooms: Number(editFormData.bathrooms),
+        guestsCapacity: Number(editFormData.guestsCapacity),
+        pricePerNight: Number(editFormData.pricePerNight),
+        furnished: Boolean(editFormData.furnished),
+        petsAllowed: Boolean(editFormData.petsAllowed),
+        // Include optional fields if they have values
+        ...(editFormData.pricePerMonth && {
+          pricePerMonth: Number(editFormData.pricePerMonth),
+        }),
+      };
+
+      const updatedProperty = await api.updateProperty(
+        propertyToEdit.propertyId,
+        updatePayload
+      );
+
+      toast.success("Property updated successfully!");
+
+      setEditDialogOpen(false);
+      setPropertyToEdit(null);
+      setEditFormData(null);
+
+      // Refresh the properties list
+      setTimeout(() => onPropertyDeleted(), 500);
+    } catch (error: any) {
+      console.error("❌ Update error:", error);
+      console.error("❌ Error details:", {
+        status: error.status,
+        message: error.message,
+        data: error.data,
+      });
+
+      // Better error handling
+      if (error.status === 401 || error.status === 403) {
+        toast.error("Authentication failed. Please log in again.");
+      } else if (error.status === 400) {
+        const errorMsg = error.data?.message || error.message || "Invalid data";
+        toast.error(`Validation error: ${errorMsg}`);
+        e.log("💡 Check these fields:", editFormData);
+      } else if (error.message.includes("Validation failed")) {
+        toast.error("Please check all required fields are filled correctly");
+      } else {
+        toast.error(error.message || "Failed to update property");
+      }
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -104,10 +257,8 @@ export function OwnerProperties({
     }
   };
 
-  // ✅ CRITICAL FIX: Navigate internally, don't open new tab
   const handleViewProperty = (propertyId: number) => {
     if (onNavigate) {
-      console.log("✅ Navigating to property details:", propertyId);
       onNavigate("property-details", String(propertyId));
     } else {
       console.error("❌ onNavigate not provided!");
@@ -115,17 +266,14 @@ export function OwnerProperties({
     }
   };
 
-  // ✅ PropertyCard click handler
   const handleCardNavigate = (page: string, id?: string) => {
     if (page === "property-details" && id && onNavigate) {
-      console.log("✅ Card clicked, navigating to:", id);
       onNavigate("property-details", id);
     }
   };
 
   const getStatusBadge = (property: PropertyResponse) => {
     const status = property.status || property.approvalStatus || "inactive";
-
     const statusConfig: Record<string, { label: string; className: string }> = {
       active: {
         label: t.hostDashboard.active,
@@ -144,7 +292,6 @@ export function OwnerProperties({
         className: "bg-red-100 text-red-700",
       },
     };
-
     const config = statusConfig[status] || statusConfig.inactive;
     return <Badge className={config.className}>{config.label}</Badge>;
   };
@@ -226,7 +373,6 @@ export function OwnerProperties({
 
           return (
             <div key={property.propertyId} className="relative">
-              {/* Status Badge */}
               <div className="absolute top-3 left-3 z-10 flex gap-2">
                 {getStatusBadge(property)}
                 {images.length > 1 && (
@@ -246,7 +392,6 @@ export function OwnerProperties({
                 )}
               </div>
 
-              {/* Actions Menu */}
               <div className="absolute top-3 right-3 z-10">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -311,7 +456,6 @@ export function OwnerProperties({
                 </DropdownMenu>
               </div>
 
-              {/* Property Card */}
               <PropertyCard
                 property={normalizedProperty}
                 onNavigate={handleCardNavigate}
@@ -322,6 +466,277 @@ export function OwnerProperties({
           );
         })}
       </div>
+
+      {/* ✅ NEW: Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t.hostDashboard.edit} Property</DialogTitle>
+            <DialogDescription>
+              Update your property information
+            </DialogDescription>
+          </DialogHeader>
+
+          {editFormData && (
+            <div className="space-y-4">
+              {/* Title English */}
+              <div>
+                <Label htmlFor="titleEn">
+                  Title (English) <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="titleEn"
+                  value={editFormData.titleEn}
+                  onChange={(e) =>
+                    handleEditFormChange("titleEn", e.target.value)
+                  }
+                  placeholder="Luxury Apartment..."
+                  required
+                />
+              </div>
+
+              {/* Title Arabic */}
+              <div>
+                <Label htmlFor="titleAr">
+                  Title (Arabic) <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="titleAr"
+                  value={editFormData.titleAr}
+                  onChange={(e) =>
+                    handleEditFormChange("titleAr", e.target.value)
+                  }
+                  placeholder="شقة فاخرة..."
+                  dir="rtl"
+                  required
+                />
+              </div>
+
+              {/* Description English */}
+              <div>
+                <Label htmlFor="descriptionEn">
+                  Description (English) <span className="text-red-500">*</span>
+                </Label>
+                <Textarea
+                  id="descriptionEn"
+                  value={editFormData.descriptionEn}
+                  onChange={(e) =>
+                    handleEditFormChange("descriptionEn", e.target.value)
+                  }
+                  rows={3}
+                  placeholder="Amazing apartment with..."
+                  required
+                />
+              </div>
+
+              {/* Description Arabic */}
+              <div>
+                <Label htmlFor="descriptionAr">
+                  Description (Arabic) <span className="text-red-500">*</span>
+                </Label>
+                <Textarea
+                  id="descriptionAr"
+                  value={editFormData.descriptionAr}
+                  onChange={(e) =>
+                    handleEditFormChange("descriptionAr", e.target.value)
+                  }
+                  rows={3}
+                  dir="rtl"
+                  placeholder="شقة رائعة مع..."
+                  required
+                />
+              </div>
+
+              {/* Rental Type Selection */}
+              <div>
+                <Label htmlFor="rentalType">
+                  Rental Type <span className="text-red-500">*</span>
+                </Label>
+                <select
+                  id="rentalType"
+                  value={editFormData.rentalType}
+                  onChange={(e) =>
+                    handleEditFormChange("rentalType", e.target.value)
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00BFA6]"
+                  required
+                >
+                  <option value="vacation">Vacation Rental (Short-term)</option>
+                  <option value="long_term">Long-term Rental</option>
+                  <option value="both">Both (Vacation & Long-term)</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {editFormData.rentalType === "vacation" &&
+                    "Ideal for tourists and short stays"}
+                  {editFormData.rentalType === "long_term" &&
+                    "Monthly or yearly rentals"}
+                  {editFormData.rentalType === "both" &&
+                    "Flexible for any rental duration"}
+                </p>
+              </div>
+
+              {/* Property Details Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="bedrooms">
+                    Bedrooms <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="bedrooms"
+                    type="number"
+                    min="0"
+                    value={editFormData.bedrooms}
+                    onChange={(e) =>
+                      handleEditFormChange(
+                        "bedrooms",
+                        parseInt(e.target.value) || 0
+                      )
+                    }
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="bathrooms">
+                    Bathrooms <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="bathrooms"
+                    type="number"
+                    min="0"
+                    value={editFormData.bathrooms}
+                    onChange={(e) =>
+                      handleEditFormChange(
+                        "bathrooms",
+                        parseInt(e.target.value) || 0
+                      )
+                    }
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="guestsCapacity">
+                    Guests Capacity <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="guestsCapacity"
+                    type="number"
+                    min="1"
+                    value={editFormData.guestsCapacity}
+                    onChange={(e) =>
+                      handleEditFormChange(
+                        "guestsCapacity",
+                        parseInt(e.target.value) || 1
+                      )
+                    }
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="pricePerNight">
+                    Price Per Night (EGP){" "}
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="pricePerNight"
+                    type="number"
+                    min="0"
+                    value={editFormData.pricePerNight}
+                    onChange={(e) =>
+                      handleEditFormChange(
+                        "pricePerNight",
+                        parseFloat(e.target.value) || 0
+                      )
+                    }
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Location */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="governorate">
+                    Governorate <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="governorate"
+                    value={editFormData.governorate}
+                    onChange={(e) =>
+                      handleEditFormChange("governorate", e.target.value)
+                    }
+                    placeholder="Alexandria"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="city">
+                    City <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="city"
+                    value={editFormData.city}
+                    onChange={(e) =>
+                      handleEditFormChange("city", e.target.value)
+                    }
+                    placeholder="Miami"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Checkboxes */}
+              <div className="flex gap-6">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editFormData.furnished}
+                    onChange={(e) =>
+                      handleEditFormChange("furnished", e.target.checked)
+                    }
+                    className="w-4 h-4"
+                  />
+                  <span>Furnished</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editFormData.petsAllowed}
+                    onChange={(e) =>
+                      handleEditFormChange("petsAllowed", e.target.checked)
+                    }
+                    className="w-4 h-4"
+                  />
+                  <span>Pets Allowed</span>
+                </label>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className={language === "ar" ? "flex-row-reverse" : ""}>
+            <Button
+              variant="outline"
+              onClick={() => setEditDialogOpen(false)}
+              disabled={updating}
+            >
+              <X className="w-4 h-4 mr-2" />
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpdateProperty}
+              disabled={updating}
+              className="bg-[#00BFA6] hover:bg-[#00a890]"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {updating ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

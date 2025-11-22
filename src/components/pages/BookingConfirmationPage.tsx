@@ -120,9 +120,7 @@ export function BookingConfirmationPage({
         setCustomerName(`${profile.firstName} ${profile.lastName}`);
         setCustomerEmail(profile.email);
         setCustomerPhone(profile.phoneNumber || "");
-      } catch (err) {
-        console.log("Could not load user profile:", err);
-      }
+      } catch (err) {}
     } catch (err: any) {
       console.error("Error loading booking:", err);
       setError(
@@ -177,12 +175,8 @@ export function BookingConfirmationPage({
         customerPhone,
       };
 
-      console.log("💳 Creating payment intent:", paymentData);
-
       const intent = await api.createPaymentIntent(paymentData);
       setPaymentIntent(intent);
-
-      console.log("✅ Payment intent created:", intent);
 
       // For Fawry, show payment instructions
       if (paymentMethod === "fawry") {
@@ -197,14 +191,11 @@ export function BookingConfirmationPage({
 
       // Simulate payment confirmation (in production, this would be a webhook)
       // For demo purposes, we'll confirm immediately
-      console.log("💳 Confirming payment...");
 
       const confirmPayment = await api.confirmPayment({
         transactionReference: intent.transactionReference,
         simulateSuccess: true,
       });
-
-      console.log("✅ Payment confirmed:", confirmPayment);
 
       // Clear pending booking
       localStorage.removeItem("pendingBookingId");

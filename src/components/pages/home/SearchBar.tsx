@@ -53,12 +53,6 @@ export function SearchBar({
   const [guests, setGuests] = useState(initialValues?.guests || "");
 
   const handleSearch = () => {
-    console.log("🔍 SearchBar - Searching with:", {
-      location,
-      checkIn,
-      checkOut,
-      guests,
-    });
     onSearch({ location, checkIn, checkOut, guests });
   };
 

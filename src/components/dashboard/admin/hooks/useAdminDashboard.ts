@@ -120,30 +120,17 @@ export function useAdminDashboard() {
   };
 
   const handleDeleteProperty = async (id: number) => {
-    console.log("\n🗑️ ========================================");
-    console.log("🗑️ DELETE PROPERTY ATTEMPT");
-    console.log("🗑️ Property ID:", id);
-    console.log("🗑️ ========================================\n");
-
     try {
       // Check if property exists in local state
       const propertyExists = properties.find((p) => p.propertyId === id);
 
       if (!propertyExists) {
-        console.warn("⚠️ Property not found in local state:", id);
         toast.error("Property not found in current list");
         return;
       }
 
       const propertyTitle =
         propertyExists.titleEn || propertyExists.titleAr || "Untitled";
-      console.log("📋 Property Details:");
-      console.log("   - Title:", propertyTitle);
-      console.log("   - Status:", propertyExists.status);
-      console.log("   - Owner ID:", propertyExists.ownerId);
-      console.log("   - Total Reviews:", propertyExists.totalReviews);
-
-      console.log("\n📤 Sending DELETE request...");
 
       // Try admin-specific endpoint first
       try {
@@ -152,8 +139,6 @@ export function useAdminDashboard() {
         } else {
           await api.deleteProperty(id);
         }
-
-        console.log("✅ DELETE request successful");
       } catch (deleteError: any) {
         console.error("\n❌ DELETE request failed:");
         console.error("   - Status:", deleteError.status);
@@ -162,7 +147,6 @@ export function useAdminDashboard() {
 
         // Handle specific errors
         if (deleteError.status === 404) {
-          console.warn("⚠️ Property not found on server (404)");
           toast.warning("Property not found on server. Removing from list.");
           setProperties(properties.filter((p) => p.propertyId !== id));
           return;
@@ -201,14 +185,9 @@ export function useAdminDashboard() {
       }
 
       // If we got here, deletion was successful
-      console.log("\n✅ Updating local state...");
       setProperties(properties.filter((p) => p.propertyId !== id));
 
       toast.success(`Property "${propertyTitle}" deleted successfully`);
-
-      console.log("✅ ========================================");
-      console.log("✅ DELETE COMPLETED SUCCESSFULLY");
-      console.log("✅ ========================================\n");
     } catch (err: any) {
       console.error("\n❌ ========================================");
       console.error("❌ UNEXPECTED ERROR");

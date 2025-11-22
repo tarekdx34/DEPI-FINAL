@@ -22,7 +22,7 @@ export function OwnerOverview({
   onRefresh,
 }: OwnerOverviewProps) {
   const t = translations[language];
-  
+
   // ============================================
   // 🔄 STATE MANAGEMENT
   // ============================================
@@ -94,7 +94,7 @@ export function OwnerOverview({
     return value.toString();
   };
 
-  const formatSubValue = (stat: typeof stats[0]) => {
+  const formatSubValue = (stat: (typeof stats)[0]) => {
     if (stat.format === "currency") {
       return `+${stat.subValue.toLocaleString()} this month`;
     }
@@ -102,7 +102,7 @@ export function OwnerOverview({
       return `${stat.subValue} pending approval`;
     }
     if (stat.format === "rating" && stat.subValue > 0) {
-      return `From ${stat.subValue} review${stat.subValue !== 1 ? 's' : ''}`;
+      return `From ${stat.subValue} review${stat.subValue !== 1 ? "s" : ""}`;
     }
     if (stat.format === "properties") {
       return `${stat.subValue} total properties`;
@@ -114,11 +114,6 @@ export function OwnerOverview({
   // 🎯 HANDLE RESPOND TO REVIEW
   // ============================================
   const handleRespondToReview = (reviewId: number) => {
-    console.log("\n🔓 ========================================");
-    console.log("🔓 OPENING RESPONSE MODAL");
-    console.log("🔓 Review ID:", reviewId);
-    console.log("🔓 ========================================\n");
-    
     // Navigate to all reviews
     if (reviewId === 0) {
       window.location.href = "/dashboard/reviews";
@@ -129,21 +124,20 @@ export function OwnerOverview({
     const review = dashboard.recentReviews?.find(
       (r: any) => r.reviewId === reviewId
     );
-    
+
     if (!review) {
       console.error("❌ Review not found:", reviewId);
       toast.error("Review not found. Please refresh the page.");
       return;
     }
 
-    console.log("✅ Found review:", review);
-
     // Prepare review data for modal
     setSelectedReview({
       reviewId: review.reviewId,
       propertyId: review.propertyId,
       propertyTitle: review.propertyTitle || "Unknown Property",
-      propertyImage: review.propertyImage || 
+      propertyImage:
+        review.propertyImage ||
         "https://images.unsplash.com/photo-1729720281771-b790dfb6ec7f?w=800&q=80",
       reviewerName: review.reviewerName || "Anonymous",
       reviewerPhoto: review.reviewerPhoto,
@@ -151,7 +145,7 @@ export function OwnerOverview({
       reviewText: review.reviewText || "",
       reviewDate: review.reviewDate || new Date().toISOString(),
     });
-    
+
     setIsModalOpen(true);
   };
 
@@ -163,12 +157,6 @@ export function OwnerOverview({
       throw new Error("No review selected");
     }
 
-    console.log("\n📤 ========================================");
-    console.log("📤 SUBMITTING RESPONSE FROM OVERVIEW");
-    console.log("📤 Review ID:", selectedReview.reviewId);
-    console.log("📤 Response:", responseText.substring(0, 50) + "...");
-    console.log("📤 ========================================\n");
-
     try {
       // ✅ Call API
       const updatedReview = await api.respondToReview(
@@ -176,15 +164,12 @@ export function OwnerOverview({
         responseText
       );
 
-      console.log("✅ Response submitted successfully!");
-      console.log("✅ Updated review:", updatedReview);
-
       // ✅ Update local dashboard data
       if (dashboard.recentReviews) {
         const reviewIndex = dashboard.recentReviews.findIndex(
           (r: any) => r.reviewId === updatedReview.reviewId
         );
-        
+
         if (reviewIndex !== -1) {
           dashboard.recentReviews[reviewIndex] = {
             ...dashboard.recentReviews[reviewIndex],
@@ -200,20 +185,20 @@ export function OwnerOverview({
       // ✅ Trigger refresh after short delay
       if (onRefresh) {
         setTimeout(() => {
-          console.log("🔄 Triggering dashboard refresh...");
           onRefresh();
         }, 500);
       }
 
       // ✅ Dispatch custom event
-      window.dispatchEvent(new CustomEvent("reviewUpdated", {
-        detail: { reviewId: selectedReview.reviewId }
-      }));
+      window.dispatchEvent(
+        new CustomEvent("reviewUpdated", {
+          detail: { reviewId: selectedReview.reviewId },
+        })
+      );
 
       // ✅ Close modal
       setIsModalOpen(false);
       setSelectedReview(null);
-
     } catch (error: any) {
       console.error("\n❌ ========================================");
       console.error("❌ RESPONSE SUBMISSION FAILED");
@@ -221,7 +206,7 @@ export function OwnerOverview({
       console.error("❌ Status:", error.status);
       console.error("❌ Message:", error.message);
       console.error("❌ ========================================\n");
-      
+
       // ✅ Re-throw for modal to handle
       throw error;
     }
@@ -231,7 +216,6 @@ export function OwnerOverview({
   // 🔒 CLOSE MODAL
   // ============================================
   const handleCloseModal = () => {
-    console.log("🔒 Closing response modal");
     setIsModalOpen(false);
     setSelectedReview(null);
   };
@@ -289,7 +273,8 @@ export function OwnerOverview({
               </h3>
             </div>
             <p className="text-sm text-gray-600 ml-8">
-              {dashboard.bestPerformingProperty.performanceReason || "Highest Revenue"}
+              {dashboard.bestPerformingProperty.performanceReason ||
+                "Highest Revenue"}
             </p>
           </div>
 
@@ -316,7 +301,8 @@ export function OwnerOverview({
                       Revenue
                     </p>
                     <p className="text-lg font-bold text-[#00BFA6]">
-                      {dashboard.bestPerformingProperty.totalRevenue.toLocaleString()} EGP
+                      {dashboard.bestPerformingProperty.totalRevenue.toLocaleString()}{" "}
+                      EGP
                     </p>
                   </div>
 
@@ -336,7 +322,9 @@ export function OwnerOverview({
                     <div className="flex items-center gap-1.5">
                       <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
                       <p className="text-lg font-bold text-gray-900">
-                        {dashboard.bestPerformingProperty.averageRating.toFixed(1)}
+                        {dashboard.bestPerformingProperty.averageRating.toFixed(
+                          1
+                        )}
                       </p>
                     </div>
                   </div>
@@ -371,7 +359,7 @@ export function OwnerOverview({
               </p>
             </div>
           </div>
-          
+
           <RecentReviews
             reviews={dashboard.recentReviews}
             loading={false}

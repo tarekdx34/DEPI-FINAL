@@ -93,7 +93,6 @@ export function PropertyDetailsPage({
   // Load property data on mount
   useEffect(() => {
     if (propertyId) {
-      console.log("Loading property data for:", propertyId);
       loadPropertyData();
     } else {
       console.error("No property ID provided");
@@ -118,8 +117,6 @@ export function PropertyDetailsPage({
       try {
         const intent = JSON.parse(bookingIntent);
         if (intent.propertyId === propertyId) {
-          console.log("Restoring booking intent:", intent);
-
           if (intent.checkIn) setCheckIn(new Date(intent.checkIn));
           if (intent.checkOut) setCheckOut(new Date(intent.checkOut));
           if (intent.guests) setGuests(intent.guests);
@@ -144,18 +141,14 @@ export function PropertyDetailsPage({
       setError(null);
 
       const propertyIdNum = parseInt(propertyId || "0");
-      console.log("Fetching property with ID:", propertyIdNum);
 
       // Load property details
       const propertyData = await api.getProperty(propertyIdNum);
-      console.log("Property data loaded:", propertyData);
       setProperty(propertyData);
 
       // Load property images
       try {
-        console.log("Fetching images for property:", propertyIdNum);
         const imagesData = await api.getPropertyImages(propertyIdNum);
-        console.log("Images loaded:", imagesData);
         setImages(imagesData.sort((a, b) => a.imageOrder - b.imageOrder));
       } catch (imgError) {
         console.error("Error loading images:", imgError);
@@ -163,12 +156,10 @@ export function PropertyDetailsPage({
 
       // Load reviews
       try {
-        console.log("Fetching reviews for property:", propertyIdNum);
         const reviewsResponse = await api.getPropertyReviews(propertyIdNum, {
           page: 0,
           size: 10,
         });
-        console.log("Reviews loaded:", reviewsResponse);
         if (reviewsResponse && Array.isArray(reviewsResponse.content)) {
           setReviews(reviewsResponse.content);
         } else if (Array.isArray(reviewsResponse)) {
@@ -183,12 +174,9 @@ export function PropertyDetailsPage({
 
       // Check if property is favorited
       try {
-        console.log("Checking favorite status for property:", propertyIdNum);
         const favoriteCheck = await api.checkFavorite(propertyIdNum);
-        console.log("Favorite check result:", favoriteCheck);
         setIsFavorite(favoriteCheck.isFavorited);
       } catch (favError) {
-        console.log("Could not check favorite status:", favError);
         setIsFavorite(false);
       }
     } catch (err: any) {
@@ -222,7 +210,6 @@ export function PropertyDetailsPage({
     } catch (err: any) {
       console.error("Error checking availability:", err);
       if (err.status === 403 || err.status === 401) {
-        console.log("User not authenticated, skipping availability check");
       }
       setAvailabilityError(null);
     } finally {
@@ -287,9 +274,7 @@ export function PropertyDetailsPage({
         numberOfChildren: 0,
       };
 
-      console.log("Creating booking:", bookingData);
       const booking = await api.createBooking(bookingData);
-      console.log("Booking created successfully:", booking);
 
       // Store booking ID for confirmation page
       localStorage.setItem("pendingBookingId", booking.bookingId.toString());
@@ -890,7 +875,6 @@ export function PropertyDetailsPage({
                     className="w-full mt-4"
                     onClick={() => {
                       // You can implement pagination or navigate to a reviews page
-                      console.log("Load more reviews");
                     }}
                   >
                     {language === "ar"

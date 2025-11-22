@@ -31,7 +31,7 @@ export function RenterDashboard({
   language,
 }: RenterDashboardProps) {
   const t = translations[language];
-  
+
   // ✅ Initialize tab from URL
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== "undefined") {
@@ -53,7 +53,9 @@ export function RenterDashboard({
   });
 
   // ✅ Extract highlightBookingId from URL
-  const [highlightBookingId, setHighlightBookingId] = useState<number | undefined>(() => {
+  const [highlightBookingId, setHighlightBookingId] = useState<
+    number | undefined
+  >(() => {
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       const bookingId = urlParams.get("bookingId");
@@ -64,18 +66,17 @@ export function RenterDashboard({
 
   // ✅ Update URL when tab changes manually
   const handleTabChange = (newTab: string) => {
-    console.log("🔄 Manual tab change to:", newTab);
     setActiveTab(newTab);
-    
+
     const params = new URLSearchParams(window.location.search);
     params.set("tab", newTab);
-    
+
     // Clear bookingId when switching tabs manually
     if (newTab !== "reviews") {
       params.delete("bookingId");
       setHighlightBookingId(undefined);
     }
-    
+
     const newUrl = `${window.location.pathname}?${params.toString()}`;
     window.history.pushState({}, "", newUrl);
   };
@@ -86,19 +87,17 @@ export function RenterDashboard({
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam = urlParams.get("tab") || "overview";
       const bookingId = urlParams.get("bookingId");
-      
-      console.log("📍 URL Changed - Tab:", tabParam, "BookingId:", bookingId);
-      
+
       setActiveTab(tabParam);
       setHighlightBookingId(bookingId ? parseInt(bookingId, 10) : undefined);
     };
 
     // Listen to both popstate and custom storage events
     window.addEventListener("popstate", handleUrlChange);
-    
+
     // Initial check on mount
     handleUrlChange();
-    
+
     return () => {
       window.removeEventListener("popstate", handleUrlChange);
     };
@@ -107,12 +106,19 @@ export function RenterDashboard({
   // ✅ Enhanced navigate handler that supports tab switching
   const handleNavigate = (page: string, id?: string) => {
     // If page is a tab name (reviews, trips, etc.), switch to that tab
-    const validTabs = ["overview", "trips", "favorites", "reviews", "payments", "profile"];
-    
+    const validTabs = [
+      "overview",
+      "trips",
+      "favorites",
+      "reviews",
+      "payments",
+      "profile",
+    ];
+
     if (validTabs.includes(page)) {
       const params = new URLSearchParams(window.location.search);
       params.set("tab", page);
-      
+
       // If id is provided (e.g., bookingId), add it to URL
       if (id) {
         params.set("bookingId", id);
@@ -121,11 +127,11 @@ export function RenterDashboard({
         params.delete("bookingId");
         setHighlightBookingId(undefined);
       }
-      
+
       const newUrl = `${window.location.pathname}?${params.toString()}`;
       window.history.pushState({}, "", newUrl);
       setActiveTab(page);
-      
+
       // Smooth scroll to top after tab change
       setTimeout(() => {
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -189,7 +195,9 @@ export function RenterDashboard({
               className={`gap-2 ${language === "ar" ? "flex-row-reverse" : ""}`}
             >
               <MessageSquare className="w-4 h-4" />
-              <span className="hidden sm:inline">{t.userDashboard.reviews}</span>
+              <span className="hidden sm:inline">
+                {t.userDashboard.reviews}
+              </span>
             </TabsTrigger>
             <TabsTrigger
               value="payments"
@@ -228,8 +236,8 @@ export function RenterDashboard({
 
           {/* Reviews Tab */}
           <TabsContent value="reviews">
-            <ReviewsTab 
-              onNavigate={handleNavigate} 
+            <ReviewsTab
+              onNavigate={handleNavigate}
               language={language}
               highlightBookingId={highlightBookingId}
             />

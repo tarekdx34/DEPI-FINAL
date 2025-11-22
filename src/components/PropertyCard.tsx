@@ -71,7 +71,6 @@ export function PropertyCard({
 
     // ✅ Prevent multiple clicks
     if (isToggling) {
-      console.log("⏳ Already toggling, please wait...");
       return;
     }
 

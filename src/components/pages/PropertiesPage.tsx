@@ -43,16 +43,6 @@ export function PropertiesPage({
   const initialCheckOut = urlSearchParams.get("checkOutDate") ?? "";
   const initialGuests = urlSearchParams.get("minGuests") ?? "";
 
-  console.log("📥 PropertiesPage - URL Search Params:", {
-    raw: urlSearchParams.toString(),
-    parsed: {
-      governorate: initialGovernorate,
-      checkIn: initialCheckIn,
-      checkOut: initialCheckOut,
-      guests: initialGuests,
-    },
-  });
-
   // Search filters - Initialize with URL params
   const [governorate, setGovernorate] = useState(initialGovernorate);
   const [city, setCity] = useState("");
@@ -83,7 +73,6 @@ export function PropertiesPage({
 
   // ✅ Search when URL params change
   useEffect(() => {
-    console.log("🔄 URL params changed, triggering search...");
     searchProperties();
   }, [urlSearchParams]);
 
@@ -133,15 +122,11 @@ export function PropertiesPage({
         size: 20,
       };
 
-      console.log("🔍 PropertiesPage - Searching with:", searchRequest);
-
       const response = await api.advancedSearch(searchRequest);
 
       if (response && Array.isArray(response.properties)) {
         setProperties(response.properties);
-        console.log("✅ Found properties:", response.properties.length);
       } else {
-        console.warn("⚠️ Invalid search response:", response);
         setProperties([]);
       }
     } catch (err: any) {
@@ -154,7 +139,7 @@ export function PropertiesPage({
   };
 
   const handleStickySearch = (params: SearchParams) => {
-    console.log("🔍 Sticky search triggered:", params);
+    e.log("🔍 Sticky search triggered:", params);
 
     // Update filters
     setGovernorate(params.location);

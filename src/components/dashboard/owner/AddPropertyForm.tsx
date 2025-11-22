@@ -166,21 +166,17 @@ export function AddPropertyForm({ onSuccess, onCancel }: AddPropertyFormProps) {
     if (!validateStep(4)) return;
 
     try {
-      console.log("📤 Creating property...");
       toast.loading("Creating property...");
 
       const property = await createProperty(formData);
-      console.log("✅ Property created:", property.propertyId);
 
       if (selectedFiles.length > 0) {
-        console.log(`📸 Uploading ${selectedFiles.length} images...`);
         setUploadProgress(20);
 
         toast.loading(`Uploading ${selectedFiles.length} images...`);
         await uploadPropertyImages(property.propertyId, selectedFiles);
 
         setUploadProgress(100);
-        console.log("✅ All images uploaded");
       }
 
       // ✅ Dismiss loading toasts

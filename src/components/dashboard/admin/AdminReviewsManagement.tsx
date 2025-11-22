@@ -34,7 +34,9 @@ import api from "../../../../api";
 export function AdminReviewsManagement() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "pending" | "approved">("pending");
+  const [filter, setFilter] = useState<"all" | "pending" | "approved">(
+    "pending"
+  );
   const [processingId, setProcessingId] = useState<number | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean;
@@ -56,7 +58,6 @@ export function AdminReviewsManagement() {
         status: filter === "all" ? undefined : filter,
       });
       setReviews(data.content);
-      console.log(`✅ Loaded ${data.content.length} ${filter} reviews`);
     } catch (error: any) {
       toast.error("Failed to load reviews");
       console.error(error);
@@ -116,8 +117,8 @@ export function AdminReviewsManagement() {
     });
   };
 
-  const pendingCount = reviews.filter(r => !r.isApproved).length;
-  const approvedCount = reviews.filter(r => r.isApproved).length;
+  const pendingCount = reviews.filter((r) => !r.isApproved).length;
+  const approvedCount = reviews.filter((r) => r.isApproved).length;
 
   if (loading) {
     return (
@@ -268,7 +269,8 @@ export function AdminReviewsManagement() {
                         <span>·</span>
                         <span className="flex items-center gap-1">
                           <User className="w-3 h-3" />
-                          {review.reviewer?.firstName} {review.reviewer?.lastName}
+                          {review.reviewer?.firstName}{" "}
+                          {review.reviewer?.lastName}
                         </span>
                         <span>·</span>
                         <span className="flex items-center gap-1">
@@ -293,19 +295,27 @@ export function AdminReviewsManagement() {
                   <div className="flex items-center gap-4 text-sm">
                     <div className="flex items-center gap-1">
                       <span className="text-gray-600">Cleanliness:</span>
-                      <span className="font-medium">{review.cleanlinessRating}</span>
+                      <span className="font-medium">
+                        {review.cleanlinessRating}
+                      </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="text-gray-600">Communication:</span>
-                      <span className="font-medium">{review.communicationRating}</span>
+                      <span className="font-medium">
+                        {review.communicationRating}
+                      </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="text-gray-600">Accuracy:</span>
-                      <span className="font-medium">{review.accuracyRating}</span>
+                      <span className="font-medium">
+                        {review.accuracyRating}
+                      </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="text-gray-600">Location:</span>
-                      <span className="font-medium">{review.locationRating}</span>
+                      <span className="font-medium">
+                        {review.locationRating}
+                      </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="text-gray-600">Value:</span>
@@ -339,8 +349,12 @@ export function AdminReviewsManagement() {
                   {/* Owner Response */}
                   {review.ownerResponse && (
                     <div className="bg-blue-50 p-3 rounded-lg text-sm">
-                      <strong className="text-blue-800">💬 Owner Response:</strong>
-                      <p className="text-gray-700 mt-1">{review.ownerResponse}</p>
+                      <strong className="text-blue-800">
+                        💬 Owner Response:
+                      </strong>
+                      <p className="text-gray-700 mt-1">
+                        {review.ownerResponse}
+                      </p>
                     </div>
                   )}
 
@@ -422,12 +436,16 @@ export function AdminReviewsManagement() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete the review "{deleteDialog.title}"?
-              This action cannot be undone and will permanently remove the review
-              from the platform.
+              This action cannot be undone and will permanently remove the
+              review from the platform.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleteDialog({ open: false, reviewId: 0, title: "" })} />
+            <AlertDialogCancel
+              onClick={() =>
+                setDeleteDialog({ open: false, reviewId: 0, title: "" })
+              }
+            />
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-red-600 hover:bg-red-700"
@@ -464,7 +482,9 @@ export function AdminReviewsManagement() {
                 alt={selectedReview.property?.titleEn || "Property"}
                 className="w-full h-48 object-cover rounded-lg"
               />
-              <h4 className="text-lg font-semibold">{selectedReview.reviewTitle}</h4>
+              <h4 className="text-lg font-semibold">
+                {selectedReview.reviewTitle}
+              </h4>
               <p className="text-gray-700">{selectedReview.reviewText}</p>
             </div>
           </Card>
