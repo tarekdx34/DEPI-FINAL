@@ -2,6 +2,7 @@ package com.ajarly.backend.controller;
 
 import com.ajarly.backend.dto.PropertyDto;
 import com.ajarly.backend.model.Property;
+import com.ajarly.backend.repository.PropertyRepository;
 import com.ajarly.backend.service.PropertyService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -17,17 +18,19 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/properties")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 @Slf4j
 public class PropertyController {
     
     private final PropertyService propertyService;
+    private final PropertyRepository propertyRepository;
     
     /**
      * Extract userId from JWT token
@@ -40,11 +43,61 @@ public class PropertyController {
         return (Long) userId;
     }
     
+    // ============================================
+    // ADMIN ENDPOINTS
+    // ============================================
+    
+    /**
+     * Admin-only endpoint to soft delete any property
+     * DELETE /api/v1/admin/properties/{id}
+     */
+    @DeleteMapping("/admin/properties/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> adminDeleteProperty(
+            @PathVariable Long id,
+            HttpServletRequest httpRequest) {
+        
+        try {
+            Long adminUserId = getUserIdFromRequest(httpRequest);
+            
+            log.info("Admin {} attempting to delete property {}", adminUserId, id);
+            
+            // Check if property exists
+            Property property = propertyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Property not found"));
+            
+            // Soft delete: mark as deleted instead of hard delete
+            property.setDeleted(true);
+            property.setDeletedAt(LocalDateTime.now());
+            property.setDeletedBy(adminUserId);
+            propertyRepository.save(property);
+            
+            log.info("Property {} soft deleted by admin {}", id, adminUserId);
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Property deleted successfully",
+                "message_ar", "تم حذف العقار بنجاح"
+            ));
+            
+        } catch (RuntimeException e) {
+            log.error("Error deleting property {}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
+        }
+    }
+    
+    // ============================================
+    // REGULAR PROPERTY ENDPOINTS
+    // ============================================
+    
     /**
      * Create a new property
      * POST /api/v1/properties
      */
-    @PostMapping
+    @PostMapping("/properties")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> createProperty(
             @Valid @RequestBody PropertyDto.CreateRequest request,
@@ -77,7 +130,7 @@ public class PropertyController {
      * Get a single property by ID (public)
      * GET /api/v1/properties/{id}
      */
-    @GetMapping("/{id}")
+    @GetMapping("/properties/{id}")
     public ResponseEntity<?> getProperty(@PathVariable Long id) {
         try {
             log.info("📖 Fetching property: {}", id);
@@ -102,7 +155,7 @@ public class PropertyController {
      * Search properties with filters (public)
      * GET /api/v1/properties
      */
-    @GetMapping
+    @GetMapping("/properties")
     public ResponseEntity<?> searchProperties(
             @RequestParam(required = false) String governorate,
             @RequestParam(required = false) String city,
@@ -158,7 +211,7 @@ public class PropertyController {
      * Get current user's properties
      * GET /api/v1/properties/my-properties
      */
-    @GetMapping("/my-properties")
+    @GetMapping("/properties/my-properties")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getMyProperties(
             @RequestParam(defaultValue = "0") int page,
@@ -202,7 +255,7 @@ public class PropertyController {
      * Update a property
      * PUT /api/v1/properties/{id}
      */
-    @PutMapping("/{id}")
+    @PutMapping("/properties/{id}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> updateProperty(
             @PathVariable Long id,
@@ -233,10 +286,10 @@ public class PropertyController {
     }
     
     /**
-     * Delete a property
+     * Delete a property (owner only)
      * DELETE /api/v1/properties/{id}
      */
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/properties/{id}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> deleteProperty(
             @PathVariable Long id,

@@ -95,8 +95,7 @@ public class PropertyService {
             Integer bedrooms,
             Pageable pageable) {
         
-        log.info("🔍 Searching properties: gov={}, city={}, type={}, beds={}", 
-                 governorate, city, propertyType, bedrooms);
+        log.info("🔍 Searching properties: gov={}, city={}, type={}, beds={}", governorate, city, propertyType, bedrooms);
         
         // استخدم الـ query الجديدة اللي بتجيب الصور
         Page<Property> properties = propertyRepository.searchPropertiesWithImages(

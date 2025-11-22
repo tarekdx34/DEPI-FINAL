@@ -2,6 +2,7 @@ package com.ajarly.backend.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.Where;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -11,6 +12,7 @@ import java.util.List;
 @Entity
 @Table(name = "properties")
 @Data
+@Where(clause = "deleted = false OR deleted IS NULL")  // ✅ ADDED THIS - Auto-filters deleted properties
 public class Property {
     
     @Id
@@ -144,22 +146,50 @@ public class Property {
     
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
+    
     @Column(name = "last_booked_at")
     private LocalDateTime lastBookedAt;
-
+    
     @Column(name = "favorite_count")
     private Integer favoriteCount = 0;
+
+    /**
+     * Cover image URL for the property
+     */
+    @Column(name = "cover_image", length = 500)
+    private String coverImage;
     
-    // ✅ Relationship with PropertyImage
-    // استخدم LAZY loading عادي، لكن في الـ queries هنستخدم FETCH JOIN
-    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    // ============================================
+    // SOFT DELETE FIELDS
+    // ============================================
+    
+    @Column(name = "deleted", nullable = false)
+    private Boolean deleted = false;
+    
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+    
+    @Column(name = "deleted_by")
+    private Long deletedBy;
+    
+    // ============================================
+    // RELATIONSHIPS
+    // ============================================
+    
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PropertyImage> images = new ArrayList<>();
+    
+    // ============================================
+    // LIFECYCLE CALLBACKS
+    // ============================================
     
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+        if (deleted == null) {
+            deleted = false;
+        }
     }
     
     @PreUpdate
@@ -167,7 +197,10 @@ public class Property {
         updatedAt = LocalDateTime.now();
     }
     
-    // Enums
+    // ============================================
+    // ENUMS
+    // ============================================
+    
     public enum PropertyType {
         apartment, chalet, villa, studio, penthouse, room, farm, camp
     }
@@ -179,11 +212,4 @@ public class Property {
     public enum PropertyStatus {
         draft, pending_approval, active, inactive, suspended, deleted
     }
-
-    /**
-     * ✅ ADD THIS FIELD
-     * Cover image URL for the property
-     */
-    @Column(name = "cover_image", length = 500)
-    private String coverImage;
 }
