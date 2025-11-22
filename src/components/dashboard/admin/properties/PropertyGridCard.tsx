@@ -18,7 +18,7 @@ interface PropertyGridCardProps {
   property: PropertyResponse;
   formatCurrency: (amount: number) => string;
   getStatusColor: (status: string | boolean) => string;
-  onDelete: (id: number, title: string) => void;
+  onDelete: (type: string, id: number, name: string) => void;
 }
 
 export function PropertyGridCard({
@@ -63,6 +63,9 @@ export function PropertyGridCard({
     fetchThumbnail();
   }, [property.propertyId]);
 
+  const propertyTitle =
+    property.titleEn || property.titleAr || "Untitled Property";
+
   return (
     <Card className="overflow-hidden">
       <div className="relative h-48 bg-gray-200">
@@ -73,7 +76,7 @@ export function PropertyGridCard({
         ) : (
           <ImageWithFallback
             src={thumbnail}
-            alt={property.titleEn || property.titleAr || "Property"}
+            alt={propertyTitle}
             className="w-full h-full object-cover"
           />
         )}
@@ -89,7 +92,7 @@ export function PropertyGridCard({
         <div className="flex items-start justify-between mb-2">
           <div className="flex-1">
             <h3 className="font-semibold text-[#2B2B2B] mb-1 line-clamp-1">
-              {property.titleEn || property.titleAr || "Untitled Property"}
+              {propertyTitle}
             </h3>
             <p className="text-sm text-gray-600 flex items-center gap-1">
               <MapPin className="w-3 h-3" />
@@ -154,11 +157,9 @@ export function PropertyGridCard({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
+                className="text-red-600 focus:text-red-600"
                 onClick={() =>
-                  onDelete(
-                    property.propertyId,
-                    property.titleEn || property.titleAr || "Property"
-                  )
+                  onDelete("Property", property.propertyId, propertyTitle)
                 }
               >
                 <Trash2 className="w-4 h-4 mr-2" />

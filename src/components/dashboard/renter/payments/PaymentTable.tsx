@@ -1,4 +1,4 @@
-// FILE 2: src/components/dashboard/renter/payments/PaymentTable.tsx (~120 lines)
+// src/components/dashboard/renter/payments/PaymentTable.tsx
 import { Download } from "lucide-react";
 import { Card } from "../../../ui/card";
 import { Button } from "../../../ui/button";
@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "../../../ui/table";
 import { TransactionResponse } from "../../../../../api";
+import { openPaymentReceipt } from "../../../../utils/paymentReceiptGenerator";
 import { toast } from "sonner";
 
 interface PaymentTableProps {
@@ -54,8 +55,13 @@ export function PaymentTable({
   };
 
   const handleDownloadReceipt = (payment: TransactionResponse) => {
-    // Generate receipt logic (keep from original)
-    toast.success("Receipt generated!");
+    try {
+      openPaymentReceipt(payment);
+      toast.success("Receipt opened in new tab!");
+    } catch (error) {
+      console.error("Failed to open receipt:", error);
+      toast.error("Failed to open receipt. Please try again.");
+    }
   };
 
   return (
@@ -63,17 +69,23 @@ export function PaymentTable({
       <div className="flex items-center gap-4 mb-4 flex-wrap">
         <span className="text-sm font-medium">Filter:</span>
         <div className="flex gap-2">
-          {["all", "completed", "pending", "failed", "refunded"].map((status) => (
-            <Button
-              key={status}
-              variant={statusFilter === status ? "default" : "outline"}
-              size="sm"
-              onClick={() => onStatusFilterChange(status)}
-              className={statusFilter === status ? "bg-[#00BFA6] hover:bg-[#00A890]" : ""}
-            >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </Button>
-          ))}
+          {["all", "completed", "pending", "failed", "refunded"].map(
+            (status) => (
+              <Button
+                key={status}
+                variant={statusFilter === status ? "default" : "outline"}
+                size="sm"
+                onClick={() => onStatusFilterChange(status)}
+                className={
+                  statusFilter === status
+                    ? "bg-[#00BFA6] hover:bg-[#00A890]"
+                    : ""
+                }
+              >
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </Button>
+            )
+          )}
         </div>
         <span className="text-sm text-gray-500 ml-auto">
           Showing {payments.length} of {totalPayments}
@@ -103,7 +115,9 @@ export function PaymentTable({
                 <TableCell className="text-[#00BFA6] font-mono text-sm">
                   {payment.transactionReference}
                 </TableCell>
-                <TableCell className="capitalize">{payment.paymentMethod}</TableCell>
+                <TableCell className="capitalize">
+                  {payment.paymentMethod.replace(/_/g, " ")}
+                </TableCell>
                 <TableCell className="font-semibold">
                   {payment.amount.toLocaleString()} {payment.currency}
                 </TableCell>
@@ -112,7 +126,7 @@ export function PaymentTable({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="gap-1"
+                    className="gap-1 hover:bg-[#00BFA6]/10 hover:text-[#00BFA6]"
                     onClick={() => handleDownloadReceipt(payment)}
                   >
                     <Download className="w-4 h-4" />
@@ -127,4 +141,3 @@ export function PaymentTable({
     </>
   );
 }
-

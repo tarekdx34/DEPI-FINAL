@@ -120,12 +120,106 @@ export function useAdminDashboard() {
   };
 
   const handleDeleteProperty = async (id: number) => {
+    console.log("\n🗑️ ========================================");
+    console.log("🗑️ DELETE PROPERTY ATTEMPT");
+    console.log("🗑️ Property ID:", id);
+    console.log("🗑️ ========================================\n");
+
     try {
-      await api.deleteProperty(id);
+      // Check if property exists in local state
+      const propertyExists = properties.find((p) => p.propertyId === id);
+
+      if (!propertyExists) {
+        console.warn("⚠️ Property not found in local state:", id);
+        toast.error("Property not found in current list");
+        return;
+      }
+
+      const propertyTitle =
+        propertyExists.titleEn || propertyExists.titleAr || "Untitled";
+      console.log("📋 Property Details:");
+      console.log("   - Title:", propertyTitle);
+      console.log("   - Status:", propertyExists.status);
+      console.log("   - Owner ID:", propertyExists.ownerId);
+      console.log("   - Total Reviews:", propertyExists.totalReviews);
+
+      console.log("\n📤 Sending DELETE request...");
+
+      // Try admin-specific endpoint first
+      try {
+        if (typeof (api as any).deletePropertyAsAdmin === "function") {
+          await (api as any).deletePropertyAsAdmin(id);
+        } else {
+          await api.deleteProperty(id);
+        }
+
+        console.log("✅ DELETE request successful");
+      } catch (deleteError: any) {
+        console.error("\n❌ DELETE request failed:");
+        console.error("   - Status:", deleteError.status);
+        console.error("   - Message:", deleteError.message);
+        console.error("   - Data:", deleteError.data);
+
+        // Handle specific errors
+        if (deleteError.status === 404) {
+          console.warn("⚠️ Property not found on server (404)");
+          toast.warning("Property not found on server. Removing from list.");
+          setProperties(properties.filter((p) => p.propertyId !== id));
+          return;
+        }
+
+        if (deleteError.status === 500) {
+          // Server error - likely has dependencies
+          console.error(
+            "❌ Server error (500) - Property likely has dependencies"
+          );
+          toast.error(
+            `Cannot delete property "${propertyTitle}". ` +
+              `It may have active bookings, reviews, or other dependencies. ` +
+              `Please check the backend logs for details.`,
+            { duration: 6000 }
+          );
+          return;
+        }
+
+        if (deleteError.status === 403) {
+          console.error("❌ Access denied (403)");
+          toast.error(
+            "Access denied. You don't have permission to delete this property."
+          );
+          return;
+        }
+
+        if (deleteError.status === 400) {
+          console.error("❌ Bad request (400)");
+          toast.error("Cannot delete property. It may have active bookings.");
+          return;
+        }
+
+        // Unknown error
+        throw deleteError;
+      }
+
+      // If we got here, deletion was successful
+      console.log("\n✅ Updating local state...");
       setProperties(properties.filter((p) => p.propertyId !== id));
-      toast.success("Property deleted successfully");
-    } catch (err) {
-      toast.error("Failed to delete property");
+
+      toast.success(`Property "${propertyTitle}" deleted successfully`);
+
+      console.log("✅ ========================================");
+      console.log("✅ DELETE COMPLETED SUCCESSFULLY");
+      console.log("✅ ========================================\n");
+    } catch (err: any) {
+      console.error("\n❌ ========================================");
+      console.error("❌ UNEXPECTED ERROR");
+      console.error("❌ ========================================");
+      console.error(err);
+      console.error("❌ ========================================\n");
+
+      toast.error(
+        `Unexpected error: ${err.message || "Unknown error"}. ` +
+          `Please check the console for details.`
+      );
     }
   };
 

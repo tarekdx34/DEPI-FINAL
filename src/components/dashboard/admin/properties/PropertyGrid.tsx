@@ -2,13 +2,15 @@
 import { Home } from "lucide-react";
 import { Card } from "../../../ui/card";
 import { PropertyGridCard } from "./PropertyGridCard";
-import type { PropertyResponse } from "../../../../api";
+import { Language } from "../../../../lib/translations";
+import type { PropertyResponse } from "../../../../../api";
 
 interface PropertyGridProps {
   properties: PropertyResponse[];
   formatCurrency: (amount: number) => string;
   getStatusColor: (status: string | boolean) => string;
-  onDelete: (id: number, title: string) => void;
+  onDelete: (type: string, id: number, name: string) => void;
+  language: Language;
 }
 
 export function PropertyGrid({
@@ -16,15 +18,22 @@ export function PropertyGrid({
   formatCurrency,
   getStatusColor,
   onDelete,
+  language,
 }: PropertyGridProps) {
   if (properties.length === 0) {
     return (
       <Card className="p-12 text-center">
         <Home className="w-12 h-12 text-gray-400 mx-auto mb-4" />
         <h3 className="text-xl font-semibold text-[#2B2B2B] mb-2">
-          No Properties Found
+          {language === "ar"
+            ? "لم يتم العثور على عقارات"
+            : "No Properties Found"}
         </h3>
-        <p className="text-gray-600">No properties available in the system</p>
+        <p className="text-gray-600">
+          {language === "ar"
+            ? "لا توجد عقارات متاحة في النظام"
+            : "No properties available in the system"}
+        </p>
       </Card>
     );
   }
@@ -38,6 +47,7 @@ export function PropertyGrid({
           formatCurrency={formatCurrency}
           getStatusColor={getStatusColor}
           onDelete={onDelete}
+          language={language}
         />
       ))}
     </div>

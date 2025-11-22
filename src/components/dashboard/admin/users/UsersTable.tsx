@@ -8,7 +8,8 @@ import {
   TableRow,
 } from "../../../ui/table";
 import { UserRow } from "./UserRow";
-import type { UserProfile } from "../../../../api";
+import { Language, translations } from "../../../../lib/translations";
+import type { UserProfile } from "../../../../../api";
 
 interface UsersTableProps {
   users: UserProfile[];
@@ -17,6 +18,7 @@ interface UsersTableProps {
   getStatusColor: (status: string | boolean) => string;
   onBan: (userId: number, userName: string) => void;
   onUnban: (userId: number, userName: string) => void;
+  language: Language;
 }
 
 export function UsersTable({
@@ -26,7 +28,10 @@ export function UsersTable({
   getStatusColor,
   onBan,
   onUnban,
+  language,
 }: UsersTableProps) {
+  const t = translations[language];
+
   const filteredUsers = users.filter(
     (user) =>
       user.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -39,12 +44,24 @@ export function UsersTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>User</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Joined</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Verified</TableHead>
-            <TableHead>Actions</TableHead>
+            <TableHead className={language === "ar" ? "text-right" : ""}>
+              {t.admin?.name || "User"}
+            </TableHead>
+            <TableHead className={language === "ar" ? "text-right" : ""}>
+              {t.admin?.role || "Type"}
+            </TableHead>
+            <TableHead className={language === "ar" ? "text-right" : ""}>
+              {t.admin?.joined || "Joined"}
+            </TableHead>
+            <TableHead className={language === "ar" ? "text-right" : ""}>
+              {t.admin?.status || "Status"}
+            </TableHead>
+            <TableHead className={language === "ar" ? "text-right" : ""}>
+              {t.admin?.verify || "Verified"}
+            </TableHead>
+            <TableHead className={language === "ar" ? "text-right" : ""}>
+              {t.admin?.actions || "Actions"}
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -56,6 +73,7 @@ export function UsersTable({
               getStatusColor={getStatusColor}
               onBan={onBan}
               onUnban={onUnban}
+              language={language}
             />
           ))}
         </TableBody>
