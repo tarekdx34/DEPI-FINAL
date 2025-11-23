@@ -236,7 +236,6 @@ export function OwnerProperties({
       } else if (error.status === 400) {
         const errorMsg = error.data?.message || error.message || "Invalid data";
         toast.error(`Validation error: ${errorMsg}`);
-        e.log("💡 Check these fields:", editFormData);
       } else if (error.message.includes("Validation failed")) {
         toast.error("Please check all required fields are filled correctly");
       } else {

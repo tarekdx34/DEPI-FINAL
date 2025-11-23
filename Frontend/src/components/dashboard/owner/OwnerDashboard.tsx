@@ -67,53 +67,18 @@ export function OwnerDashboard({
     try {
       setLoading(true);
 
-      const timestamp = Date.now();
-      const token = localStorage.getItem("authToken");
-
-      // ✅ 1. Fetch Properties with cache-busting
-      const propertiesResponse = await fetch(
-        `http://localhost:8081/api/v1/properties/my-properties?page=0&size=100&_t=${timestamp}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            Pragma: "no-cache",
-          },
-          cache: "no-store",
-        }
-      );
-
-      if (!propertiesResponse.ok) {
-        throw new Error(`HTTP ${propertiesResponse.status}`);
-      }
-
-      const propertiesData = await propertiesResponse.json();
-
-      // Extract properties array
-      let propertiesList: any[] = [];
-      if (propertiesData.data) {
-        if (Array.isArray(propertiesData.data)) {
-          propertiesList = propertiesData.data;
-        } else if (
-          propertiesData.data.content &&
-          Array.isArray(propertiesData.data.content)
-        ) {
-          propertiesList = propertiesData.data.content;
-        }
-      } else if (Array.isArray(propertiesData)) {
-        propertiesList = propertiesData;
-      }
-
-      // Filter out deleted properties
-      const activeProperties = propertiesList.filter((p) => {
-        const status = (p.status || "").toLowerCase();
-        return status !== "deleted";
-      });
-
-      // ✅ 2. Fetch Dashboard & Bookings in parallel
-      const [dashboardData, bookingsData] = await Promise.all([
+      // ✅ Use api client for ALL requests - consistent base URL
+      const [propertiesData, dashboardData, bookingsData] = await Promise.all([
+        api.getMyProperties({ page: 0, size: 100 }).catch((err) => {
+          console.error("⚠️ Properties fetch failed:", err);
+          return {
+            content: [],
+            totalElements: 0,
+            totalPages: 0,
+            currentPage: 0,
+            pageSize: 0,
+          };
+        }),
         api.getOwnerDashboard().catch((err) => {
           console.error("⚠️ Dashboard fetch failed:", err);
           return null;
@@ -123,6 +88,15 @@ export function OwnerDashboard({
           return [];
         }),
       ]);
+
+      // Extract properties array
+      const propertiesList = propertiesData.content || [];
+
+      // Filter out deleted properties
+      const activeProperties = propertiesList.filter((p) => {
+        const status = (p.status || "").toLowerCase();
+        return status !== "deleted";
+      });
 
       // ✅ Update state
       setDashboard(dashboardData);
@@ -137,7 +111,6 @@ export function OwnerDashboard({
       setLoading(false);
     }
   }, []);
-
   // ============================================
   // ✅ MANUAL REFRESH HANDLER
   // ============================================
