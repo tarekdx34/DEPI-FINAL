@@ -1,7 +1,7 @@
 // api.ts - Complete API Client for Ajarly Platform - UPDATED VERSION
 // Includes all 13 features + Fixed Admin Reviews Endpoints
 
-const API_BASE_URL = "http://localhost:8081/api/v1";
+const API_BASE_URL = "https://ajarly-backend-production.up.railway.app/api/v1";
 
 // ============================================
 // TYPE DEFINITIONS
