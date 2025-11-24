@@ -57,7 +57,6 @@ export function OwnerDashboard({
   const loadDashboardData = useCallback(async (forceReload = false) => {
     const now = Date.now();
 
-    // ✅ Prevent duplicate calls within cooldown period
     if (now - lastRefreshTime.current < refreshCooldown && !forceReload) {
       return;
     }
@@ -67,44 +66,53 @@ export function OwnerDashboard({
     try {
       setLoading(true);
 
-      // ✅ Use api client for ALL requests - consistent base URL
       const [propertiesData, dashboardData, bookingsData] = await Promise.all([
-        api.getMyProperties({ page: 0, size: 100 }).catch((err) => {
-          console.error("⚠️ Properties fetch failed:", err);
-          return {
-            content: [],
-            totalElements: 0,
-            totalPages: 0,
-            currentPage: 0,
-            pageSize: 0,
-          };
-        }),
-        api.getOwnerDashboard().catch((err) => {
-          console.error("⚠️ Dashboard fetch failed:", err);
-          return null;
-        }),
-        api.getOwnerBookings().catch((err) => {
-          console.error("⚠️ Bookings fetch failed:", err);
-          return [];
-        }),
+        api.getMyProperties({ page: 0, size: 100 }),
+        api.getOwnerDashboard().catch(() => null),
+        api.getOwnerBookings().catch(() => []),
       ]);
 
-      // Extract properties array
-      const propertiesList = propertiesData.content || [];
+      // ✅ ADD CONSOLE LOGS FOR DEBUGGING
+      console.log("📦 Raw API Response:", propertiesData);
+      console.log("📦 Properties content:", propertiesData?.content);
+      console.log("📦 Properties length:", propertiesData?.content?.length);
 
-      // Filter out deleted properties
+      // ✅ SAFE EXTRACTION with validation
+      const propertiesList = Array.isArray(propertiesData?.content)
+        ? propertiesData.content
+        : Array.isArray(propertiesData)
+        ? propertiesData
+        : [];
+
+      console.log(
+        "📦 Extracted properties list:",
+        propertiesList.length,
+        propertiesList
+      );
+
+      // ✅ Filter deleted properties
       const activeProperties = propertiesList.filter((p) => {
+        if (!p) return false;
         const status = (p.status || "").toLowerCase();
-        return status !== "deleted";
+        const isDeleted = status === "deleted";
+        console.log(
+          `Property ${p.propertyId}: status=${status}, deleted=${isDeleted}`
+        );
+        return !isDeleted;
       });
 
-      // ✅ Update state
+      console.log(
+        "✅ Active properties after filter:",
+        activeProperties.length
+      );
+      console.log("✅ Active properties:", activeProperties);
+
+      // ✅ UPDATE STATE
       setDashboard(dashboardData);
       setProperties(activeProperties);
       setBookings(Array.isArray(bookingsData) ? bookingsData : []);
-    } catch (error: any) {
-      console.error("❌ Dashboard load failed:", error.message);
-      toast.error("Failed to load dashboard data");
+    } catch (error) {
+      console.error("❌ Dashboard load failed:", error);
       setProperties([]);
       setBookings([]);
     } finally {

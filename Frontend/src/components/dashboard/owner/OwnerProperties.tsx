@@ -458,7 +458,7 @@ export function OwnerProperties({
               <PropertyCard
                 property={normalizedProperty}
                 onNavigate={handleCardNavigate}
-                language="en"
+                language={language} // ✅ USE THE PROP
                 showFavorite={false}
               />
             </div>
