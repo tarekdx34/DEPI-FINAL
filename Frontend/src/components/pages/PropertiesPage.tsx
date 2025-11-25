@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom"; // ✅ React Router hook
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { PropertyCard } from "../PropertyCard";
 import { Button } from "../ui/button";
 import {
@@ -29,15 +29,15 @@ export function PropertiesPage({
 }: PropertiesPageProps) {
   const t = translations[language]?.home || translations.en.home;
 
-  // ✅ Use React Router's useSearchParams hook
   const [urlSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const [properties, setProperties] = useState<PropertyResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-  // ✅ Parse URL search params from React Router
+  // Parse URL search params from React Router
   const initialGovernorate = urlSearchParams.get("governorate") ?? "";
   const initialCheckIn = urlSearchParams.get("checkInDate") ?? "";
   const initialCheckOut = urlSearchParams.get("checkOutDate") ?? "";
@@ -71,7 +71,7 @@ export function PropertiesPage({
     loadGovernorates();
   }, []);
 
-  // ✅ Search when URL params change
+  // Search when URL params change
   useEffect(() => {
     searchProperties();
   }, [urlSearchParams]);
@@ -81,6 +81,13 @@ export function PropertiesPage({
       loadCities(governorate);
     }
   }, [governorate]);
+
+  // ✅ NEW: Trigger search when sortBy changes
+  useEffect(() => {
+    if (!loading) {
+      searchProperties();
+    }
+  }, [sortBy]);
 
   const loadGovernorates = async () => {
     try {
@@ -104,6 +111,24 @@ export function PropertiesPage({
     try {
       setLoading(true);
 
+      // Determine sort direction based on sort type
+      let sortDirection: "ASC" | "DESC" = "DESC";
+      let sortField = sortBy;
+
+      if (sortBy === "recommended") {
+        sortField = "averageRating";
+        sortDirection = "DESC";
+      } else if (sortBy === "pricePerNight") {
+        sortDirection = "ASC"; // Low to high for price
+      } else if (sortBy === "pricePerNightDesc") {
+        sortField = "pricePerNight";
+        sortDirection = "DESC"; // High to low for price
+      } else if (sortBy === "averageRating") {
+        sortDirection = "DESC"; // High to low for rating
+      } else if (sortBy === "createdAt") {
+        sortDirection = "DESC"; // Newest first
+      }
+
       const searchRequest: SearchRequest = {
         governorate: governorate || undefined,
         city: city || undefined,
@@ -116,8 +141,8 @@ export function PropertiesPage({
         petsAllowed: petsAllowed,
         checkInDate: checkInDate || undefined,
         checkOutDate: checkOutDate || undefined,
-        sortBy: sortBy === "recommended" ? "averageRating" : sortBy,
-        sortDirection: "DESC",
+        sortBy: sortField,
+        sortDirection: sortDirection,
         page: 0,
         size: 20,
       };
@@ -138,8 +163,9 @@ export function PropertiesPage({
     }
   };
 
+  // ✅ FIXED: Update URL params when searching from sticky bar
   const handleStickySearch = (params: SearchParams) => {
-    e.log("🔍 Sticky search triggered:", params);
+    console.log("🔍 Sticky search triggered:", params);
 
     // Update filters
     setGovernorate(params.location);
@@ -147,13 +173,36 @@ export function PropertiesPage({
 
     if (params.checkIn) {
       setCheckInDate(params.checkIn.toISOString().split("T")[0]);
-    }
-    if (params.checkOut) {
-      setCheckOutDate(params.checkOut.toISOString().split("T")[0]);
+    } else {
+      setCheckInDate("");
     }
 
-    // Trigger search after state updates
-    setTimeout(() => searchProperties(), 100);
+    if (params.checkOut) {
+      setCheckOutDate(params.checkOut.toISOString().split("T")[0]);
+    } else {
+      setCheckOutDate("");
+    }
+
+    // ✅ Update URL parameters
+    const urlParams = new URLSearchParams();
+    if (params.location) {
+      urlParams.set("governorate", params.location);
+    }
+    if (params.checkIn) {
+      urlParams.set("checkInDate", params.checkIn.toISOString().split("T")[0]);
+    }
+    if (params.checkOut) {
+      urlParams.set(
+        "checkOutDate",
+        params.checkOut.toISOString().split("T")[0]
+      );
+    }
+    if (params.guests) {
+      urlParams.set("minGuests", params.guests);
+    }
+
+    // Navigate with new params (this will trigger the search via useEffect)
+    navigate(`/properties?${urlParams.toString()}`, { replace: true });
   };
 
   const handleSearch = () => {
@@ -173,7 +222,8 @@ export function PropertiesPage({
     setCheckInDate("");
     setCheckOutDate("");
 
-    setTimeout(() => searchProperties(), 100);
+    // Clear URL params
+    navigate("/properties", { replace: true });
   };
 
   const activeFilters = [
@@ -474,17 +524,26 @@ export function PropertiesPage({
             <div className="mb-6 flex items-center justify-between">
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-48">
-                  <SelectValue />
+                  <SelectValue
+                    placeholder={language === "ar" ? "ترتيب حسب" : "Sort by"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="recommended">
                     {language === "ar" ? "موصى به" : "Recommended"}
                   </SelectItem>
                   <SelectItem value="pricePerNight">
-                    {language === "ar" ? "السعر" : "Price"}
+                    {language === "ar"
+                      ? "السعر: من الأقل للأعلى"
+                      : "Price: Low to High"}
+                  </SelectItem>
+                  <SelectItem value="pricePerNightDesc">
+                    {language === "ar"
+                      ? "السعر: من الأعلى للأقل"
+                      : "Price: High to Low"}
                   </SelectItem>
                   <SelectItem value="averageRating">
-                    {language === "ar" ? "التقييم" : "Rating"}
+                    {language === "ar" ? "الأعلى تقييماً" : "Highest Rated"}
                   </SelectItem>
                   <SelectItem value="createdAt">
                     {language === "ar" ? "الأحدث" : "Newest"}
