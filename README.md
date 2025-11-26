@@ -177,7 +177,7 @@ Users ──────< Properties ──────< Property_Images
    └──────< Favorites           └──────< Transactions
 ```
 
-[View Full Schema →](docs/DATABASE.md)
+[View Full Schema →](Ajarly Documentation.pdf)
 
 ## 🔒 Security Features
 
